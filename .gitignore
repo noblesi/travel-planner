@@ -1,0 +1,32 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Eclipse / Buildship
+.project
+.classpath
+.settings/
+.factorypath
+.apt_generated/
+bin/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Backend
+backend/.gradle/
+backend/build/
+backend/out/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Logs
+*.log
+logs/
