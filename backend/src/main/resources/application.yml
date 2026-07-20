@@ -6,10 +6,6 @@ spring:
     username: ${ORACLE_USERNAME:travel_planner}
     password: ${ORACLE_PASSWORD:travel_planner}
     driver-class-name: oracle.jdbc.OracleDriver
-  mvc:
-    view:
-      prefix: /WEB-INF/jsp/
-      suffix: .jsp
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml
