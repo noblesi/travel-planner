@@ -20,6 +20,7 @@ repositories {
 }
 
 dependencies {
+	compileOnly 'jakarta.servlet:jakarta.servlet-api'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.1'
@@ -42,4 +43,12 @@ tasks.named('test') {
 
 tasks.named('bootWar') {
 	archiveFileName = 'travel-planner.war'
+}
+eclipse {
+    wtp {
+        facet {
+            facet name: 'jst.web', version: '6.1'
+            facet name: 'jst.java', version: '21'
+        }
+    }
 }
