@@ -35,80 +35,145 @@ flowchart LR
 | Node.js | 24.12 이상(24 LTS 권장) | `node -v` |
 | npm | Node.js에 포함 | `npm -v` |
 | Oracle Database | 팀 지정 버전 | DB 접속 테스트 |
-| Eclipse | 백엔드 개발용, Java 21 지원 버전 | `Help > About Eclipse IDE` |
-| VS Code | 프론트엔드 개발용 최신 안정 버전 | `Help > About` |
+| Eclipse | 전체 애플리케이션 개발·실행, Java 21 지원 버전 | `Help > About Eclipse IDE` |
+| VS Code | 전체 애플리케이션 개발·실행, 최신 안정 버전 | `Help > About` |
 
 - Gradle은 별도로 설치하지 않고 `backend`의 Gradle Wrapper를 사용합니다.
 - Node.js 버전은 루트의 `.nvmrc`에 맞춥니다.
-- Vue 작업은 VS Code와 **Vue - Official** 확장을 권장합니다.
+- Eclipse와 VS Code 중 어느 것을 사용해도 Spring Boot와 Vue를 모두 실행할 수 있어야 합니다.
 - Java와 Gradle JVM은 모두 Java 21로 지정합니다.
 - 모든 파일은 UTF-8, 줄바꿈은 LF를 사용합니다.
 
-### Eclipse: Spring Boot 백엔드 개발환경
+### Eclipse에서 전체 애플리케이션 실행
 
-Eclipse는 `backend`의 Java·Spring Boot·MyBatis 코드를 개발할 때 사용합니다.
+Eclipse를 주 IDE로 사용하는 팀원도 Spring Boot 백엔드와 Vue 프론트엔드를 모두 실행합니다. 백엔드는 Eclipse 프로젝트로 가져오고, 프론트엔드는 Eclipse Terminal에서 실행합니다.
 
 #### 설치·업데이트 항목
 
 | 항목 | 조치 |
 | --- | --- |
 | JDK 21 | 반드시 설치합니다. Java 17 이하 또는 Java 22 이상만 설치되어 있어도 프로젝트용 JDK 21을 추가합니다. |
+| Node.js | 24.12 이상을 설치합니다. npm은 Node.js에 포함됩니다. |
 | Eclipse IDE | Java 21을 지원하는 버전으로 설치하거나 업데이트합니다. |
 | Spring Tools 4 | 선택 설치를 권장합니다. Spring Boot 실행과 설정 파일 편집이 편리해집니다. |
 | Gradle | 별도로 설치하지 않습니다. 저장소의 `gradlew.bat`이 Gradle 9.5.1을 자동으로 내려받습니다. |
 | Tomcat | 별도로 설치하거나 Server에 등록하지 않습니다. Spring Boot 내장 서버를 사용합니다. |
 | Oracle JDBC 드라이버 | 직접 설치하지 않습니다. Gradle이 `ojdbc11`을 자동으로 내려받습니다. |
 
-#### 프로젝트 가져오기와 설정
+#### 프로젝트 가져오기와 최초 설치
 
 1. `File > Import > Gradle > Existing Gradle Project`를 선택합니다.
-2. 저장소 전체가 아니라 `travel-planner/backend`를 프로젝트 루트로 지정합니다.
+2. `travel-planner/backend`를 Gradle 프로젝트 루트로 지정합니다.
 3. Gradle 배포 방식은 프로젝트의 **Gradle Wrapper**를 사용합니다.
 4. `Installed JRE`, `Project JRE`, `Java Compiler`, `Gradle JVM`을 모두 Java 21로 지정합니다.
 5. 프로젝트와 워크스페이스 문자 인코딩을 UTF-8로 지정합니다.
-6. `Run Configurations > Environment`에 `ORACLE_URL`, `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `SERVER_PORT`를 등록합니다.
+6. 프론트엔드 소스도 Eclipse에서 편집하려면 `File > Open Projects from File System`으로 `travel-planner/frontend`를 추가합니다.
+7. Eclipse Terminal에서 다음 최초 설치 명령을 실행합니다.
 
-Spring Tools를 설치했다면 Boot Dashboard에서 실행할 수 있습니다. 설치하지 않았다면 `TravelPlannerApiApplication`을 Java Application으로 실행하거나 Eclipse Terminal에서 다음 명령을 사용합니다.
+아래 Eclipse 명령은 Terminal의 현재 위치가 `travel-planner`를 포함하는 상위 폴더인 경우를 기준으로 합니다. Terminal이 이미 저장소 루트에서 열렸다면 경로에서 `travel-planner/`를 생략합니다.
 
-```bat
-cd backend
-gradlew.bat bootRun
+```powershell
+cd travel-planner/frontend
+npm ci
+
+cd ../backend
+.\gradlew.bat test
 ```
 
-Eclipse에서 JSP·JSTL·외부 Tomcat 설정은 사용하지 않습니다. 화면은 VS Code의 Vue 프로젝트에서 개발하고 Eclipse는 REST API와 서버 계층 개발에 집중합니다.
+#### 백엔드와 프론트엔드 동시 실행
 
-### VS Code: Vue 프론트엔드 개발환경
+Eclipse에서 Terminal을 두 개 열고 각각 실행합니다. Oracle을 먼저 실행하고 백엔드 환경변수는 [4. 환경변수 설정](#4-환경변수-설정)의 값을 적용합니다.
 
-VS Code는 `frontend`의 Vue 화면·라우터·상태·API 연동 코드를 개발할 때 사용합니다.
+터미널 1 — Spring Boot:
+
+```powershell
+cd travel-planner/backend
+.\gradlew.bat bootRun
+```
+
+터미널 2 — Vue:
+
+```powershell
+cd travel-planner/frontend
+npm run dev
+```
+
+Spring Tools를 설치했다면 백엔드는 Boot Dashboard에서 실행해도 됩니다. 이 경우 `Run Configurations > Environment`에 `ORACLE_URL`, `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `SERVER_PORT`를 등록합니다. Spring Tools가 없다면 `TravelPlannerApiApplication`을 Java Application으로 실행할 수도 있습니다.
+
+정상 실행 주소:
+
+- Vue: `http://localhost:5173`
+- Spring Boot: `http://localhost:8080`
+- API 상태 확인: `http://localhost:8080/api/health`
+
+Eclipse에서도 JSP·JSTL·외부 Tomcat 설정은 사용하지 않습니다. 화면은 Vue 개발 서버가 제공하고 REST API는 Spring Boot 내장 서버가 제공합니다.
+
+### VS Code에서 전체 애플리케이션 실행
+
+VS Code를 주 IDE로 사용하는 팀원도 Vue 프론트엔드와 Spring Boot 백엔드를 모두 실행합니다. 저장소 루트를 열고 VS Code Terminal 두 개를 사용하면 됩니다.
 
 #### 설치·업데이트 항목
 
 | 항목 | 조치 |
 | --- | --- |
+| JDK 21 | 반드시 설치하고 VS Code의 Java Runtime을 Java 21로 지정합니다. |
 | Node.js | 24.12 이상을 설치합니다. 팀 표준은 루트 `.nvmrc`에 맞춘 Node 24 LTS입니다. |
 | npm | Node.js에 포함되므로 별도로 설치하지 않습니다. |
 | VS Code | 최신 안정 버전으로 설치하거나 업데이트합니다. |
 | Vue - Official | 필수 권장 확장입니다. Vue SFC 문법과 자동완성을 지원합니다. |
 | ESLint | 필수 권장 확장입니다. 저장소의 ESLint 규칙을 편집기에 표시합니다. |
+| Extension Pack for Java | 백엔드 코드 편집·실행·디버깅을 위해 설치를 권장합니다. |
+| Spring Boot Extension Pack | Spring Boot Dashboard 실행을 원하면 선택 설치합니다. |
 | Prettier | 선택 확장입니다. 실제 포맷 기준은 저장소 설정과 npm 스크립트를 따릅니다. |
 | Vetur | 설치되어 있다면 비활성화하거나 제거합니다. `Vue - Official`과 함께 사용하지 않습니다. |
 | Vue·Vite 등 npm 패키지 | 전역 설치하지 않습니다. `npm ci`가 `package-lock.json` 기준으로 설치합니다. |
 
-#### 프로젝트 열기와 실행
+#### 프로젝트 열기와 최초 설치
 
-1. VS Code에서 `travel-planner/frontend` 폴더를 엽니다.
-2. VS Code Terminal에서 Node와 npm 버전을 확인합니다.
-3. 최초 한 번 또는 `package-lock.json` 변경 후 `npm ci`를 실행합니다.
-4. `npm run dev`로 Vue 개발 서버를 실행합니다.
+1. VS Code에서 `travel-planner` 저장소 루트를 엽니다.
+2. `Java: Configure Java Runtime`에서 프로젝트 JDK를 Java 21로 지정합니다.
+3. VS Code Terminal에서 Java, Node.js, npm 버전을 확인합니다.
+4. 프론트엔드와 백엔드의 최초 설치·테스트를 실행합니다.
 
 ```powershell
+java -version
 node -v
 npm -v
+
+cd frontend
 npm ci
+
+cd ../backend
+.\gradlew.bat test
+```
+
+#### 프론트엔드와 백엔드 동시 실행
+
+VS Code에서 Terminal을 두 개 열고 각각 실행합니다. Oracle을 먼저 실행하고 백엔드 환경변수는 [4. 환경변수 설정](#4-환경변수-설정)의 값을 적용합니다.
+
+터미널 1 — Spring Boot:
+
+```powershell
+cd backend
+.\gradlew.bat bootRun
+```
+
+터미널 2 — Vue:
+
+```powershell
+cd frontend
 npm run dev
 ```
 
-저장소 루트에서 VS Code를 열었다면 먼저 `cd frontend`로 이동합니다. 기본 프론트엔드 주소는 `http://localhost:5173`이며 `/api` 요청은 실행 중인 Spring Boot 서버 `http://localhost:8080`으로 전달됩니다.
+Spring Boot Extension Pack을 설치했다면 백엔드는 Spring Boot Dashboard에서 실행해도 됩니다. 이 경우 실행 구성에 Oracle 환경변수를 등록해야 합니다. Vue는 VS Code Terminal에서 `npm run dev`로 실행합니다.
+
+정상 실행 주소:
+
+- Vue: `http://localhost:5173`
+- Spring Boot: `http://localhost:8080`
+- API 상태 확인: `http://localhost:8080/api/health`
+
+Vite 개발 서버의 `/api` 요청은 실행 중인 Spring Boot 서버로 전달됩니다. 따라서 어떤 IDE를 사용하든 두 서버가 모두 실행 중이어야 전체 화면과 API 연동을 확인할 수 있습니다.
 
 팀원이 개별적으로 `npm update`, `npm install <패키지>@latest`, Gradle 또는 Spring Boot 버전 변경을 수행하지 않습니다. 공통 의존성 업그레이드는 별도 브랜치에서 테스트한 후 PR로 반영합니다.
 
