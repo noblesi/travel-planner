@@ -17,7 +17,7 @@ import { RouterLink } from 'vue-router'
       </nav>
 
       <div class="header__actions">
-        <button class="text-button" type="button">로그인</button>
+        <button class="text-button" type="button" id="loginBtn">로그인</button>
         <button class="primary-button" type="button">회원가입</button>
       </div>
     </div>
