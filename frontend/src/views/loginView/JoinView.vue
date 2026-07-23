@@ -1,52 +1,85 @@
 <script setup>
+
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/userStore'
 
 const email = ref('')
 const password = ref('')
 const passwordCheck = ref('')
-
-
+const router = useRouter()
+const userStore = useUserStore()
 
 const isPasswordMatched = computed(() => {
   if (!passwordCheck.value) return true; 
   return password.value === passwordCheck.value;
 });
 
-const handleContinue = () => {
-  if (!email.value) {
-    alert('이메일 주소를 입력해주세요.')
-    return
-  }
+const backPageMove = () => {
+  history.back()
+}
 
+const handleContinue = () => {
+  
+  checkedId()
+  
+}
+
+const passCheckNull = () => {
   if (!password.value){
     alert('비밀번호를 입력해주세요.')
-    return
+    return false
   }
 
   if (password.value.length < 10){
     alert('비밀번호는 10자 이상 입력해주셔야 합니다.')
-    return
+    return false
   }
   
   if (!isPasswordMatched.value) {
-    alert('비밀번호가 일치하지 않습니다.');
-    return;
+    alert('비밀번호가 일치하지 않습니다.')
+    return false
   }
-
-  alert("로그인 유효성 검사")
-
+  return true
 }
 
+const checkedId = () => {
+  var testid = "test@test.com"
+  
+  if (!email.value) {
+    alert('이메일 주소를 입력해주세요.')
+    return false
+  }
 
+  if(email.value.charAt('@') < 0 || email.value.lastIndexOf('.') < 0 || email.value.lastIndexOf('.')+1 == email.value.length ) {
+    alert("이메일을 정확하게 입력하여 주세요")
+    return false
+  }
+
+  if(passCheckNull()){
+    if(testid === email.value){
+      alert("사용중인 이메일 입니다.")
+      return false
+    }else{
+      userStore.setStep1Data(email.value, password.value)
+      router.push('/joinProfileView')
+    }
+  } else {
+    return false
+  }
+
+}
 
 </script>
 
 <template>
   <div class="login-container">
     <div class="login-box">
-      
+      <div style="height: 30px; text-align: left;">
+        <div class="back-button" v-on:click="backPageMove" style="height: 30px; width: 20px; text-align: center;"><strong><</strong></div>
+      </div>
       <!-- 메인 타이틀 -->
-      <div style="margin-top: 30px;">
+      <div>
         <h1 class="main-title">
             나만의 플랜을 계획해보세요<br />
             <span>회원가입</span>
@@ -90,7 +123,7 @@ const handleContinue = () => {
           </div>
         </div>
         
-        <button type="submit" class="btn-submit">가입하기</button>
+        <button type="button" @click="handleContinue" class="btn-submit">다음으로</button>
       </form>
       <div class="divider">
         <span class="divider-text">또는 다음으로 계속하기</span>
@@ -120,6 +153,16 @@ const handleContinue = () => {
 </template>
 
 <style lang="scss" scoped>
+.back-button{
+  margin-left: 20px;
+    
+}
+.back-button:hover{
+  cursor: pointer;
+  //background-color: #fff;
+  color: #2383e2;
+}
+
 .passwordMatchedDiv{
   height: 14px;
   text-align: center;

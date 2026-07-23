@@ -17,12 +17,22 @@ const router = createRouter({
     {
       path: '/loginView',
       name: 'login',
-      component: LoginView,
+      component: () => import('@/views/loginView/LoginView.vue'),
     },
     {
       path: '/joinView',
       name: 'join',
       component: () => import('@/views/loginView/JoinView.vue'),
+    },
+    {
+      path: '/joinProfileView',
+      name: 'joinProfile',
+      component: () => import('@/views/loginView/JoinProfileView.vue'),
+    },
+    {
+      path: '/passwordFind',
+      name: 'find',
+      component: () => import('@/views/loginView/PasswordFind.vue'),
     },
   ],
 })
