@@ -6,7 +6,8 @@
 
 - 원격 저장소: `https://github.com/noblesi/travel-planner.git`
 - 작업 브랜치: `KMS`
-- 문서 작성 직전 HEAD: `5a34332 feat: WithTrip 로고 및 파비콘 적용과 UI·ERD 설계 문서 추가`
+- 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
+- 현재 작업 묶음: 여행 플랜 Oracle DDL과 1차 API 계약 작성 완료
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
 
@@ -29,12 +30,27 @@ git pull origin KMS
 
 - UI 설계서: `docs/design/UI설계.pdf`
 - ERD 원본: `docs/database/travelplanner_v2.exerd`
+- 여행 플랜 Oracle DDL: `docs/database/ddl/`
+- 여행 플랜 1차 API 계약: `docs/api/travel-plan-api.md`
+- API 오류 코드: `docs/api/error-codes.md`
 - 파비콘: `frontend/public/favicon-32.png`, `favicon-64.png`, `favicon-192.png`, `favicon-512.png`
 - 헤더 및 심볼 로고: `frontend/src/assets/branding/`
 - 웹 앱 매니페스트: `frontend/public/site.webmanifest`
 - 헤더 로고 적용: `frontend/src/components/AppHeader.vue`
 
 JUnit 테스트 구성은 담당자의 의도에 따라 제거한 상태이며 복구 대상이 아니다.
+
+## 이번 작업 완료 사항
+
+- 여행 플랜 핵심 Table 8개, Sequence 4개, Index 11개, Constraint 45개를 Oracle DDL로 작성했다.
+- TourAPI 시·도 코드 17건을 `REGION_MASTER` 초기 Data로 작성했다.
+- 인증이 확정되기 전에도 Schema를 생성할 수 있도록 `MEMBER`, `ADMIN` 외래키는 선택 Script로 분리했다.
+- `GET /api/regions`, `POST /api/plans`, `GET /api/plans/{planId}/editor` 계약을 확정했다.
+- 공통 오류 응답은 기존 `ErrorResponse` 구조와 일치하도록 작성했다.
+- Oracle `NUMBER(19)` ID는 JavaScript 정밀도 손실을 막기 위해 JSON 문자열로 반환하기로 결정했다.
+- DDL과 eXERD Column·Type 비교, SQL 정적 검사, Seed 중복 검사, API JSON Example Parsing과 문서 링크 검사를 완료했다.
+
+실제 Oracle 적용 검증은 현재 환경에 `sqlplus` 또는 SQLcl이 없어 아직 수행하지 못했다.
 
 ## 담당 개발 범위
 
@@ -62,7 +78,7 @@ UI 설계서 기준 참고 화면:
 | 지도 | 카카오맵스 API |
 | 인증 방식 | 미정 |
 | 초대 기능 | 포함 |
-| DB 테이블 | 아직 생성되지 않음 |
+| DB 테이블 | 아직 생성되지 않음. 핵심 DDL 작성 완료 |
 
 결정되지 않은 항목은 임의로 확정하거나 코드에 고정하지 않는다.
 
@@ -122,7 +138,7 @@ CurrentMemberProvider
 - 일정 표시 순서는 1 이상이다.
 - 플랜, 일차, 일정 항목에 버전 컬럼이 존재한다.
 
-DB가 아직 생성되지 않았으므로 Oracle DDL과 국내 지역 초기 데이터가 먼저 필요하다. TourAPI 지역코드와 `REGION_MASTER.REGION_CODE` 사이의 매핑 규칙도 정해야 한다.
+Oracle DDL과 국내 시·도 초기 데이터는 `docs/database/ddl/`에 작성되어 있다. 실제 DB 적용과 검증은 아직 필요하다. `REGION_MASTER.REGION_CODE`는 시·도의 경우 TourAPI `areaCode`, 시·군·구의 경우 `{areaCode}-{sigunguCode}` 형식을 사용한다.
 
 ## 기능 흐름
 
@@ -141,14 +157,23 @@ flowchart LR
     K --> L["작업별 자동 저장 및 버전 갱신"]
 ```
 
-## 권장 API 계약
+## API 계약 상태
+
+지역 조회, 플랜 생성, 제작 페이지 초기 조회의 확정 계약은 `docs/api/travel-plan-api.md`를 기준으로 한다. 공통 오류 형식과 코드는 `docs/api/error-codes.md`를 사용한다.
+
+1차 확정 Endpoint:
 
 ```text
+GET    /api/regions
 POST   /api/plans
 GET    /api/plans/{planId}/editor
+```
+
+아래 Endpoint는 후속 구현 방향이며 Request·Response 계약은 아직 확정되지 않았다.
+
+```text
 PATCH  /api/plans/{planId}
 
-GET    /api/regions
 GET    /api/places?query=&regionCode=&page=
 
 POST   /api/plans/{planId}/days/{dayId}/items
@@ -208,8 +233,8 @@ backend/src/main/java/com/noblesi/travelplanner/
 
 ## 구현 순서
 
-1. ERD 기준 Oracle DDL 작성
-2. API 요청·응답 DTO와 오류 코드를 확정
+1. ERD 기준 Oracle DDL 작성 (완료, 실제 Oracle 적용 필요)
+2. API 요청·응답 DTO와 오류 코드를 확정 (1차 계약 완료, 구현 필요)
 3. 국내 지역 조회 API 구현
 4. 여행 플랜 생성 API 구현
 5. 설정 페이지 구현 및 생성 API 연결
@@ -240,5 +265,7 @@ backend/src/main/java/com/noblesi/travelplanner/
 
 1. `KMS` 브랜치와 작업 트리 상태 확인
 2. 인증과 DB 관련 미정 항목이 새로 결정됐는지 확인
-3. 변경사항이 없다면 Oracle DDL 및 플랜 API 계약부터 작성
-4. 설정 페이지 → 제작 페이지 순으로 구현
+3. `docs/database/ddl/README.md` 순서대로 Oracle DDL과 Seed를 적용하고 검증
+4. `docs/api/travel-plan-api.md` 기준으로 지역 조회 API 구현
+5. 플랜 생성 API와 제작 페이지 초기 조회 API 구현
+6. 설정 페이지 → 제작 페이지 순으로 Frontend 연결
