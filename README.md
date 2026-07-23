@@ -24,6 +24,8 @@ flowchart LR
     D --> E[(Oracle)]
 ```
 
+UI 및 데이터 모델 원본은 [설계 자료](docs/README.md)에서 확인합니다.
+
 세부 코딩 규칙과 PR 체크리스트는 [CONTRIBUTING.md](CONTRIBUTING.md)를 확인합니다.
 
 ## 1. 필수 프로그램
