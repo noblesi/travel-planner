@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 
+// 탭, 검색어, 기간, 상태 필터의 현재 선택값입니다.
 const selectedTab = ref('all')
 const keyword = ref('')
 const joinPeriod = ref('all')
@@ -13,6 +14,7 @@ const tabs = [
   { label: '탈퇴', value: 'withdrawn' },
 ]
 
+// 회원 목록 조회 API 응답으로 교체할 화면 확인용 데이터입니다.
 const members = ref([
   {
     memberNumber: 'M-111111',
@@ -43,6 +45,7 @@ const members = ref([
   },
 ])
 
+// 원본 회원 배열을 변경하지 않고 선택된 조건에 맞는 행만 계산합니다.
 const filteredMembers = computed(() => {
   const normalizedKeyword = keyword.value.trim().toLowerCase()
 
@@ -65,6 +68,7 @@ const filteredMembers = computed(() => {
 })
 
 const statusText = (status) => {
+  // 백엔드 상태 코드를 화면에 표시할 한글 명칭으로 변환합니다.
   const statusMap = {
     active: '정상',
     suspended: '정지',
@@ -75,10 +79,12 @@ const statusText = (status) => {
 }
 
 const suspendMember = (member) => {
+  // 회원 정지 API 성공 후 상태를 갱신하도록 변경합니다.
   member.status = 'suspended'
 }
 
 const activateMember = (member) => {
+  // 회원 정지 해제 API 성공 후 상태를 갱신하도록 변경합니다.
   member.status = 'active'
 }
 </script>

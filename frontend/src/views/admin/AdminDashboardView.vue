@@ -1,10 +1,10 @@
 <script setup>
-import { reactive } from 'vue'
 import newUserIcon from '@/assets/icons/admin/newmember_icon.png'
 import peopleIcon from '@/assets/icons/admin/member_icon.png'
 import planIcon from '@/assets/icons/admin/plan_icon.png'
 import reportIcon from '@/assets/icons/admin/report_icon.png'
 
+// 대시보드 통계 API 응답으로 교체할 요약 카드 데이터입니다.
 const summaryCards = [
   { label: '전체 회원', value: '3,000', image: peopleIcon, imageClass: 'summary-image--people', caption: '전월 대비 12% 증가', tone: 'positive' },
   { label: '신규 가입자 수', value: '15', image: newUserIcon, caption: '오늘 신규 가입', tone: 'positive' },
@@ -12,6 +12,7 @@ const summaryCards = [
   { label: '신고 검토 대기', value: '13', image: reportIcon, caption: '확인이 필요합니다', tone: 'warning' },
 ]
 
+// 최근 7일 플랜 생성 통계 API 응답으로 교체합니다.
 const weeklyPlans = [
   { day: '월', value: 50 },
   { day: '화', value: 38 },
@@ -22,23 +23,14 @@ const weeklyPlans = [
   { day: '일', value: 28 },
 ]
 
-const recommendationWeights = reactive({
-  companion: 0,
-  preference: 0,
-  activity: 0,
-  budget: 0,
-})
-
-const resetWeights = () => {
-  Object.keys(recommendationWeights).forEach((key) => {
-    recommendationWeights[key] = 0
-  })
-}
-
-const saveWeights = () => {
-  console.log('추천 점수 규칙 저장', recommendationWeights)
-  alert('추천 점수 규칙을 저장했습니다.')
-}
+// 지역별 공개 여행 플랜 수를 많은 순서대로 표시합니다.
+const popularRegions = [
+  { rank: 1, name: '제주', count: 142, percentage: 100 },
+  { rank: 2, name: '서울', count: 118, percentage: 83 },
+  { rank: 3, name: '부산', count: 96, percentage: 68 },
+  { rank: 4, name: '강원', count: 72, percentage: 51 },
+  { rank: 5, name: '경주', count: 51, percentage: 36 },
+]
 </script>
 
 <template>
@@ -46,7 +38,7 @@ const saveWeights = () => {
     <div class="dashboard-content">
       <header class="page-header">
         <h1>대시보드</h1>
-        <p>서비스 현황과 추천 콘텐츠 노출 규칙을 확인합니다.</p>
+        <p>WithTrip 서비스의 주요 운영 현황을 확인합니다.</p>
       </header>
 
       <div class="summary-grid">
@@ -100,82 +92,31 @@ const saveWeights = () => {
           </div>
         </article>
 
-        <article class="panel recommendation-panel">
-          <h2>추천 점수 규칙 설정</h2>
-          <p>메인 화면 추천 콘텐츠 노출 순위를 계산하는 기준입니다.</p>
-
-          <div class="rule-guide">
-            <strong>운영 가이드</strong>
-            <span>항목별 비중을 조정해 추천 기준을 설정할 수 있습니다.</span>
-          </div>
-
-          <form class="weight-form" @submit.prevent="saveWeights">
-            <label>
-              <span>좋아요 수</span>
-              <span class="input-wrap">
-                <input
-                  v-model.number="recommendationWeights.companion"
-                  type="number"
-                  min="0"
-                  max="100"
-                />
-                <small>%</small>
-              </span>
-            </label>
-
-            <label>
-              <span>조회 수</span>
-              <span class="input-wrap">
-                <input
-                  v-model.number="recommendationWeights.preference"
-                  type="number"
-                  min="0"
-                  max="100"
-                />
-                <small>%</small>
-              </span>
-            </label>
-
-            <label>
-              <span>일정 저장 수</span>
-              <span class="input-wrap">
-                <input
-                  v-model.number="recommendationWeights.activity"
-                  type="number"
-                  min="0"
-                  max="100"
-                />
-                <small>%</small>
-              </span>
-            </label>
-
-            <label>
-              <span>최신성 점수</span>
-              <span class="input-wrap">
-                <input
-                  v-model.number="recommendationWeights.budget"
-                  type="number"
-                  min="0"
-                  max="100"
-                />
-                <small>%</small>
-              </span>
-            </label>
-
-            <div class="form-actions">
-              <button
-                class="reset-button"
-                type="button"
-                @click="resetWeights"
-              >
-                초기화
-              </button>
-
-              <button class="save-button" type="submit">
-                규칙 저장
-              </button>
+        <article class="panel region-panel">
+          <header class="panel-header">
+            <div>
+              <h2>인기 여행 지역 TOP 5</h2>
+              <p>공개 여행 플랜이 많이 등록된 지역입니다.</p>
             </div>
-          </form>
+            <span class="panel-unit">단위: 개</span>
+          </header>
+
+          <ol class="region-list">
+            <li
+              v-for="region in popularRegions"
+              :key="region.name"
+              class="region-item"
+            >
+              <span class="region-rank">{{ region.rank }}</span>
+              <strong class="region-name">{{ region.name }}</strong>
+
+              <div class="region-progress" aria-hidden="true">
+                <span :style="{ width: `${region.percentage}%` }" />
+              </div>
+
+              <strong class="region-count">{{ region.count }}</strong>
+            </li>
+          </ol>
         </article>
       </div>
     </div>
@@ -189,8 +130,8 @@ const saveWeights = () => {
 
 .dashboard {
   min-height: 100%;
-  background: #f5f7fa;
-  color: #20242a;
+  background: var(--admin-page-bg);
+  color: var(--admin-text);
 }
 
 .top-bar {
@@ -237,9 +178,9 @@ const saveWeights = () => {
   justify-content: space-between;
   min-height: 132px;
   padding: 22px 24px;
-  border: 1px solid #e0e3e8;
+  border: 1px solid var(--admin-border);
   border-radius: 5px;
-  background: #ffffff;
+  background: var(--admin-surface);
   box-shadow: 0 2px 7px rgb(31 41 55 / 4%);
 }
 
@@ -279,8 +220,8 @@ const saveWeights = () => {
   height: 46px;
   place-items: center;
   border-radius: 5px;
-  background: #d5eeea;
-  color: #ff771c;
+  background: var(--admin-orange-soft);
+  color: var(--admin-orange);
   font-size: 17px;
   font-weight: 900;
 }
@@ -308,9 +249,9 @@ const saveWeights = () => {
 .panel {
   min-height: 430px;
   padding: 26px;
-  border: 1px solid #dce0e5;
+  border: 1px solid var(--admin-border);
   border-radius: 5px;
-  background: #ffffff;
+  background: var(--admin-surface);
 }
 
 .panel h2 {
@@ -378,7 +319,7 @@ const saveWeights = () => {
 .bar {
   width: 42px;
   max-height: 210px;
-  background: #f6ae28;
+  background: var(--admin-orange);
 }
 
 .bar-label {
@@ -387,95 +328,82 @@ const saveWeights = () => {
   font-size: 13px;
 }
 
-.recommendation-panel > p {
-  margin: 8px 0 30px;
-  color: #9a9ea6;
-  font-size: 13px;
-}
-
-.rule-guide {
+.region-list {
   display: grid;
-  gap: 5px;
-  margin-bottom: 26px;
-  padding: 14px 16px;
-  border-radius: 6px;
-  background: #fff7f1;
-  color: #6f625b;
+  gap: 24px;
+  margin: 34px 0 0;
+  padding: 0;
+  list-style: none;
 }
 
-.rule-guide strong {
-  color: #e66931;
-  font-size: 13px;
-}
-
-.rule-guide span {
-  font-size: 12px;
-  line-height: 1.55;
-}
-
-.weight-form {
+.region-item {
   display: grid;
-  gap: 18px;
-}
-
-.weight-form label {
-  display: flex;
+  grid-template-columns: 28px 54px minmax(100px, 1fr) 42px;
   align-items: center;
-  justify-content: space-between;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.input-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.input-wrap input {
-  width: 70px;
-  height: 36px;
-  padding: 0 8px;
-  border: 1px solid #cfd4da;
-  border-radius: 5px;
-  outline: none;
-}
-
-.input-wrap input:focus {
-  border-color: #ff7a32;
-}
-
-.input-wrap small {
-  width: 12px;
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
   gap: 12px;
-  margin-top: 34px;
+  font-size: 14px;
 }
 
-.form-actions button {
-  min-width: 92px;
-  height: 40px;
-  border-radius: 5px;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
+.region-rank {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--admin-orange-soft);
+  color: var(--admin-orange);
+  font-size: 12px;
+  font-weight: 800;
 }
 
-.reset-button {
-  border: 1px solid #ff8a65;
-  background: #ffffff;
-  color: #ff7043;
+.region-name {
+  font-size: 14px;
 }
 
-.save-button {
-  border: 1px solid #ed926d;
-  background: #ed926d;
-  color: #ffffff;
+.region-progress {
+  height: 14px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #f1ebe7;
 }
+
+.region-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--admin-orange);
+}
+
+.region-count {
+  text-align: right;
+  font-size: 14px;
+}
+
+.region-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.region-panel .panel-header {
+  flex: 0 0 auto;
+}
+
+.region-list {
+  flex: 1;
+  align-content: center;
+}
+
+@media (max-width: 480px) {
+  .region-item {
+    grid-template-columns: 28px 46px minmax(80px, 1fr) 36px;
+    gap: 8px;
+  }
+}
+
+/*
+ * 추천 점수 규칙은 여행 플랜 관리 화면의 모달로 이동할 예정입니다.
+ * 대시보드에서는 운영 현황을 보여주는 인기 지역 통계만 표시합니다.
+ */
 
 @media (max-width: 1100px) {
   .summary-grid {

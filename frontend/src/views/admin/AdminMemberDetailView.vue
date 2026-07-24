@@ -5,10 +5,12 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
+// /admin/members/:memberId의 동적 URL 값을 가져옵니다.
 const memberId = computed(() => route.params.memberId)
 const isEditingMemo = ref(false)
 const adminMemo = ref('특이 사항 없음')
 
+// memberId를 전달한 회원 상세 API 응답으로 교체합니다.
 const member = reactive({
   name: '김민수',
   email: 'minsul2@test.com',
@@ -26,6 +28,7 @@ const activities = [
   { label: '신고 누적', value: 0 },
 ]
 
+// 상태 코드가 바뀌면 화면의 상태 문구도 자동으로 다시 계산됩니다.
 const statusText = computed(() => {
   const statusMap = {
     active: '정상 회원',
@@ -37,10 +40,12 @@ const statusText = computed(() => {
 })
 
 const toggleMemberStatus = () => {
+  // 회원 정지/해제 API 성공 결과에 따라 상태를 변경합니다.
   member.status = member.status === 'suspended' ? 'active' : 'suspended'
 }
 
 const saveMemo = () => {
+  // 관리자 메모 저장 API 호출 후 편집 상태를 종료합니다.
   isEditingMemo.value = false
 }
 </script>

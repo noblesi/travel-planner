@@ -7,6 +7,7 @@ import AppAdminSidebar from '@/components/admin/AppAdminSidebar.vue'
 
 const route = useRoute()
 
+// 자식 라우트의 meta.title이 바뀌면 공통 헤더 제목도 자동으로 갱신됩니다.
 const pageTitle = computed(() => route.meta.title || '관리자')
 </script>
 
@@ -18,6 +19,7 @@ const pageTitle = computed(() => route.meta.title || '관리자')
       <AppAdminHeader :page-title="pageTitle" />
 
       <main class="admin-content">
+        <!-- 현재 URL과 일치하는 관리자 자식 View가 이 위치에 렌더링됩니다. -->
         <RouterView />
       </main>
     </div>
@@ -26,11 +28,21 @@ const pageTitle = computed(() => route.meta.title || '관리자')
 
 <style scoped>
 .admin-layout {
+  --admin-page-bg: #fff5ed;
+  --admin-surface: #ffffff;
+  --admin-orange: #f3883b;
+  --admin-orange-hover: #e8792f;
+  --admin-orange-soft: #fff0e5;
+  --admin-text: #252a31;
+  --admin-muted: #858c96;
+  --admin-border: #eee3db;
+
   display: flex;
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background: #f5f7fa;
+  background: var(--admin-page-bg);
+  color: var(--admin-text);
 }
 
 .admin-main {
@@ -38,6 +50,7 @@ const pageTitle = computed(() => route.meta.title || '관리자')
   min-width: 0;
   height: 100vh;
   overflow: hidden;
+  background: var(--admin-page-bg);
 }
 
 .admin-content {

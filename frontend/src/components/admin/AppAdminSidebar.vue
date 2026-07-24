@@ -3,6 +3,7 @@ import { RouterLink, useRouter } from 'vue-router'
 
 const router = useRouter()
 
+// 공통 사이드바 메뉴입니다. path는 adminRouter.js의 경로와 일치해야 합니다.
 const menuItems = [
   {
     name: '대시보드',
@@ -27,7 +28,7 @@ const menuItems = [
 ]
 
 const logout = () => {
-  // 실제 로그인 기능이 생기면 토큰을 여기서 삭제합니다.
+  // 백엔드 로그아웃 API 및 Pinia 인증 상태 초기화와 연결합니다.
   localStorage.removeItem('adminAccessToken')
   router.push('/admin/login')
 }
@@ -78,8 +79,9 @@ const logout = () => {
   min-width: 240px;
   height: 100%;
   overflow-y: auto;
-  background: #2b201c;
-  color: #ffffff;
+  border-right: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text);
 }
 
 .sidebar-header {
@@ -87,7 +89,7 @@ const logout = () => {
   flex-direction: column;
   gap: 7px;
   padding: 20px 18px;
-  border-bottom: 1px solid rgb(255 255 255 / 25%);
+  border-bottom: 1px solid var(--admin-border);
 }
 
 .logo {
@@ -108,7 +110,7 @@ const logout = () => {
   margin: 14px;
   padding: 14px;
   border-radius: 6px;
-  background: #513224;
+  background: var(--admin-orange-soft);
 }
 
 .profile-image {
@@ -130,7 +132,7 @@ const logout = () => {
 }
 
 .profile-information span {
-  color: #d0c3bc;
+  color: var(--admin-muted);
   font-size: 11px;
 }
 
@@ -153,7 +155,7 @@ const logout = () => {
   min-height: 45px;
   padding: 0 17px;
   border-radius: 5px;
-  color: #ffffff;
+  color: var(--admin-text);
   font-size: 14px;
   font-weight: 750;
   text-decoration: none;
@@ -163,7 +165,7 @@ const logout = () => {
 }
 
 .navigation-item:hover {
-  background: rgb(255 255 255 / 9%);
+  background: var(--admin-orange-soft);
 }
 
 .navigation-item:active {
@@ -171,29 +173,30 @@ const logout = () => {
 }
 
 .navigation-item.router-link-active {
-  background: #ff6815;
+  background: var(--admin-orange);
+  color: #ffffff;
 }
 
 .sidebar-footer {
   margin-top: auto;
   padding: 18px 14px;
-  border-top: 1px solid rgb(255 255 255 / 25%);
+  border-top: 1px solid var(--admin-border);
 }
 
 .logout-button {
   width: 100%;
   height: 42px;
-  border: 1px solid #ebe1dc;
+  border: 1px solid var(--admin-orange);
   border-radius: 5px;
   background: #ffffff;
-  color: #ec6b43;
+  color: var(--admin-orange);
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
 }
 
 .logout-button:hover {
-  background: #fff5ef;
+  background: var(--admin-orange-soft);
 }
 
 @media (max-width: 800px) {

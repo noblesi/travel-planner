@@ -1,10 +1,12 @@
 <script setup>
 defineProps({
+  // AdminLayout이 현재 라우트의 meta.title을 전달합니다.
   pageTitle: {
     type: String,
     required: true,
   },
   adminName: {
+    // 추후 로그인한 관리자 정보로 교체할 기본 표시값입니다.
     type: String,
     default: '홍길동',
   },
@@ -30,9 +32,9 @@ defineProps({
   justify-content: space-between;
   height: 48px;
   padding: 0 30px;
-  border-bottom: 1px solid #e7e9ed;
-  background: #ffffff;
-  color: #555b64;
+  border-bottom: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-muted);
   font-size: 12px;
 }
 
@@ -43,15 +45,15 @@ defineProps({
 }
 
 .separator {
-  color: #a4a8af;
+  color: var(--admin-muted);
 }
 
 .breadcrumb strong {
-  color: #30343a;
+  color: var(--admin-text);
 }
 
 .admin-name {
-  color: #555b64;
+  color: var(--admin-text);
 }
 
 @media (max-width: 650px) {

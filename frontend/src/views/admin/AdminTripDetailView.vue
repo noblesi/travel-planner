@@ -4,19 +4,23 @@ import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
+// /admin/trips/:tripId의 플랜 번호입니다. 상세 API 조회 시 사용합니다.
 const tripId = computed(() => route.params.tripId)
 
+// tripId로 조회한 상세 API의 일정 목록으로 교체합니다.
 const schedules = [
   { order: 1, name: '경복궁', time: '09:30', detail: '서촌 여행 시작 장소' },
   { order: 2, name: '토속촌 삼계탕', time: '12:30', detail: '점심 / 예상 비용 15,000원' },
   { order: 3, name: '창덕궁', time: '14:30', detail: '고궁 관람' },
 ]
 
+// 신고 및 운영 기록 API 응답으로 교체합니다.
 const reports = [
-  { date: '2026-07-13', reason: '과도한 광고', status: '조치' },
-  { date: '2026-07-16', reason: '불법 생성', status: '상태' },
+  { id: 'R-221133', date: '2026-07-13', reason: '부적절한 내용', status: '검토 대기' },
+  { id: 'R-221144', date: '2026-07-16', reason: '과도한 광고', status: '검토 완료' },
 ]
 
+// 콘텐츠 지표와 추천 점수 통계 API 응답으로 교체합니다.
 const metrics = [
   { label: '좋아요', value: '1,067' },
   { label: '저장', value: '60' },
@@ -81,6 +85,12 @@ const scores = [
         <div class="panel-heading"><h2>신고 및 운영 기록</h2><span class="report-count">신고 2건</span></div>
         <div v-for="report in reports" :key="report.date" class="report-row">
           <span>{{ report.date }}</span><strong>{{ report.reason }}</strong><em>{{ report.status }}</em>
+          <button
+            type="button"
+            @click="router.push({ name: 'admin-report-detail', params: { reportId: report.id } })"
+          >
+            상세
+          </button>
         </div>
       </article>
       <article class="panel score-panel">
@@ -108,7 +118,7 @@ const scores = [
 .schedule-list { display: grid; gap: 10px; margin-top: 18px; }.schedule-item { display: flex; align-items: center; gap: 12px; padding: 11px 13px; border: 1px solid #afb5bd; border-radius: 5px; }.schedule-item b { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 50%; background: #ff6c20; color: #fff; }.schedule-item strong { font-size: 13px; }.schedule-item p { margin: 4px 0 0; color: #8e949d; font-size: 11px; }.more-button { display: block; margin: 12px auto 0; padding: 7px 16px; border: 0; border-radius: 4px; background: #292d33; color: #fff; cursor: pointer; }
 .side-stack { display: grid; gap: 16px; }.map-panel { padding-bottom: 16px; }.map-placeholder { position: relative; display: grid; height: 145px; margin-top: 14px; overflow: hidden; place-items: center; background: repeating-linear-gradient(135deg, #2e2d4d 0 18px, #44425f 19px 22px); color: rgb(255 255 255 / 35%); }.pin { position: absolute; color: #6170ff; font-size: 22px; }.pin--one { top: 20px; left: 14%; }.pin--two { top: 72px; left: 30%; }.pin--three { top: 63px; right: 17%; }
 .metric-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }.metric-list > div { padding: 10px 12px; border: 1px solid #f09a79; border-radius: 10px; background: #fff1eb; }.metric-list span, .metric-list strong { display: block; }.metric-list span { color: #9298a0; font-size: 11px; }.metric-list strong { margin-top: 4px; font-size: 17px; }
-.bottom-grid { margin-bottom: 10px; }.report-row { display: grid; grid-template-columns: 110px 1fr auto; gap: 16px; padding: 15px 0; border-bottom: 1px solid #e2e5e9; font-size: 12px; }.report-row > span { color: #959ba4; }.report-row em { padding: 4px 8px; border-radius: 14px; background: #eef4ff; color: #5793c1; font-style: normal; }.report-count { background: #e8f8ed !important; color: #3c9b66 !important; }
+.bottom-grid { margin-bottom: 10px; }.report-row { display: grid; grid-template-columns: 110px 1fr auto auto; align-items: center; gap: 16px; padding: 15px 0; border-bottom: 1px solid #e2e5e9; font-size: 12px; }.report-row > span { color: #959ba4; }.report-row em { padding: 4px 8px; border-radius: 14px; background: #eef4ff; color: #5793c1; font-style: normal; }.report-row button { height: 28px; padding: 0 10px; border: 1px solid var(--admin-orange); border-radius: 5px; background: #fff; color: var(--admin-orange); cursor: pointer; }.report-count { background: #e8f8ed !important; color: #3c9b66 !important; }
 .score-panel { display: grid; align-content: start; gap: 17px; }.score-row { display: grid; grid-template-columns: 60px 1fr; align-items: center; gap: 10px; font-size: 12px; }.score-row div { height: 18px; background: #f1f2f4; }.score-row i { display: block; height: 100%; background: #ed8d68; }
 @media (max-width: 1000px) { .top-grid, .bottom-grid { grid-template-columns: 1fr; } }
 @media (max-width: 650px) { .page-header { align-items: flex-start; flex-direction: column; }.metric-list { grid-template-columns: 1fr; }.report-row { grid-template-columns: 1fr; gap: 5px; } }
