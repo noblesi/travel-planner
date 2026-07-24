@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.RegionMapper">
+
+	<resultMap id="regionResultMap" type="com.noblesi.travelplanner.domain.region.Region">
+		<constructor>
+			<arg column="REGION_CODE" javaType="java.lang.String" />
+			<arg column="REGION_NAME" javaType="java.lang.String" />
+			<arg column="REGION_LEVEL" javaType="java.lang.String" />
+			<arg column="PARENT_REGION_CODE" javaType="java.lang.String" />
+		</constructor>
+	</resultMap>
+
+	<select id="findActiveSidoRegions" resultMap="regionResultMap">
+		SELECT REGION_CODE,
+		       REGION_NAME,
+		       REGION_LEVEL,
+		       PARENT_REGION_CODE
+		  FROM REGION_MASTER
+		 WHERE REGION_LEVEL = 'SIDO'
+		   AND ACTIVE_YN = 'Y'
+		 ORDER BY DISPLAY_ORDER ASC,
+		          REGION_NAME ASC
+	</select>
+
+</mapper>
