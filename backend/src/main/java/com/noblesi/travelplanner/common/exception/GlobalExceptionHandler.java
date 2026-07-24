@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -45,6 +46,19 @@ public class GlobalExceptionHandler {
 				"VALIDATION_ERROR",
 				"요청 값이 올바르지 않습니다.",
 				errors,
+				request.getRequestURI()
+		);
+		return ResponseEntity.badRequest().body(body);
+	}
+
+	@ExceptionHandler(HttpMessageNotReadableException.class)
+	public ResponseEntity<ErrorResponse> handleMalformedJsonException(
+			HttpMessageNotReadableException exception,
+			HttpServletRequest request
+	) {
+		ErrorResponse body = ErrorResponse.of(
+				"MALFORMED_JSON",
+				"JSON 형식 또는 요청 값의 형식이 올바르지 않습니다.",
 				request.getRequestURI()
 		);
 		return ResponseEntity.badRequest().body(body);
