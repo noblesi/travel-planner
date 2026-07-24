@@ -108,6 +108,7 @@ import { useRouter, useRoute } from 'vue-router'
 const router = useRouter()
 const route = useRoute()
 
+// 카드를 클릭하면 상세 페이지로 이동
 function goToDetail(planId) {
   router.push({ name: 'plan-detail', params: { id: planId } })
 }
@@ -246,6 +247,7 @@ const searchedKeyword = ref(route.query.keyword || '') // 사용자가 실제로
 const hasSearched = ref(!!route.query.keyword) // 사용자가 검색했는지 여부
 const visibleCount = ref(Number(route.query.count) || pageSize) // 화면에 보여줄 플랜 수
 
+// API에서 데이터를 얻어오는 방식으로 변경
 const filteredPlans = computed(() => {
   if (!hasSearched.value) return plans.value
   const kw = searchedKeyword.value.trim()

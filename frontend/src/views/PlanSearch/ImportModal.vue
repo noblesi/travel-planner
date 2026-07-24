@@ -28,7 +28,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-primary" :disabled="!newPlanName || !newStartDate || !newEndDate" @click="submitNew">플랜
+          <button class="btn-primary" :disabled="!newPlanName.trim() || !newStartDate || !newEndDate" @click="submitNew">플랜
             만들기</button>
         </div>
       </template>

@@ -37,6 +37,11 @@ const router = createRouter({
       component: () => import('@/views/Invite/InviteView.vue'),
     },
     {
+      path: "/invite/accept",
+      name: "invite-accept",
+      component: () => import('@/views/Invite/InviteAcceptView.vue'),
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue'),

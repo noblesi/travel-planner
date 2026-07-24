@@ -90,7 +90,7 @@ function renderMarkers() {
 
   const bounds = new kakao.maps.LatLngBounds()
 
-  props.places.forEach((place, idx) => {
+  props.places.forEach((place) => {
     const position = new kakao.maps.LatLng(place.lat, place.lng)
     bounds.extend(position)
 
@@ -103,7 +103,7 @@ function renderMarkers() {
 
     kakao.maps.event.addListener(marker, 'click', () => {
       infowindow.setContent(
-        `<div style="padding:6px 10px;font-size:12px;white-space:nowrap;">${idx + 1}. ${place.name}</div>`
+        `<div style="padding:6px 10px;font-size:12px;white-space:nowrap;">${place.name}</div>`
       )
       infowindow.open(mapInstance, marker)
     })

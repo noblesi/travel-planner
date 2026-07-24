@@ -40,7 +40,6 @@
 
 <script setup>
 import { ref } from 'vue'
-import DefaultLayout from '../../layouts/DefaultLayout.vue'
 
 const emit = defineEmits(['close', 'submit'])
 
@@ -56,7 +55,7 @@ const detail = ref('')
 const step = ref('form')
 
 function submit() {
-  if (!selectedReason.value) return
+  if (!selectedReason.value.trim()) return
   // TODO: 백엔드 연동 시 API 호출 (신고 접수) 후 응답 성공하면 step을 'done'으로 전환
   emit('submit', { reason: selectedReason.value, detail: detail.value })
   step.value = 'done'
