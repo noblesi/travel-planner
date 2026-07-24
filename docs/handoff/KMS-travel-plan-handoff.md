@@ -1,13 +1,14 @@
 # KMS 여행 플랜 개발 인수인계
 
-최종 정리일: 2026-07-23
+최종 정리일: 2026-07-24
 
 ## 저장소 상태
 
 - 원격 저장소: `https://github.com/noblesi/travel-planner.git`
 - 작업 브랜치: `KMS`
+- 현재 확인 Commit: `3bbd346 feat: 플랜 생성 트랜잭션 구현`
 - 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
-- 현재 작업 묶음: 여행 플랜 Oracle DDL·1차 API 계약 작성 및 국내 지역 조회 API 로컬 검증 완료
+- 현재 작업 묶음: 여행 플랜 생성 API 1~3단계 완료, HTTP Controller 연결 전
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
 
@@ -52,8 +53,50 @@ JUnit 테스트 구성은 담당자의 의도에 따라 제거한 상태이며 �
 - `GET /api/regions`의 Controller, Service, MyBatis Mapper와 Response DTO를 구현했다.
 - 로컬 로그인과 Google OIDC를 하나의 회원 및 Spring Security Session으로 통합하는 인증 방식을 확정했다.
 - Oracle 접속 정보가 확정되기 전에도 개발할 수 있도록 H2 Oracle 호환 `local` Profile을 추가하고 지역 17건 응답을 검증했다.
+- H2 `local` Schema에 `TRAVEL_PLAN`, `PLAN_MEMBER`, `PLAN_DAY`와 플랜·일차 Sequence를 추가했다.
+- `LocalCurrentMemberProvider`와 인증 미연동 기본 Profile용 `UnavailableCurrentMemberProvider`를 구현했다.
+- 플랜 생성 Request DTO, 공개 범위 Enum, 날짜 범위·14일 제한 검증과 `MALFORMED_JSON` 처리를 구현했다.
+- 플랜·생성자·일차를 하나의 Transaction으로 저장하는 MyBatis Mapper와 `TravelPlanService`를 구현했다.
+- 생성 응답의 Oracle `NUMBER(19)` ID를 JSON 문자열로 변환하고 일차 목록을 조립하도록 구현했다.
+- Gradle Build, MyBatis XML Parsing, H2 `local` Profile 및 기본 Profile 기동을 확인했다.
+
+플랜 생성 API의 Controller, `201 Created`, `Location` Header는 아직 구현하지 않았다. 따라서 실제 Insert·Rollback의 HTTP 통합 검증은 다음 단계에서 수행해야 한다.
 
 SQL*Plus 설치는 확인했지만 접속 가능한 Application Schema 계정 정보가 없어 실제 Oracle 적용과 지역 조회 통합 검증은 아직 수행하지 못했다.
+
+## 리소스 점검
+
+2026-07-24 기준 점검 결과다.
+
+| 구분 | 상태 | 비고 |
+| --- | --- | --- |
+| Git | 준비 완료 | `KMS`, `3bbd346` 기준 확인 |
+| Java | 준비 완료 | Temurin JDK 21.0.11 |
+| Gradle | 준비 완료 | Wrapper 9.5.1, `clean test bootJar` 성공 |
+| Backend JAR | 준비 완료 | `backend/build/libs/travel-planner.jar` 생성 |
+| H2 local DB | 준비 완료 | 지역 17건, 플랜·생성자·일차 Schema와 Sequence 포함 |
+| MyBatis | 준비 완료 | `RegionMapper`, `TravelPlanMapper`, `PlanDayMapper` Interface와 XML 1:1 대응 |
+| Backend local 기동 | 준비 완료 | `/api/health` UP, `/api/regions` 17건 확인 |
+| UI·ERD·DDL | 준비 완료 | PDF, eXERD, Oracle DDL 4개와 문서 Link 확인 |
+| Branding | 준비 완료 | Favicon, Manifest, Header·Symbol Logo 확인 |
+| Node.js·npm | 미설치 | Frontend Build와 Vitest를 현재 환경에서 실행할 수 없음 |
+| Frontend 의존성 | 부분 준비 | `package-lock.json`, 기존 `node_modules`, `dist`는 있으나 Node 실행환경이 필요 |
+| Oracle | 대기 | SQL*Plus 21.3 설치, URL·계정·비밀번호 미확정 |
+| 실제 인증 | 대기 | 정책과 Provider 경계만 확정, 회원 Schema와 Spring Security·Google OIDC 구현 필요 |
+| 외부 API | 대기 | TourAPI·Kakao·Google Client Key가 설정되지 않음 |
+| Backend 자동 Test | 없음 | JUnit 구성 제거 정책에 따라 Gradle `test`는 `NO-SOURCE` |
+| Frontend Test | 최소 구성 | `HomeView.spec.js` 1개 존재, Node 설치 후 실행 필요 |
+
+4단계 `POST /api/plans` Controller와 H2 HTTP 통합 검증에는 Node.js, Oracle, 외부 API Key, 실제 인증 구현이 필요하지 않다. `local` Profile만으로 진행한다.
+
+후속 작업에서 추가하거나 정리할 리소스:
+
+- `TravelPlanController`는 4단계에서 추가한다.
+- `frontend/src/api/plans.js`, 설정·제작 View와 `planEditor` Store는 Frontend 단계에서 추가한다.
+- `TourApiClient`와 Kakao Map 관련 설정은 장소 검색·지도 단계에서 추가한다.
+- Root `.env.example`에는 현재 Oracle 변수만 있으므로 외부 API 연동을 시작할 때 Key 이름을 추가한다.
+- Vue SPA 전환 전에 사용하던 `backend/src/main/webapp/WEB-INF/jsp/common/`과 `backend/src/main/resources/static/css/layout.css`가 남아 있다. 현재 코드에서 사용 여부를 확인한 뒤 별도 정리 Commit으로 제거 여부를 결정한다.
+- Root README에는 JUnit·MockMvc와 `src/test/java` 안내가 남아 있으나 실제 Backend Test Source는 없다. 테스트 제거 정책을 유지한다면 별도 문서 정합성 수정이 필요하다.
 
 ## 담당 개발 범위
 
@@ -81,7 +124,7 @@ UI 설계서 기준 참고 화면:
 | 지도 | 카카오맵스 API |
 | 인증 방식 | Spring Security 서버 세션, 로컬 로그인 + Google OIDC |
 | 초대 기능 | 포함 |
-| DB 테이블 | 아직 생성되지 않음. 핵심 DDL 작성 완료 |
+| DB 테이블 | Oracle 미적용, H2 local에는 플랜 생성 범위 적용 완료 |
 
 인증 및 계정 연결의 상세 기준은 `docs/auth/authentication-decision.md`를 따른다. 그 밖에 결정되지 않은 항목은 임의로 확정하거나 코드에 고정하지 않는다.
 
@@ -111,11 +154,13 @@ CurrentMemberProvider
 
 플랜 서비스는 Session이나 Google Claim을 직접 참조하지 않고 이 계층을 사용한다. 인증 구현이 완료되기 전에는 개발 Profile의 Mock 구현을 사용할 수 있지만 운영 코드의 기본값으로 사용하지 않는다.
 
-인증 방식은 확정되었지만 회원 Schema와 인증 구현이 완료되기 전까지 실제 연동을 보류할 기능:
+인증 방식은 확정되었지만 회원 Schema와 인증 구현이 완료되기 전까지 실제 계정 연동을 보류할 기능:
 
 - `TRAVEL_PLAN.OWNER_MEMBER_ID` 확정
 - `PLAN_MEMBER` 생성자 및 초대자 연결
 - 초대 수락과 권한 검사
+
+`local` Profile에서는 `LOCAL_MEMBER_ID` 환경변수로 개발 회원 ID를 제공하며 기본값은 `1`이다. 운영 기본 Profile은 회원 ID를 임의 생성하지 않고 실제 인증 구현 전까지 `CURRENT_MEMBER_NOT_AVAILABLE`을 반환한다.
 
 ## 데이터 모델
 
@@ -171,6 +216,14 @@ GET    /api/regions
 POST   /api/plans
 GET    /api/plans/{planId}/editor
 ```
+
+현재 구현 상태:
+
+| Endpoint | 상태 |
+| --- | --- |
+| `GET /api/regions` | Backend 구현 및 H2 local 통합 검증 완료 |
+| `POST /api/plans` | Request·검증·Mapper·Transaction Service 완료, Controller 및 HTTP 통합 검증 필요 |
+| `GET /api/plans/{planId}/editor` | 계약만 확정, 구현 전 |
 
 아래 Endpoint는 후속 구현 방향이며 Request·Response 계약은 아직 확정되지 않았다.
 
@@ -237,9 +290,9 @@ backend/src/main/java/com/noblesi/travelplanner/
 ## 구현 순서
 
 1. ERD 기준 Oracle DDL 작성 (완료, 실제 Oracle 적용 필요)
-2. API 요청·응답 DTO와 오류 코드를 확정 (1차 계약 완료, 구현 필요)
+2. API 요청·응답 DTO와 오류 코드를 확정 (플랜 생성 범위 구현 완료)
 3. 국내 지역 조회 API 구현 (로컬 검증 완료, Oracle 통합 검증 필요)
-4. 여행 플랜 생성 API 구현
+4. 여행 플랜 생성 API 구현 (1~3단계 완료, Controller와 HTTP 통합 검증 필요)
 5. 설정 페이지 구현 및 생성 API 연결
 6. 제작 페이지 레이아웃과 Pinia 편집 상태 구현
 7. 플랜 편집 초기 조회 API 연결
@@ -267,8 +320,9 @@ backend/src/main/java/com/noblesi/travelplanner/
 다음 세션에서는 이 문서를 먼저 읽고 아래 순서로 시작한다.
 
 1. `KMS` 브랜치와 작업 트리 상태 확인
-2. 회원 Schema와 DB 접속 정보가 확정됐는지 확인
-3. `docs/database/ddl/README.md` 순서대로 Oracle DDL과 Seed를 적용하고 검증
-4. 구현된 `GET /api/regions`를 실제 Oracle Data로 통합 검증
-5. 플랜 생성 API와 제작 페이지 초기 조회 API 구현
-6. 설정 페이지 → 제작 페이지 순으로 Frontend 연결
+2. `TravelPlanController`에서 `POST /api/plans`를 연결한다.
+3. `201 Created`, `Location: /api/plans/{planId}/editor`, `ApiResponse` Body를 구현한다.
+4. H2 `local` Profile에서 1일·14일 성공, 15일·역전 날짜·잘못된 지역·잘못된 JSON 오류를 HTTP로 검증한다.
+5. 생성 결과의 `TRAVEL_PLAN`, `PLAN_MEMBER`, `PLAN_DAY` 정합성과 실패 시 Rollback을 검증한다.
+6. 회원 Schema와 Oracle 접속 정보가 준비되면 Oracle DDL·Seed 및 두 구현 API를 다시 통합 검증한다.
+7. 여행 플랜 설정 페이지 구현과 생성 API 연결을 시작한다.
