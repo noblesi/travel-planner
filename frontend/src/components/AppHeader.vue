@@ -17,7 +17,7 @@ const moveJoinPage = () => {
   <header class="header">
     <div class="header__inner">
       <RouterLink class="brand" to="/" aria-label="WithTrip 홈">
-        <span class="brand__mark">W</span>
+        <img class="brand__mark" :src="headerLogoUrl" alt="" width="40" height="40" />
         <span>WithTrip</span>
       </RouterLink>
 
@@ -65,13 +65,10 @@ const moveJoinPage = () => {
 }
 
 .brand__mark {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  color: white;
-  border-radius: 11px;
-  background: #0f766e;
-  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  object-fit: contain;
 }
 
 .navigation {
