@@ -10,7 +10,7 @@ const menuItems = [
   },
   {
     name: '회원 관리',
-    path: '/admin/users',
+    path: '/admin/members',
   },
   {
     name: '여행 플랜 관리',
