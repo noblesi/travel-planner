@@ -91,7 +91,7 @@ const invitation = ref({
   endDate: '2026.08.27',
   participants: [
     { id: 1, name: '홍길동', color: '#1DA97C' },
-    { id: 2, name: '김철수', color: '#D94530' },
+    { id: 2, name: '김철수', color: '#0f766e' },
   ],
 })
 
@@ -194,7 +194,7 @@ onMounted(verifyToken)
 .logo {
   font-size: 16px;
   font-weight: 700;
-  color: #D94530;
+  color: #0f766e;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -223,7 +223,7 @@ onMounted(verifyToken)
   width: 36px;
   height: 36px;
   border: 3px solid #f0e0de;
-  border-top-color: #D94530;
+  border-top-color: #0f766e;
   border-radius: 50%;
   margin: 0 auto 1.25rem;
   animation: spin .8s linear infinite;
@@ -323,7 +323,7 @@ onMounted(verifyToken)
 .accept-btn {
   width: 100%;
   padding: 14px;
-  background: #D94530;
+  background: #0f766e;
   color: #fff;
   border: none;
   border-radius: 26px;
@@ -332,7 +332,7 @@ onMounted(verifyToken)
   cursor: pointer;
 }
 .accept-btn:hover {
-  background: #c23d2b;
+  background: #0c5c56;
 }
 .accept-btn:disabled {
   background: #e0b8b0;
@@ -341,14 +341,14 @@ onMounted(verifyToken)
 
 .error-text {
   font-size: 12.5px;
-  color: #D94530;
+  color: #0f766e;
   margin-top: 10px;
 }
 
 /* 만료/오류 상태 */
 .expired-icon {
   font-size: 40px;
-  color: #D94530;
+  color: #0f766e;
   margin-bottom: 1.25rem;
 }
 .expired-title {
@@ -365,7 +365,7 @@ onMounted(verifyToken)
 .home-btn {
   width: 100%;
   padding: 14px;
-  background: #D94530;
+  background: #0f766e;
   color: #fff;
   border: none;
   border-radius: 26px;
@@ -374,6 +374,6 @@ onMounted(verifyToken)
   cursor: pointer;
 }
 .home-btn:hover {
-  background: #c23d2b;
+  background: #0c5c56;
 }
 </style>

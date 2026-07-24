@@ -107,7 +107,7 @@ function goToList() {
   display: inline-block; font-size: 12px; font-weight: 600;
   padding: 4px 12px; border-radius: 12px; margin-bottom: 1rem;
 }
-.badge-guide { background: #fde8e5; color: #b23a24; }
+.badge-guide { background: #d9f0ed; color: #0d5750; }
 .badge-maintenance { background: #fdeee0; color: #96601a; }
 
 .detail-title { font-size: 26px; font-weight: 700; color: #1a1a1a; line-height: 1.4; margin-bottom: .9rem; }

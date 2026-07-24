@@ -63,7 +63,7 @@
         <div class="divider"></div>
         <div class="empty-illus" aria-hidden="true">
           <svg width="200" height="200" viewBox="0 0 148 148" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="74" cy="74" r="62" fill="#fdf5f4" stroke="#f0e0de" stroke-width="1" />
+            <circle cx="74" cy="74" r="62" fill="#eef8f6" stroke="#f0e0de" stroke-width="1" />
             <circle cx="74" cy="74" r="40" fill="none" stroke="#e8d5d2" stroke-width="1.5" />
             <line x1="74" y1="34" x2="74" y2="114" stroke="#e0d0ce" stroke-width="1" stroke-dasharray="3 3" />
             <line x1="34" y1="74" x2="114" y2="74" stroke="#e0d0ce" stroke-width="1" stroke-dasharray="3 3" />
@@ -71,12 +71,12 @@
             <text x="74" y="124" text-anchor="middle" font-size="9" fill="#bbb">S</text>
             <text x="122" y="78" text-anchor="middle" font-size="9" fill="#bbb">E</text>
             <text x="26" y="78" text-anchor="middle" font-size="9" fill="#bbb">W</text>
-            <polygon points="74,48 78,74 74,70 70,74" fill="#D94530" />
+            <polygon points="74,48 78,74 74,70 70,74" fill="#0f766e" />
             <polygon points="74,100 78,74 74,78 70,74" fill="#ccc" />
             <circle cx="74" cy="74" r="4" fill="#fff" stroke="#ddd" stroke-width="1.5" />
             <circle cx="104" cy="44" r="13" fill="#fff" stroke="#f0e0de" stroke-width="1" />
-            <line x1="98.5" y1="38.5" x2="109.5" y2="49.5" stroke="#D94530" stroke-width="2.2" stroke-linecap="round" />
-            <line x1="109.5" y1="38.5" x2="98.5" y2="49.5" stroke="#D94530" stroke-width="2.2" stroke-linecap="round" />
+            <line x1="98.5" y1="38.5" x2="109.5" y2="49.5" stroke="#0f766e" stroke-width="2.2" stroke-linecap="round" />
+            <line x1="109.5" y1="38.5" x2="98.5" y2="49.5" stroke="#0f766e" stroke-width="2.2" stroke-linecap="round" />
           </svg>
         </div>
 
@@ -339,7 +339,7 @@ function regionColorKey(region) {
 .eyebrow {
   font-size: 13px;
   letter-spacing: .14em;
-  color: #D94530;
+  color: #0f766e;
   margin-bottom: .6rem;
   text-transform: uppercase;
 }
@@ -383,7 +383,7 @@ function regionColorKey(region) {
 }
 
 .search-input:focus {
-  border-color: #D94530;
+  border-color: #0f766e;
 }
 
 .suggested-tags {
@@ -413,9 +413,9 @@ function regionColorKey(region) {
 }
 
 .suggested-tag:hover {
-  border-color: #D94530;
-  background: #fdf5f4;
-  color: #D94530;
+  border-color: #0f766e;
+  background: #eef8f6;
+  color: #0f766e;
 }
 
 .result-meta {
@@ -428,7 +428,7 @@ function regionColorKey(region) {
 }
 
 .result-count em {
-  color: #D94530;
+  color: #0f766e;
   font-style: normal;
   font-weight: 600;
 }
@@ -572,11 +572,11 @@ function regionColorKey(region) {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: #fde8e5;
+  background-color: #d9f0ed;
   background-size: cover;
   background-position: center;
   font-size: 11px;
-  color: #D94530;
+  color: #0f766e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -612,7 +612,7 @@ function regionColorKey(region) {
 
 /* 좋아요 수치는 카드 hover 시 브랜드 컬러로 살짝 강조해서 "인터랙션 대상"이라는 신호를 준다. */
 .card:hover .stat-like {
-  color: #D94530;
+  color: #0f766e;
 }
 
 
@@ -671,7 +671,7 @@ function regionColorKey(region) {
 }
 
 .empty-sub em {
-  color: #D94530;
+  color: #0f766e;
   font-style: normal;
 }
 
@@ -700,13 +700,13 @@ function regionColorKey(region) {
 }
 
 .suggest-chip:hover {
-  border-color: #D94530;
-  color: #D94530;
+  border-color: #0f766e;
+  color: #0f766e;
 }
 
 .browse-btn {
   padding: 14px 36px;
-  background: #D94530;
+  background: #0f766e;
   color: #fff;
   border-radius: 26px;
   font-size: 16px;
@@ -715,6 +715,6 @@ function regionColorKey(region) {
 }
 
 .browse-btn:hover {
-  background: #c23d2b;
+  background: #0c5c56;
 }
 </style>

@@ -28,7 +28,8 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn-primary" :disabled="!newPlanName.trim() || !newStartDate || !newEndDate" @click="submitNew">플랜
+          <button class="btn-primary" :disabled="!newPlanName.trim() || !newStartDate || !newEndDate"
+            @click="submitNew">플랜
             만들기</button>
         </div>
       </template>
@@ -170,7 +171,7 @@ function handleClose() {
 }
 
 .form-input:focus {
-  border-color: #D94530;
+  border-color: #0f766e;
 }
 
 .date-row {
@@ -191,15 +192,15 @@ function handleClose() {
 }
 
 .date-input:focus {
-  border-color: #D94530;
+  border-color: #0f766e;
 }
 
 .notice-box {
-  background: #fdf5f4;
+  background: #eef8f6;
   border-radius: 8px;
   padding: 10px 12px;
   font-size: 11px;
-  color: #c0614e;
+  color: #0e6a63;
   line-height: 1.5;
 }
 
@@ -219,7 +220,7 @@ function handleClose() {
   padding: 10px;
   border-radius: 22px;
   border: none;
-  background: #D94530;
+  background: #0f766e;
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -227,7 +228,7 @@ function handleClose() {
 }
 
 .btn-primary:hover {
-  background: #c23d2b;
+  background: #0c5c56;
 }
 
 .btn-primary:disabled {

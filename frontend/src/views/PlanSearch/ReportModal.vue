@@ -123,7 +123,7 @@ function handleOverlayClick() {
 }
 
 .reason-item input {
-  accent-color: #D94530;
+  accent-color: #0f766e;
   width: 16px;
   height: 16px;
 }
@@ -141,7 +141,7 @@ function handleOverlayClick() {
 }
 
 .detail-input:focus {
-  border-color: #D94530;
+  border-color: #0f766e;
 }
 
 .modal-footer {
@@ -165,7 +165,7 @@ function handleOverlayClick() {
   padding: 11px;
   border-radius: 22px;
   border: none;
-  background: #D94530;
+  background: #0f766e;
   color: #fff;
   font-size: 14px;
   font-weight: 600;

@@ -1,43 +1,38 @@
 <template>
   <DefaultLayout>
     <div class="invite-page">
-    <div class="invite-card">
-      <template v-if="!sent">
-        <div class="eyebrow">INVITE TRAVELERS</div>
-        <div class="invite-title">초대할 친구의 이메일을 적어주세요.</div>
+      <div class="invite-card">
+        <template v-if="!sent">
+          <div class="eyebrow">INVITE TRAVELERS</div>
+          <div class="invite-title">초대할 친구의 이메일을 적어주세요.</div>
 
-        <div class="input-row">
-          <input
-            class="email-input"
-            type="email"
-            v-model="emailInput"
-            placeholder="name@email.com"
-            @keyup.enter="addEmail"
-          />
-          <button class="add-btn" @click="addEmail">추가</button>
-        </div>
-        <div v-if="errorMessage" class="error-text">{{ errorMessage }}</div>
-
-        <div class="email-list">
-          <div v-for="(email, idx) in invitedEmails" :key="email" class="email-item">
-            <div class="email-avatar">{{ email[0].toUpperCase() }}</div>
-            <span class="email-text">{{ email }}</span>
-            <button class="remove-btn" @click="removeEmail(idx)">✕</button>
+          <div class="input-row">
+            <input class="email-input" type="email" v-model="emailInput" placeholder="name@email.com"
+              @keyup.enter="addEmail" />
+            <button class="add-btn" @click="addEmail">추가</button>
           </div>
-        </div>
+          <div v-if="errorMessage" class="error-text">{{ errorMessage }}</div>
 
-        <button class="send-btn" :disabled="invitedEmails.length === 0" @click="sendInvites">
-          <i class="ti ti-send" aria-hidden="true"></i> 링크 발송
-        </button>
-      </template>
+          <div class="email-list">
+            <div v-for="(email, idx) in invitedEmails" :key="email" class="email-item">
+              <div class="email-avatar">{{ email[0].toUpperCase() }}</div>
+              <span class="email-text">{{ email }}</span>
+              <button class="remove-btn" @click="removeEmail(idx)">✕</button>
+            </div>
+          </div>
 
-      <template v-else>
-        <div class="success-icon">✓</div>
-        <div class="success-title">링크 발송이 완료되었습니다.</div>
-        <div class="success-sub">초대링크의 유효시간은 24시간입니다.</div>
-        <button class="back-btn" @click="goBackToPlan">돌아가기</button>
-      </template>
-    </div>
+          <button class="send-btn" :disabled="invitedEmails.length === 0" @click="sendInvites">
+            <i class="ti ti-send" aria-hidden="true"></i> 링크 발송
+          </button>
+        </template>
+
+        <template v-else>
+          <div class="success-icon">✓</div>
+          <div class="success-title">링크 발송이 완료되었습니다.</div>
+          <div class="success-sub">초대링크의 유효시간은 24시간입니다.</div>
+          <button class="back-btn" @click="goBackToPlan">돌아가기</button>
+        </template>
+      </div>
     </div>
   </DefaultLayout>
 </template>
@@ -118,7 +113,9 @@ function sendInvites() {
 </script>
 
 <style scoped>
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 .invite-page {
   font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
@@ -142,56 +139,181 @@ function sendInvites() {
   text-align: center;
 }
 
-.eyebrow { font-size: 12px; letter-spacing: .1em; color: #999; text-transform: uppercase; margin-bottom: .75rem; text-align: left; }
-.invite-title { font-size: 24px; font-weight: 700; color: #1a1a1a; margin-bottom: 2rem; text-align: left; }
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: .1em;
+  color: #999;
+  text-transform: uppercase;
+  margin-bottom: .75rem;
+  text-align: left;
+}
 
-.input-row { display: flex; gap: 10px; margin-bottom: 8px; }
+.invite-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.input-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 .email-input {
-  flex: 1; padding: 15px 20px; border: 1px solid #e0e0e0; border-radius: 28px;
-  font-size: 15px; outline: none;
+  flex: 1;
+  padding: 15px 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 28px;
+  font-size: 15px;
+  outline: none;
 }
-.email-input:focus { border-color: #D94530; }
+
+.email-input:focus {
+  border-color: #0f766e;
+}
+
 .add-btn {
-  padding: 15px 30px; background: #D94530; color: #fff; border: none;
-  border-radius: 28px; font-size: 15px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  padding: 15px 30px;
+  background: #0f766e;
+  color: #fff;
+  border: none;
+  border-radius: 28px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
 }
-.add-btn:hover { background: #c23d2b; }
 
-.error-text { font-size: 13px; color: #D94530; text-align: left; margin-bottom: 12px; }
+.add-btn:hover {
+  background: #0c5c56;
+}
 
-.email-list { display: flex; flex-direction: column; gap: 12px; margin: 1.5rem 0 2rem; text-align: left; }
+.error-text {
+  font-size: 13px;
+  color: #0f766e;
+  text-align: left;
+  margin-bottom: 12px;
+}
+
+.email-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 1.5rem 0 2rem;
+  text-align: left;
+}
+
 .email-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 13px 18px; background: #fafafa; border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 18px;
+  background: #fafafa;
+  border-radius: 12px;
 }
+
 .email-avatar {
-  width: 32px; height: 32px; border-radius: 50%; background: #fde8e5; color: #D94530;
-  font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #d9f0ed;
+  color: #0f766e;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
-.email-text { flex: 1; font-size: 15px; color: #333; }
+
+.email-text {
+  flex: 1;
+  font-size: 15px;
+  color: #333;
+}
+
 .remove-btn {
-  background: none; border: none; color: #bbb; cursor: pointer; font-size: 15px; padding: 4px;
+  background: none;
+  border: none;
+  color: #bbb;
+  cursor: pointer;
+  font-size: 15px;
+  padding: 4px;
 }
-.remove-btn:hover { color: #D94530; }
+
+.remove-btn:hover {
+  color: #0f766e;
+}
 
 .send-btn {
-  width: 100%; padding: 16px; background: #D94530; color: #fff; border: none;
-  border-radius: 28px; font-size: 16px; font-weight: 600; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%;
+  padding: 16px;
+  background: #0f766e;
+  color: #fff;
+  border: none;
+  border-radius: 28px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-.send-btn:hover { background: #c23d2b; }
-.send-btn:disabled { background: #e0e0e0; color: #bbb; cursor: not-allowed; }
+
+.send-btn:hover {
+  background: #0c5c56;
+}
+
+.send-btn:disabled {
+  background: #e0e0e0;
+  color: #bbb;
+  cursor: not-allowed;
+}
 
 .success-icon {
-  width: 76px; height: 76px; border-radius: 50%; background: #fde8e5; color: #D94530;
-  font-size: 34px; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #d9f0ed;
+  color: #0f766e;
+  font-size: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
 }
-.success-title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin-bottom: 8px; }
-.success-sub { font-size: 14px; color: #999; margin-bottom: 2rem; }
+
+.success-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.success-sub {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 2rem;
+}
 
 .back-btn {
-  width: 100%; padding: 15px; background: #fff; color: #555;
-  border: 1px solid #e0e0e0; border-radius: 28px; font-size: 15px; font-weight: 600; cursor: pointer;
+  width: 100%;
+  padding: 15px;
+  background: #fff;
+  color: #555;
+  border: 1px solid #e0e0e0;
+  border-radius: 28px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
 }
-.back-btn:hover { border-color: #ccc; background: #fafafa; }
+
+.back-btn:hover {
+  border-color: #ccc;
+  background: #fafafa;
+}
 </style>

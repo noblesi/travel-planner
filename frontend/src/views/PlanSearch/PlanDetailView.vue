@@ -18,7 +18,7 @@
               <i class="ti ti-heart" aria-hidden="true"></i> {{ plan.likeCount }}
             </button>
             <span class="view-stat"><i class="ti ti-eye" aria-hidden="true"></i> {{ formatCount(plan.viewCount)
-              }}</span>
+            }}</span>
             <button class="report-btn" title="신고하기" @click="showReportModal = true">
               <i class="ti ti-flag" aria-hidden="true"></i>
             </button>
@@ -294,7 +294,7 @@ function formatCount(n) {
 /* 작성자/날짜 정보를 제목 옆에 나란히 배치. margin-left는 주지 않고 gap으로만 간격을 준다. */
 .plan-author {
   font-size: 13px;
-  color: #D94530;
+  color: #0f766e;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -307,7 +307,7 @@ function formatCount(n) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #D94530;
+  background: #0f766e;
   flex-shrink: 0;
 }
 
@@ -333,7 +333,7 @@ function formatCount(n) {
 }
 
 .like-stat.liked {
-  color: #D94530;
+  color: #0f766e;
 }
 
 .view-stat {
@@ -359,13 +359,13 @@ function formatCount(n) {
 }
 
 .report-btn:hover {
-  border-color: #D94530;
-  color: #D94530;
+  border-color: #0f766e;
+  color: #0f766e;
 }
 
 .import-btn {
   padding: 9px 18px;
-  background: #D94530;
+  background: #0f766e;
   color: #fff;
   border-radius: 20px;
   font-size: 13.5px;
@@ -376,7 +376,7 @@ function formatCount(n) {
 }
 
 .import-btn:hover {
-  background: #c23d2b;
+  background: #0c5c56;
 }
 
 .detail-body {
@@ -425,7 +425,7 @@ function formatCount(n) {
 }
 
 .day-item.active {
-  background: #fde8e5;
+  background: #d9f0ed;
 }
 
 .day-num {
@@ -436,7 +436,7 @@ function formatCount(n) {
 }
 
 .day-item.active .day-num {
-  color: #D94530;
+  color: #0f766e;
 }
 
 .day-date {
@@ -504,7 +504,7 @@ function formatCount(n) {
 }
 
 .time-section--afternoon {
-  --slot-color: #D94530;
+  --slot-color: #0f766e;
   --slot-color-dark: #993C1D;
 }
 

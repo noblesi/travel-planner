@@ -135,7 +135,7 @@ function isNew(createdAt) {
 }
 
 .announce-head { text-align: center; margin-bottom: 2.5rem; }
-.eyebrow { font-size: 13px; letter-spacing: .14em; color: #D94530; margin-bottom: .6rem; text-transform: uppercase; }
+.eyebrow { font-size: 13px; letter-spacing: .14em; color: #0f766e; margin-bottom: .6rem; text-transform: uppercase; }
 .announce-title { font-size: 34px; font-weight: 700; color: #1a1a1a; margin-bottom: .75rem; }
 .announce-sub { font-size: 15px; color: #999; }
 
@@ -144,7 +144,7 @@ function isNew(createdAt) {
   padding: 10px 24px; border-radius: 24px; border: 1px solid #e0e0e0;
   background: #fff; color: #666; font-size: 14px; cursor: pointer; transition: all .15s;
 }
-.filter-chip.active { background: #D94530; border-color: #D94530; color: #fff; }
+.filter-chip.active { background: #0f766e; border-color: #0f766e; color: #fff; }
 
 .announce-list { display: flex; flex-direction: column; gap: 10px; }
 
@@ -167,16 +167,16 @@ function isNew(createdAt) {
   width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-size: 20px;
 }
-.card-icon.icon-guide { background: #fde8e5; color: #D94530; }
+.card-icon.icon-guide { background: #d9f0ed; color: #0f766e; }
 .card-icon.icon-maintenance { background: #fdeee0; color: #c07a1f; }
 
 .card-body { flex: 1; min-width: 0; }
 .card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
 .cat-badge { font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
-.badge-guide { background: #fde8e5; color: #b23a24; }
+.badge-guide { background: #d9f0ed; color: #0d5750; }
 .badge-maintenance { background: #fdeee0; color: #96601a; }
 .new-badge {
-  font-size: 10px; font-weight: 700; color: #fff; background: #D94530;
+  font-size: 10px; font-weight: 700; color: #fff; background: #0f766e;
   padding: 2px 7px; border-radius: 8px; letter-spacing: .02em;
 }
 .card-title {
