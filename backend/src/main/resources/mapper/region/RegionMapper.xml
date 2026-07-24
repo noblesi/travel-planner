@@ -25,4 +25,15 @@
 		          REGION_NAME ASC
 	</select>
 
+	<select id="findActiveSidoRegionByCode" resultMap="regionResultMap">
+		SELECT REGION_CODE,
+		       REGION_NAME,
+		       REGION_LEVEL,
+		       PARENT_REGION_CODE
+		  FROM REGION_MASTER
+		 WHERE REGION_CODE = #{regionCode}
+		   AND REGION_LEVEL = 'SIDO'
+		   AND ACTIVE_YN = 'Y'
+	</select>
+
 </mapper>
