@@ -199,7 +199,7 @@ Body:
 | `401` | `CURRENT_MEMBER_NOT_AVAILABLE` | 현재 회원 ID 조회 실패 |
 | `404` | `REGION_NOT_FOUND` | 지역이 없거나 비활성 또는 `SIDO`가 아님 |
 
-인증 방식 확정 전 개발 Profile에서는 `CurrentMemberProvider`의 Mock 구현을 사용할 수 있습니다. 회원 ID를 Request에 임시로 추가하지 않습니다.
+인증 구현 완료 전 개발 Profile에서는 `CurrentMemberProvider`의 Mock 구현을 사용할 수 있습니다. 회원 ID를 Request에 임시로 추가하지 않습니다.
 
 ---
 
