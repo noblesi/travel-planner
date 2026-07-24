@@ -254,6 +254,24 @@ $env:ORACLE_PASSWORD='change-me'
 $env:SERVER_PORT='8080'
 ```
 
+Oracle 접속 정보가 아직 준비되지 않은 경우에는 Backend의 `local` Profile을 사용합니다. 이 Profile은 Memory 기반 H2를 Oracle 호환 모드로 실행하고 개발용 Schema와 Seed를 자동으로 적용합니다.
+
+Windows PowerShell:
+
+```powershell
+cd backend
+.\gradlew.bat bootRun --args="--spring.profiles.active=local"
+```
+
+macOS/Linux:
+
+```bash
+cd backend
+./gradlew bootRun --args='--spring.profiles.active=local'
+```
+
+`local` Database는 Application 종료 시 초기화되며 운영 또는 실제 Oracle 검증을 대체하지 않습니다. 현재는 국내 지역 조회 개발에 필요한 `REGION_MASTER`와 시·도 17개 Seed를 제공합니다.
+
 ### 프론트엔드
 
 기본 개발 설정은 `frontend/.env.example`과 같습니다.
@@ -290,7 +308,7 @@ cd backend
 
 ## 6. 개발 실행
 
-Oracle을 실행하고 환경변수를 설정한 뒤 백엔드와 프론트엔드를 각각 실행합니다.
+Oracle을 실행하고 환경변수를 설정하거나 Backend `local` Profile을 선택한 뒤 백엔드와 프론트엔드를 각각 실행합니다.
 
 ### 터미널 1: Spring Boot
 

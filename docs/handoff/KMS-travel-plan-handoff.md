@@ -7,7 +7,7 @@
 - 원격 저장소: `https://github.com/noblesi/travel-planner.git`
 - 작업 브랜치: `KMS`
 - 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
-- 현재 작업 묶음: 여행 플랜 Oracle DDL과 1차 API 계약 작성 완료
+- 현재 작업 묶음: 여행 플랜 Oracle DDL·1차 API 계약 작성 및 국내 지역 조회 API 로컬 검증 완료
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
 
@@ -49,8 +49,11 @@ JUnit 테스트 구성은 담당자의 의도에 따라 제거한 상태이며 �
 - 공통 오류 응답은 기존 `ErrorResponse` 구조와 일치하도록 작성했다.
 - Oracle `NUMBER(19)` ID는 JavaScript 정밀도 손실을 막기 위해 JSON 문자열로 반환하기로 결정했다.
 - DDL과 eXERD Column·Type 비교, SQL 정적 검사, Seed 중복 검사, API JSON Example Parsing과 문서 링크 검사를 완료했다.
+- `GET /api/regions`의 Controller, Service, MyBatis Mapper와 Response DTO를 구현했다.
+- 로컬 로그인과 Google OIDC를 하나의 회원 및 Spring Security Session으로 통합하는 인증 방식을 확정했다.
+- Oracle 접속 정보가 확정되기 전에도 개발할 수 있도록 H2 Oracle 호환 `local` Profile을 추가하고 지역 17건 응답을 검증했다.
 
-실제 Oracle 적용 검증은 현재 환경에 `sqlplus` 또는 SQLcl이 없어 아직 수행하지 못했다.
+SQL*Plus 설치는 확인했지만 접속 가능한 Application Schema 계정 정보가 없어 실제 Oracle 적용과 지역 조회 통합 검증은 아직 수행하지 못했다.
 
 ## 담당 개발 범위
 
@@ -76,11 +79,11 @@ UI 설계서 기준 참고 화면:
 | 저장 방식 | 추가·수정·삭제·순서 변경 작업마다 자동 저장 |
 | 장소 데이터 | 한국관광공사 TourAPI |
 | 지도 | 카카오맵스 API |
-| 인증 방식 | 미정 |
+| 인증 방식 | Spring Security 서버 세션, 로컬 로그인 + Google OIDC |
 | 초대 기능 | 포함 |
 | DB 테이블 | 아직 생성되지 않음. 핵심 DDL 작성 완료 |
 
-결정되지 않은 항목은 임의로 확정하거나 코드에 고정하지 않는다.
+인증 및 계정 연결의 상세 기준은 `docs/auth/authentication-decision.md`를 따른다. 그 밖에 결정되지 않은 항목은 임의로 확정하거나 코드에 고정하지 않는다.
 
 ## 외부 API 사용 원칙
 
@@ -97,7 +100,7 @@ KAKAO_MAP_APP_KEY=
 KAKAO_REST_API_KEY=
 ```
 
-## 인증 미정 상태 처리
+## 인증 연동 상태 처리
 
 회원 ID를 코드에 상수로 고정하지 않는다. 백엔드에는 현재 회원을 제공하는 추상 계층을 둔다.
 
@@ -106,9 +109,9 @@ CurrentMemberProvider
 └── 현재 로그인 회원 ID 반환
 ```
 
-플랜 서비스는 세션이나 JWT를 직접 참조하지 않고 이 계층을 사용한다. 인증 방식이 결정되기 전에는 개발 프로필의 mock 구현을 사용할 수 있지만 운영 코드의 기본값으로 사용하지 않는다.
+플랜 서비스는 Session이나 Google Claim을 직접 참조하지 않고 이 계층을 사용한다. 인증 구현이 완료되기 전에는 개발 Profile의 Mock 구현을 사용할 수 있지만 운영 코드의 기본값으로 사용하지 않는다.
 
-인증 확정 전까지 실제 연동을 보류할 기능:
+인증 방식은 확정되었지만 회원 Schema와 인증 구현이 완료되기 전까지 실제 연동을 보류할 기능:
 
 - `TRAVEL_PLAN.OWNER_MEMBER_ID` 확정
 - `PLAN_MEMBER` 생성자 및 초대자 연결
@@ -235,7 +238,7 @@ backend/src/main/java/com/noblesi/travelplanner/
 
 1. ERD 기준 Oracle DDL 작성 (완료, 실제 Oracle 적용 필요)
 2. API 요청·응답 DTO와 오류 코드를 확정 (1차 계약 완료, 구현 필요)
-3. 국내 지역 조회 API 구현
+3. 국내 지역 조회 API 구현 (로컬 검증 완료, Oracle 통합 검증 필요)
 4. 여행 플랜 생성 API 구현
 5. 설정 페이지 구현 및 생성 API 연결
 6. 제작 페이지 레이아웃과 Pinia 편집 상태 구현
@@ -246,12 +249,12 @@ backend/src/main/java/com/noblesi/travelplanner/
 11. 작업별 자동 저장과 버전 충돌 처리
 12. 플랜 제목과 공개 범위 수정
 13. 초대 링크 생성 및 조회 구현
-14. 인증 방식 확정 후 소유자·참여자·초대 수락 연결
+14. 회원 Schema와 인증 구현 완료 후 소유자·참여자·초대 수락 연결
 15. Oracle 및 외부 API 통합 검증
 
 ## 아직 미정인 항목
 
-- 세션 또는 JWT 등 인증 방식
+- 회원 및 로그인 수단 Table의 실제 이름과 Column
 - 초대 전달 방식
 - 초대 참여자의 편집 권한 범위
 - TourAPI 장애 또는 검색 결과 없음 처리 방식
@@ -264,8 +267,8 @@ backend/src/main/java/com/noblesi/travelplanner/
 다음 세션에서는 이 문서를 먼저 읽고 아래 순서로 시작한다.
 
 1. `KMS` 브랜치와 작업 트리 상태 확인
-2. 인증과 DB 관련 미정 항목이 새로 결정됐는지 확인
+2. 회원 Schema와 DB 접속 정보가 확정됐는지 확인
 3. `docs/database/ddl/README.md` 순서대로 Oracle DDL과 Seed를 적용하고 검증
-4. `docs/api/travel-plan-api.md` 기준으로 지역 조회 API 구현
+4. 구현된 `GET /api/regions`를 실제 Oracle Data로 통합 검증
 5. 플랜 생성 API와 제작 페이지 초기 조회 API 구현
 6. 설정 페이지 → 제작 페이지 순으로 Frontend 연결
