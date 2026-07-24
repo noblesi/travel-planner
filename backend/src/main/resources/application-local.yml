@@ -9,3 +9,7 @@ spring:
       mode: always
       schema-locations: classpath:db/local/schema.sql
       data-locations: classpath:db/local/data.sql
+
+app:
+  auth:
+    local-member-id: ${LOCAL_MEMBER_ID:1}
