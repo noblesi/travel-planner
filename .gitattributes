@@ -8,5 +8,6 @@
 *.css text eol=lf
 *.json text eol=lf
 *.xml text eol=lf
+*.sql text eol=lf
 *.jspf text eol=lf
 *.jsp text eol=lf
