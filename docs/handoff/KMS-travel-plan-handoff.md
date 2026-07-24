@@ -27,6 +27,24 @@ git switch KMS
 git pull origin KMS
 ```
 
+## KMS 전용 문서 관리
+
+`docs/handoff/KMS-travel-plan-handoff.md`는 `KMS` Branch에서만 추적하고 `dev`, `master` 또는 다른 팀원 Branch에는 반영하지 않는다.
+
+Git Push는 파일이 아니라 Commit을 전송하므로 다음 규칙을 사용한다.
+
+- `KMS` 전체를 다른 Branch에 직접 Merge하거나 `KMS`에서 대상 Branch로 Pull Request를 만들지 않는다.
+- 다른 Branch에 반영할 때는 해당 대상 Branch에서 통합 Branch를 만들고 필요한 기능 Commit만 Cherry-pick한다.
+- Handoff를 함께 수정한 과거 Commit이 필요하면 Cherry-pick 후 이 파일 변경만 제거하고 Commit을 정리한다.
+- 새 Handoff 갱신 Commit은 가능한 한 이 파일만 포함해 기능 Commit과 분리한다.
+- Push 전에 대상 Branch의 변경 목록에 이 파일이 없는지 확인한다.
+
+```bash
+git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.md
+```
+
+위 명령은 `KMS` 외 Branch에서 아무 경로도 출력하지 않아야 한다.
+
 ## 현재 반영된 자료
 
 - UI 설계서: `docs/design/UI설계.pdf`
