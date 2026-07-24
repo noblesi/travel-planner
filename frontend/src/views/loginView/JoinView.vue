@@ -1,14 +1,15 @@
 <script setup>
 
-import { ref, computed } from 'vue'
+import { ref, computed, useId } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/userStore'
+import { useUserStore } from '@/stores/useUserStore'
 
 const email = ref('')
 const password = ref('')
 const passwordCheck = ref('')
 const router = useRouter()
 const userStore = useUserStore()
+const usingIdFlag = false
 
 const isPasswordMatched = computed(() => {
   if (!passwordCheck.value) return true; 
@@ -70,6 +71,9 @@ const checkedId = () => {
 
 }
 
+const isCheckView = (useIdFlag) => {
+  usingId = useIdFlag
+}
 </script>
 
 <template>
@@ -91,7 +95,8 @@ const checkedId = () => {
           <label class="input-label">이메일</label>
           <input 
             type="email" 
-            v-model="email" 
+            v-model="email"
+            :class="{'emailCheck-color-red': !usingId, 'emailCheck-color-green' : usingId }"
             placeholder="이메일 주소를 입력하세요." 
             required
           />
@@ -168,6 +173,15 @@ const checkedId = () => {
   text-align: center;
 
 }
+
+.emailCheck-color-red {
+  border-color: #f73636;
+}
+
+.emailCheck-color-green {
+  border-color: #64df46 ;
+}
+
 // 전체 배경 배치
 .login-container {
   display: flex;

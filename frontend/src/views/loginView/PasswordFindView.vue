@@ -5,22 +5,7 @@ const email = ref('')
 const password = ref('')
 
 const handleContinue = () => {
-  if (!email.value) {
-    alert('이메일 주소를 입력해주세요.')
-    return
-  }
-
-  if (!password.value){
-    alert('비밀번호를 입력해주세요.')
-    return
-  }
-
-  if (password.value.length < 10){
-    alert('비밀번호는 10자 이상 입력해주셔야 합니다.')
-    return
-  }
-
-  alert("로그인 유효성 검사")
+ 
 
 }
 
@@ -45,6 +30,13 @@ const handleContinue = () => {
             type="email" 
             v-model="email" 
             placeholder="이메일 주소를 입력하세요." 
+            required
+          />
+           <label class="input-label">생년월일</label>
+          <input 
+            type="text" 
+            v-model="birth" 
+            placeholder="생년월일을 입력해주세요. 예)20010528" 
             required
           />
         </div>

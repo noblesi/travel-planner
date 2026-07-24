@@ -1,10 +1,19 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const email = ref('')
 const password = ref('')
 
+const testIdTrue = "test@test.com";
+const testPassTrue = "123123123123";
+var passwordCheck = false;
+
+const isPasswordMatched = () => {
+  return password.value != testPassTrue
+}
+
 const handleContinue = () => {
+  
   if (!email.value) {
     alert('이메일 주소를 입력해주세요.')
     return
@@ -19,8 +28,17 @@ const handleContinue = () => {
     alert('비밀번호는 10자 이상 입력해주셔야 합니다.')
     return
   }
-
-  alert("로그인 유효성 검사")
+  if(email.value != testIdTrue){
+    alert("등록된 아이디가 존재하지 않습니다.")
+    return
+  }
+  if(password.value != testPassTrue){
+    alert("비밀번호가 일치하지 않습니다.")
+    if(!passwordCheck){
+      passwordCheck=true
+    }
+    return
+  }
 
 }
 
@@ -54,8 +72,17 @@ const handleContinue = () => {
             placeholder="비밀번호를 입력해주세요." 
             required
           />
+          <br/>
+            <!-- 비밀번호 확인란에 입력이 시작되었을 때만 메시지 노출 -->
+          <div class="passwordMatchedDiv">
+            <!-- 일치하지 않을 때 -->
+            <span v-show="passwordCheck" style="color: #ff4d4d; font-size: 14px;">
+              ❌ 비밀번호가 맞지 않습니다.
+            </span>
+          </div>
         </div>
-        
+
+
         <button type="submit" class="btn-submit">로그인</button>
       </form>
 
@@ -88,6 +115,7 @@ const handleContinue = () => {
       <!-- 하단 네비게이션 가이드 -->
       <div class="footer-links">
         <p class="signup-prompt">신규 사용자이신가요? <a href="/joinView">가입하기</a></p>
+        <p class="signup-prompt">이메일를 잊으셨나요? <a href="/emailFind">이메일 찿기</a></p>
         <p class="signup-prompt">비밀번호를 잊으셨나요? <a href="/passwordFind">비밀번호 찿기</a></p>
       </div>
      
@@ -97,6 +125,10 @@ const handleContinue = () => {
 </template>
 
 <style lang="scss" scoped>
+.passwordMatchedDiv{
+  height: 14px;
+  text-align: center;
+}
 // 전체 배경 배치
 .login-container {
   display: flex;
@@ -271,7 +303,7 @@ const handleContinue = () => {
 
 // 하단 가이드 문구 스타일 영역
 .footer-links {
-  margin-top: 40px;
+  margin-top: 10px;
 
   a {
     color: #1a1a1a;

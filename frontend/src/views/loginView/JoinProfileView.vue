@@ -1,30 +1,28 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/userStore'
+import { useUserStore } from '@/stores/useUserStore'
 
 const router = useRouter()
-const email = ref('')
-const password = ref('')
+
+const birth = ref('')
+const name = ref('')
+const gender = ref('')
+const phone = ref('')
+const userStore = useUserStore()
 
 const handleContinue = () => {
-  if (!email.value) {
-    alert('이메일 주소를 입력해주세요.')
+  if(name.value == null || name.value == '' ){
+    alert('이름을 입력하여 주세요.')
     return
   }
-
-  if (!password.value){
-    alert('비밀번호를 입력해주세요.')
+  if(birth.value.length < 8 || birth.value.length > 8) {
+    alert('생년월일을 정확하게 입력하여주세요.')
     return
   }
-
-  if (password.value.length < 10){
-    alert('비밀번호는 10자 이상 입력해주셔야 합니다.')
-    return
-  }
-
-  alert("로그인 유효성 검사")
- 
+  alert('정상 가입되었습니다.')
+  userStore.setStep2Data(birth.value,name.value, gender.value, phone.value)
+  router.push('/joinCompleteView')
 }
 
 </script>
@@ -57,6 +55,15 @@ const handleContinue = () => {
             type="text" 
             v-model="birth" 
             placeholder="생년월일을 입력해주세요. 예) 20001031" 
+            required
+          />
+        </div>
+        <div class="input-container">
+          <label class="input-label">전화번호</label>
+          <input 
+            type="text" 
+            v-model="phone" 
+            placeholder="전화번호를 입력해주세요 예) 010-1234-5678" 
             required
           />
         </div>

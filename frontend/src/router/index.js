@@ -32,7 +32,12 @@ const router = createRouter({
     {
       path: '/passwordFind',
       name: 'find',
-      component: () => import('@/views/loginView/PasswordFind.vue'),
+      component: () => import('@/views/loginView/PasswordFindView.vue'),
+    },
+    {
+      path: '/joinComplete',
+      name: 'complete',
+      component: () => import('@/views/loginView/JoinCompleteView.vue'),
     },
   ],
 })
