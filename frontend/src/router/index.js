@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
-import LoginView from '@/views/loginView/LoginView.vue' 
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -31,13 +31,18 @@ const router = createRouter({
     },
     {
       path: '/passwordFind',
-      name: 'find',
+      name: 'passwordFind',
       component: () => import('@/views/loginView/PasswordFindView.vue'),
     },
     {
       path: '/joinComplete',
       name: 'complete',
       component: () => import('@/views/loginView/JoinCompleteView.vue'),
+    },
+    {
+      path: '/emailFind',
+      name: 'emailFind',
+      component: () => import('@/views/loginView/EmailFindView.vue'),
     },
   ],
 })
