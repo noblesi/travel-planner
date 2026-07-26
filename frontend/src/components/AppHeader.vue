@@ -1,5 +1,7 @@
 <script setup>
-import { RouterLink,useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+
+import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.png'
 
 const haederRouter = useRouter()
 
@@ -10,7 +12,6 @@ const moveLoginPage = () => {
 const moveJoinPage = () => {
   haederRouter.push('/joinView')
 }
-
 </script>
 
 <template>
@@ -28,7 +29,9 @@ const moveJoinPage = () => {
       </nav>
 
       <div class="header__actions">
-        <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage">로그인</button>
+        <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage">
+          로그인
+        </button>
         <button class="primary-button" type="button" v-on:click="moveJoinPage">회원가입</button>
       </div>
     </div>

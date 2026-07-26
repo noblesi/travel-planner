@@ -57,7 +57,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - 웹 앱 매니페스트: `frontend/public/site.webmanifest`
 - 헤더 로고 적용: `frontend/src/components/AppHeader.vue`
 
-JUnit 테스트 구성은 담당자의 의도에 따라 제거한 상태이며 복구 대상이 아니다.
+플랜 생성 HTTP 계약과 Transaction을 회귀 검증하기 위해 Spring Boot 4 JUnit·MockMvc 통합 테스트 구성을 추가했다.
 
 ## 이번 작업 완료 사항
 
@@ -76,15 +76,19 @@ JUnit 테스트 구성은 담당자의 의도에 따라 제거한 상태이며 �
 - 플랜 생성 Request DTO, 공개 범위 Enum, 날짜 범위·14일 제한 검증과 `MALFORMED_JSON` 처리를 구현했다.
 - 플랜·생성자·일차를 하나의 Transaction으로 저장하는 MyBatis Mapper와 `TravelPlanService`를 구현했다.
 - 생성 응답의 Oracle `NUMBER(19)` ID를 JSON 문자열로 변환하고 일차 목록을 조립하도록 구현했다.
+- `TravelPlanController`에서 `POST /api/plans`를 연결하고 `201 Created`, `Location` Header를 구현했다.
+- H2 `local` Profile에서 플랜 생성 HTTP 계약, DB 정합성, 실패 시 Transaction Rollback을 통합 검증했다.
+- 여행 플랜 설정 페이지, 지역·플랜 API Module, 설정 Form과 생성 후 제작 화면 이동을 구현했다.
+- Desktop·Mobile 화면과 지역 조회부터 플랜 생성·제작 Route 이동까지 Browser로 검증했다.
 - Gradle Build, MyBatis XML Parsing, H2 `local` Profile 및 기본 Profile 기동을 확인했다.
 
-플랜 생성 API의 Controller, `201 Created`, `Location` Header는 아직 구현하지 않았다. 따라서 실제 Insert·Rollback의 HTTP 통합 검증은 다음 단계에서 수행해야 한다.
+플랜 생성 API의 Backend local 구현은 완료했다. 실제 Oracle 환경의 DDL·Seed·Insert 통합 검증은 Oracle 접속 정보가 준비된 뒤 수행해야 한다.
 
 SQL*Plus 설치는 확인했지만 접속 가능한 Application Schema 계정 정보가 없어 실제 Oracle 적용과 지역 조회 통합 검증은 아직 수행하지 못했다.
 
 ## 리소스 점검
 
-2026-07-24 기준 점검 결과다.
+2026-07-26 기준 점검 결과다.
 
 | 구분 | 상태 | 비고 |
 | --- | --- | --- |
@@ -97,24 +101,24 @@ SQL*Plus 설치는 확인했지만 접속 가능한 Application Schema 계정 �
 | Backend local 기동 | 준비 완료 | `/api/health` UP, `/api/regions` 17건 확인 |
 | UI·ERD·DDL | 준비 완료 | PDF, eXERD, Oracle DDL 4개와 문서 Link 확인 |
 | Branding | 준비 완료 | Favicon, Manifest, Header·Symbol Logo 확인 |
-| Node.js·npm | 미설치 | Frontend Build와 Vitest를 현재 환경에서 실행할 수 없음 |
-| Frontend 의존성 | 부분 준비 | `package-lock.json`, 기존 `node_modules`, `dist`는 있으나 Node 실행환경이 필요 |
+| Node.js·npm | 준비 완료 | Node.js 24.14.0, npm 11.11.1 |
+| Frontend 의존성 | 보완 필요 | `sass-embedded` 설치 누락과 기존 Vue compile 오류로 Production Build 실패 |
 | Oracle | 대기 | SQL*Plus 21.3 설치, URL·계정·비밀번호 미확정 |
 | 실제 인증 | 대기 | 정책과 Provider 경계만 확정, 회원 Schema와 Spring Security·Google OIDC 구현 필요 |
 | 외부 API | 대기 | TourAPI·Kakao·Google Client Key가 설정되지 않음 |
-| Backend 자동 Test | 없음 | JUnit 구성 제거 정책에 따라 Gradle `test`는 `NO-SOURCE` |
-| Frontend Test | 최소 구성 | `HomeView.spec.js` 1개 존재, Node 설치 후 실행 필요 |
+| Backend 자동 Test | 준비 완료 | 플랜 생성 HTTP·DB 정합성·Rollback 통합 테스트 8건 통과 |
+| Frontend Test | 최소 구성 | `HomeView` 1건과 `PlanSetupView` 3건 통과, 전체 기능 회귀 검증은 부족 |
 
-4단계 `POST /api/plans` Controller와 H2 HTTP 통합 검증에는 Node.js, Oracle, 외부 API Key, 실제 인증 구현이 필요하지 않다. `local` Profile만으로 진행한다.
+4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
 
 후속 작업에서 추가하거나 정리할 리소스:
 
-- `TravelPlanController`는 4단계에서 추가한다.
-- `frontend/src/api/plans.js`, 설정·제작 View와 `planEditor` Store는 Frontend 단계에서 추가한다.
+- `TravelPlanController`와 플랜 생성 통합 테스트를 추가했다.
+- `frontend/src/api/plans.js`, `regions.js`, 설정 View와 제작 진입 View를 추가했다. `planEditor` Store는 제작 화면 단계에서 추가한다.
 - `TourApiClient`와 Kakao Map 관련 설정은 장소 검색·지도 단계에서 추가한다.
 - Root `.env.example`에는 현재 Oracle 변수만 있으므로 외부 API 연동을 시작할 때 Key 이름을 추가한다.
 - Vue SPA 전환 전에 사용하던 `backend/src/main/webapp/WEB-INF/jsp/common/`과 `backend/src/main/resources/static/css/layout.css`가 남아 있다. 현재 코드에서 사용 여부를 확인한 뒤 별도 정리 Commit으로 제거 여부를 결정한다.
-- Root README에는 JUnit·MockMvc와 `src/test/java` 안내가 남아 있으나 실제 Backend Test Source는 없다. 테스트 제거 정책을 유지한다면 별도 문서 정합성 수정이 필요하다.
+- Root README의 JUnit·MockMvc와 `src/test/java` 안내에 맞춰 Backend 통합 테스트 구성을 복구했다.
 
 ## 담당 개발 범위
 
@@ -240,7 +244,7 @@ GET    /api/plans/{planId}/editor
 | Endpoint | 상태 |
 | --- | --- |
 | `GET /api/regions` | Backend 구현 및 H2 local 통합 검증 완료 |
-| `POST /api/plans` | Request·검증·Mapper·Transaction Service 완료, Controller 및 HTTP 통합 검증 필요 |
+| `POST /api/plans` | Backend 구현 및 H2 local HTTP·Transaction 통합 검증 완료, Oracle 검증 필요 |
 | `GET /api/plans/{planId}/editor` | 계약만 확정, 구현 전 |
 
 아래 Endpoint는 후속 구현 방향이며 Request·Response 계약은 아직 확정되지 않았다.
@@ -310,8 +314,8 @@ backend/src/main/java/com/noblesi/travelplanner/
 1. ERD 기준 Oracle DDL 작성 (완료, 실제 Oracle 적용 필요)
 2. API 요청·응답 DTO와 오류 코드를 확정 (플랜 생성 범위 구현 완료)
 3. 국내 지역 조회 API 구현 (로컬 검증 완료, Oracle 통합 검증 필요)
-4. 여행 플랜 생성 API 구현 (1~3단계 완료, Controller와 HTTP 통합 검증 필요)
-5. 설정 페이지 구현 및 생성 API 연결
+4. 여행 플랜 생성 API 구현 (H2 local 구현·HTTP·Transaction 통합 검증 완료, Oracle 검증 필요)
+5. 설정 페이지 구현 및 생성 API 연결 (완료, 전체 Frontend Build는 팀 작업 완료 후 재검증 필요)
 6. 제작 페이지 레이아웃과 Pinia 편집 상태 구현
 7. 플랜 편집 초기 조회 API 연결
 8. TourAPI 장소 검색 연동
@@ -338,9 +342,9 @@ backend/src/main/java/com/noblesi/travelplanner/
 다음 세션에서는 이 문서를 먼저 읽고 아래 순서로 시작한다.
 
 1. `KMS` 브랜치와 작업 트리 상태 확인
-2. `TravelPlanController`에서 `POST /api/plans`를 연결한다.
-3. `201 Created`, `Location: /api/plans/{planId}/editor`, `ApiResponse` Body를 구현한다.
-4. H2 `local` Profile에서 1일·14일 성공, 15일·역전 날짜·잘못된 지역·잘못된 JSON 오류를 HTTP로 검증한다.
-5. 생성 결과의 `TRAVEL_PLAN`, `PLAN_MEMBER`, `PLAN_DAY` 정합성과 실패 시 Rollback을 검증한다.
-6. 회원 Schema와 Oracle 접속 정보가 준비되면 Oracle DDL·Seed 및 두 구현 API를 다시 통합 검증한다.
-7. 여행 플랜 설정 페이지 구현과 생성 API 연결을 시작한다.
+2. Frontend 공통 lint·build 실패 항목은 담당 팀원의 작업 완료 후 통합 검증한다.
+3. `GET /api/plans/{planId}/editor` Backend 구현을 시작한다.
+4. 소유자 접근 검사, 플랜 Metadata, 일차와 일정 목록, Version 응답을 구현한다.
+5. H2 `local` Profile에서 정상 조회·없는 플랜·권한 오류를 HTTP로 검증한다.
+6. `PlanEditorView.vue`의 진입 화면을 실제 제작 Layout과 `planEditor` Store로 교체한다.
+7. 회원 Schema와 Oracle 접속 정보가 준비되면 Oracle DDL·Seed 및 구현 API를 다시 통합 검증한다.
