@@ -2,6 +2,7 @@
 import { RouterLink,useRouter } from 'vue-router'
 
 const haederRouter = useRouter()
+const loginCheck = true;
 
 const moveLoginPage = () => {
   haederRouter.push('/loginView')
@@ -28,8 +29,14 @@ const moveJoinPage = () => {
       </nav>
 
       <div class="header__actions">
-        <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage">로그인</button>
-        <button class="primary-button" type="button" v-on:click="moveJoinPage">회원가입</button>
+        <div v-if="!loginCheck">
+          <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage">로그인</button>
+          <button class="primary-button" type="button" v-on:click="moveJoinPage">회원가입</button>
+        </div>
+        <div v-if="loginCheck">
+          <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage"><img :src=""></button>
+          <button class="primary-button" type="button" v-on:click="moveJoinPage">회원가입</button>
+        </div>
       </div>
     </div>
   </header>

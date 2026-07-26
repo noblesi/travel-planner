@@ -1,9 +1,9 @@
 <script setup>
 import { ref } from 'vue'
 
-const email = ref('')
+const name = ref('')
 const birth = ref('')
-
+const phone = ref('')
 
 const handleContinue = () => {
  
@@ -26,11 +26,11 @@ const handleContinue = () => {
       <!-- 이메일 입력 및 계속하기 폼 -->
       <form @submit.prevent="handleContinue" class="login-form">
         <div class="input-container">
-          <label class="input-label">이메일</label>
+          <label class="input-label">이름</label>
           <input 
-            type="email" 
-            v-model="email" 
-            placeholder="이메일 주소를 입력하세요." 
+            type="text" 
+            v-model="name" 
+            placeholder="이름을 입력해주세요" 
             required
           />
           <label class="input-label">생년월일</label>
@@ -49,7 +49,7 @@ const handleContinue = () => {
           />
         </div>
         
-        <button type="submit" class="btn-submit">인증번호 보내기</button>
+        <button type="submit" class="btn-submit">이메일 찾기</button>
       </form>
       <div class="footer-links">
         <p class="signup-prompt">신규 사용자이신가요? <a href="/joinView">가입하기</a></p>

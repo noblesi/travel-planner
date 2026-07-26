@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 const email = ref('')
 const password = ref('')
@@ -8,9 +8,7 @@ const testIdTrue = "test@test.com";
 const testPassTrue = "123123123123";
 var passwordCheck = false;
 
-const isPasswordMatched = () => {
-  return password.value != testPassTrue
-}
+
 
 const handleContinue = () => {
   
