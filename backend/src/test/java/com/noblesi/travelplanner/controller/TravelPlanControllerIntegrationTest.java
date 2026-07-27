@@ -182,6 +182,7 @@ class TravelPlanControllerIntegrationTest {
 	}
 
 	private void assertAllPlanTablesEmpty() {
+		assertRowCount("PLAN_SCHEDULE_ITEM", 0);
 		assertRowCount("PLAN_DAY", 0);
 		assertRowCount("PLAN_MEMBER", 0);
 		assertRowCount("TRAVEL_PLAN", 0);
@@ -196,6 +197,7 @@ class TravelPlanControllerIntegrationTest {
 	}
 
 	private void deletePlanData() {
+		jdbcTemplate.update("DELETE FROM PLAN_SCHEDULE_ITEM");
 		jdbcTemplate.update("DELETE FROM PLAN_DAY");
 		jdbcTemplate.update("DELETE FROM PLAN_MEMBER");
 		jdbcTemplate.update("DELETE FROM TRAVEL_PLAN");

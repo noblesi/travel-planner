@@ -1,16 +1,18 @@
 # KMS 여행 플랜 개발 인수인계
 
-최종 정리일: 2026-07-24
+최종 정리일: 2026-07-27
 
 ## 저장소 상태
 
 - 원격 저장소: `https://github.com/noblesi/travel-planner.git`
 - 작업 브랜치: `KMS`
-- 현재 확인 Commit: `3bbd346 feat: 플랜 생성 트랜잭션 구현`
+- 현재 기준 Commit: `a951b59 feat: 여행 플랜 생성 및 설정 화면 구현`
 - 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
-- 현재 작업 묶음: 여행 플랜 생성 API 1~3단계 완료, HTTP Controller 연결 전
+- 현재 미커밋 작업 묶음: 제작 페이지 초기 조회 Backend API와 H2 통합 검증 완료
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
+
+현재 `dev`에만 있는 Commit은 `KMS`에 반영하지 않기로 결정했다. 로그인·회원가입 화면과 해당 영역의 공통 lint·build 오류는 다른 담당자의 작업 범위이므로 수정하지 않는다.
 
 다른 컴퓨터에서는 다음 명령으로 작업을 시작한다.
 
@@ -81,6 +83,13 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - 여행 플랜 설정 페이지, 지역·플랜 API Module, 설정 Form과 생성 후 제작 화면 이동을 구현했다.
 - Desktop·Mobile 화면과 지역 조회부터 플랜 생성·제작 Route 이동까지 Browser로 검증했다.
 - Gradle Build, MyBatis XML Parsing, H2 `local` Profile 및 기본 Profile 기동을 확인했다.
+- `GET /api/plans/{planId}/editor`의 Controller, Service, MyBatis 조회 Mapper와 응답 DTO를 구현했다.
+- 편집 초기 조회에서 활성 플랜과 현재 회원 소유권을 함께 검사하고, 미존재·삭제·타인 소유 플랜을 모두 `PLAN_NOT_FOUND`로 처리했다.
+- 잘못된 형식, 0 이하, Java `long` 범위를 초과한 `planId`를 `INVALID_PATH_PARAMETER`로 처리했다.
+- H2 `local` Schema에 `PLAN_SCHEDULE_ITEM` Table, Sequence와 조회용 Index를 추가했다.
+- 일차는 `DAY_NO`, 일정은 `MORNING`·`AFTERNOON`과 `POSITION_NO` 순서로 조회하고 빈 일정은 `items: []`로 반환하도록 구현했다.
+- JavaScript 안전 정수를 넘는 플랜·일차·일정 ID가 JSON 문자열로 손실 없이 반환되는지 통합 검증했다.
+- Backend 전체 Test 16건과 `clean test bootJar`를 통과했다.
 
 플랜 생성 API의 Backend local 구현은 완료했다. 실제 Oracle 환경의 DDL·Seed·Insert 통합 검증은 Oracle 접속 정보가 준비된 뒤 수행해야 한다.
 
@@ -92,12 +101,12 @@ SQL*Plus 설치는 확인했지만 접속 가능한 Application Schema 계정 �
 
 | 구분 | 상태 | 비고 |
 | --- | --- | --- |
-| Git | 준비 완료 | `KMS`, `3bbd346` 기준 확인 |
+| Git | 작업 중 | `KMS`, 기준 Commit `a951b59`, 편집 초기 조회 변경은 미커밋 |
 | Java | 준비 완료 | Temurin JDK 21.0.11 |
 | Gradle | 준비 완료 | Wrapper 9.5.1, `clean test bootJar` 성공 |
 | Backend JAR | 준비 완료 | `backend/build/libs/travel-planner.jar` 생성 |
-| H2 local DB | 준비 완료 | 지역 17건, 플랜·생성자·일차 Schema와 Sequence 포함 |
-| MyBatis | 준비 완료 | `RegionMapper`, `TravelPlanMapper`, `PlanDayMapper` Interface와 XML 1:1 대응 |
+| H2 local DB | 준비 완료 | 지역 17건, 플랜·생성자·일차·일정 항목 Schema와 Sequence 포함 |
+| MyBatis | 준비 완료 | 지역·플랜·일차·일정 항목 Mapper Interface와 XML 1:1 대응 |
 | Backend local 기동 | 준비 완료 | `/api/health` UP, `/api/regions` 17건 확인 |
 | UI·ERD·DDL | 준비 완료 | PDF, eXERD, Oracle DDL 4개와 문서 Link 확인 |
 | Branding | 준비 완료 | Favicon, Manifest, Header·Symbol Logo 확인 |
@@ -106,7 +115,7 @@ SQL*Plus 설치는 확인했지만 접속 가능한 Application Schema 계정 �
 | Oracle | 대기 | SQL*Plus 21.3 설치, URL·계정·비밀번호 미확정 |
 | 실제 인증 | 대기 | 정책과 Provider 경계만 확정, 회원 Schema와 Spring Security·Google OIDC 구현 필요 |
 | 외부 API | 대기 | TourAPI·Kakao·Google Client Key가 설정되지 않음 |
-| Backend 자동 Test | 준비 완료 | 플랜 생성 HTTP·DB 정합성·Rollback 통합 테스트 8건 통과 |
+| Backend 자동 Test | 준비 완료 | 플랜 생성 8건과 편집 초기 조회 8건, 전체 16건 통과 |
 | Frontend Test | 최소 구성 | `HomeView` 1건과 `PlanSetupView` 3건 통과, 전체 기능 회귀 검증은 부족 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -115,6 +124,7 @@ SQL*Plus 설치는 확인했지만 접속 가능한 Application Schema 계정 �
 
 - `TravelPlanController`와 플랜 생성 통합 테스트를 추가했다.
 - `frontend/src/api/plans.js`, `regions.js`, 설정 View와 제작 진입 View를 추가했다. `planEditor` Store는 제작 화면 단계에서 추가한다.
+- `PlanScheduleItemMapper`와 편집 초기 조회 응답 DTO를 추가했다. 일정 변경 Mapper는 자동 저장 API 단계에서 확장한다.
 - `TourApiClient`와 Kakao Map 관련 설정은 장소 검색·지도 단계에서 추가한다.
 - Root `.env.example`에는 현재 Oracle 변수만 있으므로 외부 API 연동을 시작할 때 Key 이름을 추가한다.
 - Vue SPA 전환 전에 사용하던 `backend/src/main/webapp/WEB-INF/jsp/common/`과 `backend/src/main/resources/static/css/layout.css`가 남아 있다. 현재 코드에서 사용 여부를 확인한 뒤 별도 정리 Commit으로 제거 여부를 결정한다.
@@ -245,7 +255,7 @@ GET    /api/plans/{planId}/editor
 | --- | --- |
 | `GET /api/regions` | Backend 구현 및 H2 local 통합 검증 완료 |
 | `POST /api/plans` | Backend 구현 및 H2 local HTTP·Transaction 통합 검증 완료, Oracle 검증 필요 |
-| `GET /api/plans/{planId}/editor` | 계약만 확정, 구현 전 |
+| `GET /api/plans/{planId}/editor` | Backend 구현 및 H2 local HTTP·소유권·정렬·ID 정밀도 통합 검증 완료, Oracle 검증 필요 |
 
 아래 Endpoint는 후속 구현 방향이며 Request·Response 계약은 아직 확정되지 않았다.
 
@@ -316,8 +326,8 @@ backend/src/main/java/com/noblesi/travelplanner/
 3. 국내 지역 조회 API 구현 (로컬 검증 완료, Oracle 통합 검증 필요)
 4. 여행 플랜 생성 API 구현 (H2 local 구현·HTTP·Transaction 통합 검증 완료, Oracle 검증 필요)
 5. 설정 페이지 구현 및 생성 API 연결 (완료, 전체 Frontend Build는 팀 작업 완료 후 재검증 필요)
-6. 제작 페이지 레이아웃과 Pinia 편집 상태 구현
-7. 플랜 편집 초기 조회 API 연결
+6. 제작 페이지 초기 조회 Backend API 구현 (H2 local 구현·HTTP 통합 검증 완료, Oracle 검증 필요)
+7. 제작 페이지 레이아웃과 Pinia 편집 상태 구현 및 초기 조회 API 연결
 8. TourAPI 장소 검색 연동
 9. 카카오맵과 장소 마커 연결
 10. 일정 추가·수정·삭제·순서 변경 구현
@@ -341,10 +351,12 @@ backend/src/main/java/com/noblesi/travelplanner/
 
 다음 세션에서는 이 문서를 먼저 읽고 아래 순서로 시작한다.
 
-1. `KMS` 브랜치와 작업 트리 상태 확인
-2. Frontend 공통 lint·build 실패 항목은 담당 팀원의 작업 완료 후 통합 검증한다.
-3. `GET /api/plans/{planId}/editor` Backend 구현을 시작한다.
-4. 소유자 접근 검사, 플랜 Metadata, 일차와 일정 목록, Version 응답을 구현한다.
-5. H2 `local` Profile에서 정상 조회·없는 플랜·권한 오류를 HTTP로 검증한다.
-6. `PlanEditorView.vue`의 진입 화면을 실제 제작 Layout과 `planEditor` Store로 교체한다.
-7. 회원 Schema와 Oracle 접속 정보가 준비되면 Oracle DDL·Seed 및 구현 API를 다시 통합 검증한다.
+1. `KMS` 브랜치와 작업 트리 상태를 확인하고 이번 편집 초기 조회 변경을 검토한다.
+2. `dev` 전용 Commit은 반영하지 않고 로그인·회원가입 담당자의 파일은 수정하지 않는다.
+3. Frontend 공통 lint·build 실패는 담당 팀원의 작업 완료 후 통합 검증한다.
+4. `frontend/src/api/plans.js`에 편집 초기 조회 API 함수를 추가한다.
+5. `planEditor` Pinia Store에 로딩·성공·빈 일정·오류 상태와 플랜·일차·일정 상태를 구현한다.
+6. `PlanEditorView.vue`의 진입 안내 화면을 실제 제작 Layout으로 교체하고 초기 조회 API를 연결한다.
+7. 제작 화면의 일차 Tab과 오전·오후 일정 목록을 먼저 구현하고 관련 Frontend 단위 Test를 추가한다.
+8. 이후 TourAPI 장소 검색과 Kakao Map 연동을 진행한다.
+9. 회원 Schema와 Oracle 접속 정보가 준비되면 Oracle DDL·Seed 및 구현 API를 다시 통합 검증한다.
