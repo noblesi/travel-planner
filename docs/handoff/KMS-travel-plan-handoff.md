@@ -1,14 +1,14 @@
 # KMS 여행 플랜 개발 인수인계
 
-최종 정리일: 2026-07-24
+최종 정리일: 2026-07-27
 
 ## 저장소 상태
 
 - 원격 저장소: `https://github.com/noblesi/travel-planner.git`
 - 작업 브랜치: `KMS`
-- 현재 확인 Commit: `3bbd346 feat: 플랜 생성 트랜잭션 구현`
+- 문서 갱신 직전 확인 Commit: `440bc7f feat: H2 일정 항목 스키마 추가`
 - 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
-- 현재 작업 묶음: 여행 플랜 생성 API 1~3단계 완료, HTTP Controller 연결 전
+- 현재 작업 묶음: 여행 플랜 생성 및 설정 화면 완료, 제작 초기 조회 API 구현 전 H2 Schema 보완 완료
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
 
@@ -72,6 +72,8 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - 로컬 로그인과 Google OIDC를 하나의 회원 및 Spring Security Session으로 통합하는 인증 방식을 확정했다.
 - Oracle 접속 정보가 확정되기 전에도 개발할 수 있도록 H2 Oracle 호환 `local` Profile을 추가하고 지역 17건 응답을 검증했다.
 - H2 `local` Schema에 `TRAVEL_PLAN`, `PLAN_MEMBER`, `PLAN_DAY`와 플랜·일차 Sequence를 추가했다.
+- H2 `local` Schema에 제작 초기 조회와 일정 개발을 위한 `PLAN_SCHEDULE_ITEM`, `SEQ_PLAN_SCHEDULE_ITEM` 및 Oracle 기준 Constraint를 추가했다.
+- H2 일정 항목 Schema 보완 후 `clean test bootJar`를 실행해 Backend Test 8건과 실행 JAR 생성을 다시 확인했다.
 - `LocalCurrentMemberProvider`와 인증 미연동 기본 Profile용 `UnavailableCurrentMemberProvider`를 구현했다.
 - 플랜 생성 Request DTO, 공개 범위 Enum, 날짜 범위·14일 제한 검증과 `MALFORMED_JSON` 처리를 구현했다.
 - 플랜·생성자·일차를 하나의 Transaction으로 저장하는 MyBatis Mapper와 `TravelPlanService`를 구현했다.
@@ -92,11 +94,11 @@ SQL*Plus 설치는 확인했지만 접속 가능한 Application Schema 계정 �
 
 | 구분 | 상태 | 비고 |
 | --- | --- | --- |
-| Git | 준비 완료 | `KMS`, `3bbd346` 기준 확인 |
+| Git | 준비 완료 | `KMS`, `440bc7f` H2 일정 항목 Schema 보완 완료 |
 | Java | 준비 완료 | Temurin JDK 21.0.11 |
 | Gradle | 준비 완료 | Wrapper 9.5.1, `clean test bootJar` 성공 |
 | Backend JAR | 준비 완료 | `backend/build/libs/travel-planner.jar` 생성 |
-| H2 local DB | 준비 완료 | 지역 17건, 플랜·생성자·일차 Schema와 Sequence 포함 |
+| H2 local DB | 준비 완료 | 지역 17건, 플랜·생성자·일차·일정 항목 Schema와 관련 Sequence 포함 |
 | MyBatis | 준비 완료 | `RegionMapper`, `TravelPlanMapper`, `PlanDayMapper` Interface와 XML 1:1 대응 |
 | Backend local 기동 | 준비 완료 | `/api/health` UP, `/api/regions` 17건 확인 |
 | UI·ERD·DDL | 준비 완료 | PDF, eXERD, Oracle DDL 4개와 문서 Link 확인 |
@@ -343,7 +345,7 @@ backend/src/main/java/com/noblesi/travelplanner/
 
 1. `KMS` 브랜치와 작업 트리 상태 확인
 2. Frontend 공통 lint·build 실패 항목은 담당 팀원의 작업 완료 후 통합 검증한다.
-3. `GET /api/plans/{planId}/editor` Backend 구현을 시작한다.
+3. H2 `local`의 `PLAN_SCHEDULE_ITEM`, `SEQ_PLAN_SCHEDULE_ITEM` 준비는 완료되었으므로 `GET /api/plans/{planId}/editor` Backend 구현을 시작한다.
 4. 소유자 접근 검사, 플랜 Metadata, 일차와 일정 목록, Version 응답을 구현한다.
 5. H2 `local` Profile에서 정상 조회·없는 플랜·권한 오류를 HTTP로 검증한다.
 6. `PlanEditorView.vue`의 진입 화면을 실제 제작 Layout과 `planEditor` Store로 교체한다.
