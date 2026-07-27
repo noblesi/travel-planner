@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.PlanScheduleItemMapper">
+
+	<resultMap id="planScheduleItemResultMap" type="com.noblesi.travelplanner.domain.plan.PlanScheduleItem">
+		<constructor>
+			<idArg column="SCHEDULE_ITEM_ID" javaType="_long" />
+			<arg column="PLAN_DAY_ID" javaType="_long" />
+			<arg column="TIME_SLOT" javaType="com.noblesi.travelplanner.domain.plan.TimeSlot" />
+			<arg column="POSITION_NO" javaType="_int" />
+			<arg column="PLACE_PROVIDER" javaType="string" />
+			<arg column="EXTERNAL_PLACE_ID" javaType="string" />
+			<arg column="PLACE_NAME_SNAPSHOT" javaType="string" />
+			<arg column="CATEGORY_SNAPSHOT" javaType="string" />
+			<arg column="ADDRESS_SNAPSHOT" javaType="string" />
+			<arg column="LATITUDE_SNAPSHOT" javaType="java.math.BigDecimal" />
+			<arg column="LONGITUDE_SNAPSHOT" javaType="java.math.BigDecimal" />
+			<arg column="IMAGE_URL_SNAPSHOT" javaType="string" />
+			<arg column="DESCRIPTION_SNAPSHOT" javaType="string" />
+			<arg column="ITEM_VERSION" javaType="_int" />
+		</constructor>
+	</resultMap>
+
+	<select id="findByPlanIdForEditor" resultMap="planScheduleItemResultMap">
+		SELECT I.SCHEDULE_ITEM_ID,
+		       I.PLAN_DAY_ID,
+		       I.TIME_SLOT,
+		       I.POSITION_NO,
+		       I.PLACE_PROVIDER,
+		       I.EXTERNAL_PLACE_ID,
+		       I.PLACE_NAME_SNAPSHOT,
+		       I.CATEGORY_SNAPSHOT,
+		       I.ADDRESS_SNAPSHOT,
+		       I.LATITUDE_SNAPSHOT,
+		       I.LONGITUDE_SNAPSHOT,
+		       I.IMAGE_URL_SNAPSHOT,
+		       I.DESCRIPTION_SNAPSHOT,
+		       I.ITEM_VERSION
+		  FROM PLAN_SCHEDULE_ITEM I
+		  JOIN PLAN_DAY D
+		    ON D.PLAN_DAY_ID = I.PLAN_DAY_ID
+		 WHERE D.PLAN_ID = #{planId}
+		 ORDER BY D.DAY_NO ASC,
+		          CASE I.TIME_SLOT WHEN 'MORNING' THEN 0 ELSE 1 END ASC,
+		          I.POSITION_NO ASC
+	</select>
+
+</mapper>
