@@ -52,14 +52,9 @@ const router = createRouter({
       component: () => import('@/views/loginView/LoginView.vue'),
     },
     {
-      path: '/joinView',
-      name: 'join',
-      component: () => import('@/views/loginView/JoinView.vue'),
-    },
-    {
-      path: '/joinProfileView',
-      name: 'joinProfile',
-      component: () => import('@/views/loginView/JoinProfileView.vue'),
+      path: '/emailFind',
+      name: 'emailFind',
+      component: () => import('@/views/loginView/EmailFindView.vue'),
     },
     {
       path: '/passwordFind',
@@ -67,14 +62,19 @@ const router = createRouter({
       component: () => import('@/views/loginView/PasswordFindView.vue'),
     },
     {
-      path: '/joinComplete',
-      name: 'complete',
-      component: () => import('@/views/loginView/JoinCompleteView.vue'),
+      path: '/joinView',
+      name: 'join',
+      component: () => import('@/views/joinView/JoinView.vue'),
     },
     {
-      path: '/emailFind',
-      name: 'emailFind',
-      component: () => import('@/views/loginView/EmailFindView.vue'),
+      path: '/joinProfileView',
+      name: 'joinProfile',
+      component: () => import('@/views/joinView/JoinProfileView.vue'),
+    },
+    {
+      path: '/joinComplete',
+      name: 'complete',
+      component: () => import('@/views/joinView/JoinCompleteView.vue'),
     },
   ],
   scrollBehavior(to, from, savedPosition) {
