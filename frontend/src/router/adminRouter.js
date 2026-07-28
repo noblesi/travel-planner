@@ -100,6 +100,14 @@ const adminRouter = [
           title: '공지사항 상세',
         },
       },
+      {
+        path: 'tour-data',
+        name: 'admin-tour-data',
+        component: () => import('@/views/admin/AdminTourDataView.vue'),
+        meta: {
+          title: '관광데이터 관리',
+        },
+      },
     ],
   },
 ]

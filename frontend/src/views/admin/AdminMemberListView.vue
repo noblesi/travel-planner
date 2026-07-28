@@ -17,27 +17,30 @@ const tabs = [
 // 회원 목록 조회 API 응답으로 교체할 화면 확인용 데이터입니다.
 const members = ref([
   {
-    memberNumber: 'M-111111',
+    id: 'minsu12',
     name: '김민수',
-    email: 'TEST@TEST.com',
+    nickname: '여행하는민수',
+    email: 'minsu12@test.com',
     joinDate: '2026.07.07',
     trips: 10,
     reports: 3,
     status: 'suspended',
   },
   {
-    memberNumber: 'M-123456',
+    id: 'seoyeon23',
     name: '이서연',
-    email: 'seo123@TEST.com',
+    nickname: '서연의여행',
+    email: 'seoyeon23@test.com',
     joinDate: '2026.07.11',
     trips: 12,
     reports: 2,
     status: 'withdrawn',
   },
   {
-    memberNumber: 'M-717171',
+    id: 'jiho77',
     name: '최지호',
-    email: 'choi111@TEST.com',
+    nickname: '길위의지호',
+    email: 'jiho77@test.com',
     joinDate: '2026.07.10',
     trips: 13,
     reports: 0,
@@ -59,8 +62,9 @@ const filteredMembers = computed(() => {
 
     const matchesKeyword =
       !normalizedKeyword ||
-      member.memberNumber.toLowerCase().includes(normalizedKeyword) ||
+      member.id.toLowerCase().includes(normalizedKeyword) ||
       member.name.toLowerCase().includes(normalizedKeyword) ||
+      member.nickname.toLowerCase().includes(normalizedKeyword) ||
       member.email.toLowerCase().includes(normalizedKeyword)
 
     return matchesTab && matchesStatus && matchesKeyword
@@ -119,7 +123,7 @@ const activateMember = (member) => {
           <input
             v-model="keyword"
             type="search"
-            placeholder="이름, 아이디, 이메일 검색"
+            placeholder="아이디, 이름, 닉네임, 이메일 검색"
           />
         </div>
 
@@ -146,8 +150,10 @@ const activateMember = (member) => {
         <table>
           <thead>
             <tr>
-              <th>회원 번호</th>
-              <th>회원 정보</th>
+              <th>아이디</th>
+              <th>이름</th>
+              <th>닉네임</th>
+              <th>이메일</th>
               <th>가입일</th>
               <th>여행 플랜</th>
               <th>신고 누적</th>
@@ -159,16 +165,12 @@ const activateMember = (member) => {
           <tbody>
             <tr
               v-for="member in filteredMembers"
-              :key="member.memberNumber"
+              :key="member.id"
             >
-              <td>{{ member.memberNumber }}</td>
-
-              <td>
-                <div class="member-information">
-                  <strong>{{ member.name }}</strong>
-                  <span>{{ member.email }}</span>
-                </div>
-              </td>
+              <td>{{ member.id }}</td>
+              <td>{{ member.name }}</td>
+              <td>{{ member.nickname }}</td>
+              <td class="member-email">{{ member.email }}</td>
 
               <td>{{ member.joinDate }}</td>
               <td>{{ member.trips }}건</td>
@@ -193,7 +195,7 @@ const activateMember = (member) => {
                     @click="
                       $router.push({
                         name: 'admin-member-detail',
-                        params: { memberId: member.memberNumber },
+                        params: { memberId: member.id },
                       })
                     "
                   >
@@ -222,7 +224,7 @@ const activateMember = (member) => {
             </tr>
 
             <tr v-if="filteredMembers.length === 0">
-              <td class="empty-message" colspan="7">
+              <td class="empty-message" colspan="9">
                 조회된 회원이 없습니다.
               </td>
             </tr>
@@ -358,7 +360,7 @@ const activateMember = (member) => {
 
 table {
   width: 100%;
-  min-width: 820px;
+  min-width: 1080px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -384,46 +386,41 @@ td {
 }
 
 th:nth-child(1) {
-  width: 14%;
-}
-
-th:nth-child(2) {
-  width: 24%;
-}
-
-th:nth-child(3) {
-  width: 14%;
-}
-
-th:nth-child(4),
-th:nth-child(5) {
   width: 11%;
 }
 
-th:nth-child(6) {
-  width: 10%;
+th:nth-child(2) {
+  width: 9%;
 }
 
+th:nth-child(3) {
+  width: 13%;
+}
+
+th:nth-child(4) {
+  width: 18%;
+}
+
+th:nth-child(5) {
+  width: 12%;
+}
+
+th:nth-child(6),
 th:nth-child(7) {
-  width: 16%;
+  width: 11%;
 }
 
-.member-information {
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  gap: 3px;
+th:nth-child(8) {
+  width: 8%;
+}
+
+th:nth-child(9) {
+  width: 11%;
+}
+
+.member-email {
   text-align: left;
-}
-
-.member-information strong {
-  color: #30343a;
-  font-size: 13px;
-}
-
-.member-information span {
-  color: #989ea7;
-  font-size: 11px;
+  word-break: break-all;
 }
 
 .status-badge {

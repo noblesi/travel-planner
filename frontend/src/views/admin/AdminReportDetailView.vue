@@ -16,7 +16,13 @@ const report = {
   reason: '부적절한 내용',
   status: '검토 대기',
   content: '여행 플랜에 부적절한 내용이 포함되어 있습니다.',
-  targetPreview: '신고 대상 여행 플랜의 주요 내용이 표시됩니다.',
+}
+
+const openReportedTrip = () => {
+  router.push({
+    name: 'admin-trip-detail',
+    params: { tripId: report.tripId },
+  })
 }
 
 const completeReview = () => {
@@ -58,11 +64,11 @@ const completeReview = () => {
 
       <aside class="processing-card">
         <section>
-          <div class="section-heading">
-            <h2>신고 대상 미리보기</h2>
-            <span>공개</span>
-          </div>
-          <div class="preview-box">{{ report.targetPreview }}</div>
+          <h2>신고 대상 플랜</h2>
+          <button class="trip-link-button" type="button" @click="openReportedTrip">
+            <span>플랜 번호 {{ report.tripId }}</span>
+            <strong>여행 플랜 상세로 이동</strong>
+          </button>
         </section>
 
         <section class="processing-section">
@@ -98,8 +104,7 @@ const completeReview = () => {
 .status-badge { display: inline-flex; padding: 5px 9px; border-radius: 20px; background: var(--admin-orange-soft); color: var(--admin-orange); font-size: 11px; font-weight: 800; }
 .report-content { margin-top: 46px; }.report-content > div { min-height: 150px; margin-top: 16px; padding: 16px; border: 1px solid var(--admin-border); border-radius: 8px; background: #fffbf8; font-size: 13px; }
 .processing-card { display: grid; gap: 42px; }
-.section-heading { display: flex; align-items: center; gap: 8px; }.section-heading span { padding: 4px 8px; border-radius: 20px; background: var(--admin-orange-soft); color: var(--admin-orange); font-size: 11px; font-weight: 800; }
-.preview-box { min-height: 150px; margin-top: 16px; padding: 16px; border: 1px solid var(--admin-border); border-radius: 8px; background: #fffbf8; color: var(--admin-muted); font-size: 13px; }
+.trip-link-button { display: grid; gap: 8px; width: 100%; margin-top: 16px; padding: 18px; border: 1px solid var(--admin-border); border-radius: 8px; background: #fffbf8; text-align: left; cursor: pointer; }.trip-link-button span { color: var(--admin-muted); font-size: 12px; }.trip-link-button strong { color: var(--admin-orange); font-size: 14px; }.trip-link-button:hover { border-color: var(--admin-orange); box-shadow: 0 0 0 3px rgb(243 136 59 / 12%); }
 .processing-section h2 { margin-bottom: 16px; }
 .action-options { display: flex; gap: 10px; margin-bottom: 14px; }.action-options label { display: flex; align-items: center; gap: 5px; padding: 7px 11px; border: 1px solid var(--admin-border); border-radius: 6px; font-size: 12px; cursor: pointer; }
 .processing-section textarea { width: 100%; min-height: 120px; padding: 14px; resize: vertical; border: 1px solid var(--admin-border); border-radius: 8px; outline: none; font: inherit; }.processing-section textarea:focus { border-color: var(--admin-orange); box-shadow: 0 0 0 3px rgb(243 136 59 / 14%); }

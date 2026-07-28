@@ -10,8 +10,6 @@ const displayStatus = ref('published')
 const notice = {
   title: '서비스 이용약관 변경 안내',
   type: '필독 공지',
-  createdAt: '2026-07-16 10:00',
-  endedAt: '없음',
 }
 </script>
 
@@ -42,8 +40,6 @@ const notice = {
         <dl>
           <div><dt>공지 유형</dt><dd>{{ notice.type }}</dd></div>
           <div><dt>게시 상태</dt><dd><span class="status-badge">게시중</span></dd></div>
-          <div><dt>게시 시작</dt><dd>{{ notice.createdAt }}</dd></div>
-          <div><dt>게시 종료</dt><dd>{{ notice.endedAt }}</dd></div>
           <div><dt>상단 고정</dt><dd><select v-model="displayStatus"><option value="published">사용</option><option value="unused">사용 안 함</option></select></dd></div>
           <div><dt>첨부 파일</dt><dd>없음</dd></div>
         </dl>

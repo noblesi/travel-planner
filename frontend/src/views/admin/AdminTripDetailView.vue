@@ -14,7 +14,7 @@ const schedules = [
   { order: 3, name: '창덕궁', time: '14:30', detail: '고궁 관람' },
 ]
 
-// 신고 및 운영 기록 API 응답으로 교체합니다.
+// 신고 기록 API 응답으로 교체합니다.
 const reports = [
   { id: 'R-221133', date: '2026-07-13', reason: '부적절한 내용', status: '검토 대기' },
   { id: 'R-221144', date: '2026-07-16', reason: '과도한 광고', status: '검토 완료' },
@@ -82,7 +82,7 @@ const scores = [
 
     <div class="bottom-grid">
       <article class="panel report-panel">
-        <div class="panel-heading"><h2>신고 및 운영 기록</h2><span class="report-count">신고 2건</span></div>
+        <div class="panel-heading"><h2>신고 기록</h2><span class="report-count">신고 2건</span></div>
         <div v-for="report in reports" :key="report.date" class="report-row">
           <span>{{ report.date }}</span><strong>{{ report.reason }}</strong><em>{{ report.status }}</em>
           <button
