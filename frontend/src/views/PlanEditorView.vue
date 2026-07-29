@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { RouterLink } from 'vue-router'
 
@@ -13,8 +13,40 @@ const props = defineProps({
 })
 
 const editorStore = usePlanEditorStore()
-const { status, errorMessage, plan, days, selectedDay, scheduleItems, isLoading, isEmpty, isReady } =
-  storeToRefs(editorStore)
+const {
+  status,
+  errorMessage,
+  plan,
+  days,
+  selectedDayId,
+  selectedDay,
+  morningItems,
+  afternoonItems,
+  isSelectedDayEmpty,
+  isLoading,
+  isReady,
+} = storeToRefs(editorStore)
+
+const editingDates = ref(false)
+const dateSubmitting = ref(false)
+const dateError = ref('')
+const editStartDate = ref('')
+const editEndDate = ref('')
+const removalConfirmationOpen = ref(false)
+const pendingDatePayload = ref(null)
+
+const maxEditableEndDate = computed(() => {
+  if (!editStartDate.value) return undefined
+
+  const date = new Date(`${editStartDate.value}T00:00:00`)
+  date.setDate(date.getDate() + 13)
+  return toDateInputValue(date)
+})
+
+function toDateInputValue(date) {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return localDate.toISOString().slice(0, 10)
+}
 
 function formatDate(date) {
   if (!date) return ''
@@ -30,7 +62,102 @@ function retryLoad() {
   return editorStore.loadPlanEditor(props.planId)
 }
 
+function selectDay(planDayId) {
+  editorStore.selectDay(planDayId)
+}
+
+function syncDateForm(planValue = plan.value) {
+  editStartDate.value = planValue?.startDate ?? ''
+  editEndDate.value = planValue?.endDate ?? ''
+}
+
+function openDateEditor() {
+  syncDateForm()
+  dateError.value = ''
+  editingDates.value = true
+}
+
+function closeDateEditor() {
+  editingDates.value = false
+  dateError.value = ''
+  removalConfirmationOpen.value = false
+  pendingDatePayload.value = null
+  syncDateForm()
+}
+
+function validateDates() {
+  if (!editStartDate.value || !editEndDate.value) {
+    return '시작일과 종료일을 모두 선택해 주세요.'
+  }
+  if (editStartDate.value > editEndDate.value) {
+    return '종료일은 시작일보다 빠를 수 없습니다.'
+  }
+
+  const start = Date.parse(`${editStartDate.value}T00:00:00Z`)
+  const end = Date.parse(`${editEndDate.value}T00:00:00Z`)
+  if (Math.floor((end - start) / 86_400_000) + 1 > 14) {
+    return '여행 기간은 최대 14일까지 설정할 수 있습니다.'
+  }
+  return ''
+}
+
+function dateApiErrorMessage(error) {
+  const message = error?.response?.data?.message
+  return typeof message === 'string' && message
+    ? message
+    : '여행 날짜를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+}
+
+async function submitDateChange(force = false) {
+  if (dateSubmitting.value) return
+
+  const validationMessage = validateDates()
+  if (validationMessage) {
+    dateError.value = validationMessage
+    return
+  }
+
+  const payload = force
+    ? pendingDatePayload.value
+    : {
+        startDate: editStartDate.value,
+        endDate: editEndDate.value,
+        versionNo: plan.value.versionNo,
+        force: false,
+      }
+  if (!payload) return
+
+  dateSubmitting.value = true
+  dateError.value = ''
+
+  try {
+    const data = await editorStore.savePlanDates({ ...payload, force })
+    syncDateForm(data.plan)
+    editingDates.value = false
+    removalConfirmationOpen.value = false
+    pendingDatePayload.value = null
+  } catch (error) {
+    if (error?.response?.data?.code === 'PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED') {
+      pendingDatePayload.value = payload
+      removalConfirmationOpen.value = true
+    } else {
+      removalConfirmationOpen.value = false
+      pendingDatePayload.value = null
+      dateError.value = dateApiErrorMessage(error)
+    }
+  } finally {
+    dateSubmitting.value = false
+  }
+}
+
 watch(() => props.planId, retryLoad, { immediate: true })
+watch(
+  plan,
+  (planValue) => {
+    if (!editingDates.value) syncDateForm(planValue)
+  },
+  { immediate: true },
+)
 onBeforeUnmount(editorStore.resetEditor)
 </script>
 
@@ -46,7 +173,10 @@ onBeforeUnmount(editorStore.resetEditor)
           <span class="plan-heading__eyebrow">WITH TRIP PLANNER</span>
           <template v-if="plan">
             <h1>{{ plan.title }}</h1>
-            <p>{{ plan.regionName }} · {{ formatDate(plan.startDate) }} - {{ formatDate(plan.endDate) }}</p>
+            <p>
+              {{ plan.regionName }} · {{ formatDate(plan.startDate) }} -
+              {{ formatDate(plan.endDate) }}
+            </p>
           </template>
           <template v-else>
             <h1>여행 플랜 제작</h1>
@@ -85,7 +215,9 @@ onBeforeUnmount(editorStore.resetEditor)
               <span>TRAVEL SCHEDULE</span>
               <h2>여행 일정</h2>
             </div>
-            <span class="visibility-badge">{{ plan.visibility === 'PUBLIC' ? '공개' : '비공개' }}</span>
+            <span class="visibility-badge">{{
+              plan.visibility === 'PUBLIC' ? '공개' : '비공개'
+            }}</span>
           </header>
 
           <div class="plan-summary">
@@ -99,6 +231,80 @@ onBeforeUnmount(editorStore.resetEditor)
             </div>
           </div>
 
+          <section
+            class="date-editor"
+            :aria-label="editingDates ? undefined : '여행 날짜 변경'"
+            :aria-labelledby="editingDates ? 'date-editor-heading' : undefined"
+          >
+            <button
+              v-if="!editingDates"
+              class="date-editor__open"
+              type="button"
+              @click="openDateEditor"
+            >
+              여행 날짜 변경
+            </button>
+
+            <form v-else class="date-editor__form" @submit.prevent="submitDateChange()">
+              <div class="date-editor__heading">
+                <div>
+                  <span>DATE SETTINGS</span>
+                  <h3 id="date-editor-heading">여행 날짜 변경</h3>
+                </div>
+                <button type="button" aria-label="날짜 변경 닫기" @click="closeDateEditor">
+                  ×
+                </button>
+              </div>
+
+              <div class="date-editor__grid">
+                <label>
+                  <span>시작일</span>
+                  <input v-model="editStartDate" name="editStartDate" type="date" />
+                </label>
+                <label>
+                  <span>종료일</span>
+                  <input
+                    v-model="editEndDate"
+                    name="editEndDate"
+                    type="date"
+                    :min="editStartDate || undefined"
+                    :max="maxEditableEndDate"
+                  />
+                </label>
+              </div>
+
+              <p class="date-editor__notice">
+                같은 기간으로 이동하면 일정이 함께 이동하고, 제외되는 날짜의 일정은 확인 후
+                삭제됩니다.
+              </p>
+              <p v-if="dateError" class="date-editor__error" role="alert">{{ dateError }}</p>
+
+              <div class="date-editor__actions">
+                <button type="button" :disabled="dateSubmitting" @click="closeDateEditor">
+                  취소
+                </button>
+                <button type="submit" :disabled="dateSubmitting" :aria-busy="dateSubmitting">
+                  {{ dateSubmitting ? '변경 중...' : '날짜 저장' }}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <nav class="day-tabs" aria-label="여행 일차 선택">
+            <button
+              v-for="day in days"
+              :key="day.planDayId"
+              class="day-tab"
+              :class="{ 'day-tab--active': day.planDayId === selectedDayId }"
+              type="button"
+              :aria-pressed="day.planDayId === selectedDayId"
+              @click="selectDay(day.planDayId)"
+            >
+              <strong>DAY {{ day.dayNo }}</strong>
+              <small>{{ formatDate(day.travelDate) }}</small>
+            </button>
+          </nav>
+
           <div class="day-preview">
             <div class="day-preview__label">
               <span>선택된 일정</span>
@@ -107,16 +313,78 @@ onBeforeUnmount(editorStore.resetEditor)
               <small v-if="selectedDay">{{ formatDate(selectedDay.travelDate) }}</small>
             </div>
 
-            <div v-if="isEmpty" class="empty-schedule" role="status">
-              <span class="empty-schedule__mark" aria-hidden="true">+</span>
-              <strong>아직 등록된 장소가 없습니다.</strong>
-              <p>장소 검색과 지도 기능이 연결되면 오전·오후 일정을 추가할 수 있어요.</p>
+            <div v-if="!selectedDay" class="empty-schedule" role="status">
+              <span class="empty-schedule__mark" aria-hidden="true">!</span>
+              <strong>여행 일차를 불러오지 못했습니다.</strong>
+              <p>여행 날짜를 다시 확인하거나 잠시 후 다시 시도해 주세요.</p>
             </div>
 
-            <div v-else class="schedule-preview" role="status">
-              <span>등록된 일정</span>
-              <strong>{{ scheduleItems.length }}곳</strong>
-              <p>일차별 오전·오후 일정은 다음 단계에서 편집할 수 있도록 연결됩니다.</p>
+            <div v-else-if="isSelectedDayEmpty" class="empty-schedule" role="status">
+              <span class="empty-schedule__mark" aria-hidden="true">+</span>
+              <strong>DAY {{ selectedDay.dayNo }}에 등록된 장소가 없습니다.</strong>
+              <p>장소 검색 기능이 연결되면 이 날짜의 오전·오후 일정을 추가할 수 있어요.</p>
+            </div>
+
+            <div v-else class="schedule-groups">
+              <section class="schedule-group" aria-labelledby="morning-heading">
+                <header class="schedule-group__header">
+                  <h3 id="morning-heading">오전</h3>
+                  <span>{{ morningItems.length }}곳</span>
+                </header>
+
+                <div v-if="morningItems.length" class="schedule-list">
+                  <article
+                    v-for="item in morningItems"
+                    :key="item.scheduleItemId"
+                    class="schedule-card"
+                  >
+                    <img
+                      v-if="item.imageUrl"
+                      :src="item.imageUrl"
+                      :alt="`${item.placeName} 이미지`"
+                    />
+                    <div class="schedule-card__body">
+                      <span>{{ item.positionNo }}번째 · {{ item.categoryName || '장소' }}</span>
+                      <strong>{{ item.placeName }}</strong>
+                      <p v-if="item.address">{{ item.address }}</p>
+                      <p v-if="item.description" class="schedule-card__description">
+                        {{ item.description }}
+                      </p>
+                    </div>
+                  </article>
+                </div>
+                <p v-else class="schedule-group__empty">오전 일정이 없습니다.</p>
+              </section>
+
+              <section class="schedule-group" aria-labelledby="afternoon-heading">
+                <header class="schedule-group__header">
+                  <h3 id="afternoon-heading">오후</h3>
+                  <span>{{ afternoonItems.length }}곳</span>
+                </header>
+
+                <div v-if="afternoonItems.length" class="schedule-list">
+                  <article
+                    v-for="item in afternoonItems"
+                    :key="item.scheduleItemId"
+                    class="schedule-card"
+                  >
+                    <img
+                      v-if="item.imageUrl"
+                      :src="item.imageUrl"
+                      :alt="`${item.placeName} 이미지`"
+                    />
+                    <div class="schedule-card__body">
+                      <span>{{ item.positionNo }}번째 · {{ item.categoryName || '장소' }}</span>
+                      <strong>{{ item.placeName }}</strong>
+                      <p v-if="item.address">{{ item.address }}</p>
+                      <p v-if="item.description" class="schedule-card__description">
+                        {{ item.description }}
+                      </p>
+                    </div>
+                  </article>
+                </div>
+                <p v-else class="schedule-group__empty">오후 일정이 없습니다.</p>
+              </section>
             </div>
           </div>
 
@@ -145,6 +413,35 @@ onBeforeUnmount(editorStore.resetEditor)
         </section>
       </template>
     </main>
+
+    <div
+      v-if="removalConfirmationOpen"
+      class="confirmation-backdrop"
+      @click.self="removalConfirmationOpen = false"
+    >
+      <section
+        class="confirmation-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="date-removal-title"
+        aria-describedby="date-removal-description"
+      >
+        <span class="confirmation-dialog__icon" aria-hidden="true">!</span>
+        <h2 id="date-removal-title">일정이 포함된 날짜를 제외할까요?</h2>
+        <p id="date-removal-description">
+          변경 범위에서 빠지는 DAY와 그 안의 오전·오후 일정이 삭제됩니다. 이 작업은 저장 후 되돌릴
+          수 없습니다.
+        </p>
+        <div class="confirmation-dialog__actions">
+          <button type="button" :disabled="dateSubmitting" @click="removalConfirmationOpen = false">
+            다시 확인
+          </button>
+          <button type="button" :disabled="dateSubmitting" @click="submitDateChange(true)">
+            {{ dateSubmitting ? '변경 중...' : '일정 삭제 후 변경' }}
+          </button>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -364,7 +661,6 @@ onBeforeUnmount(editorStore.resetEditor)
 
 .plan-summary span,
 .day-preview__label > span,
-.schedule-preview > span,
 .schedule-panel__footer span {
   display: block;
   color: #94a3b8;
@@ -381,6 +677,185 @@ onBeforeUnmount(editorStore.resetEditor)
   font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.date-editor {
+  margin-top: 14px;
+}
+
+.date-editor__open {
+  width: 100%;
+  min-height: 42px;
+  color: #e8443a;
+  border: 1px solid #ffc2bd;
+  border-radius: 12px;
+  background: #fff8f7;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.date-editor__form {
+  padding: 16px;
+  border: 1px solid #ffd0cc;
+  border-radius: 16px;
+  background: #fffafa;
+}
+
+.date-editor__heading,
+.date-editor__actions,
+.confirmation-dialog__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.date-editor__heading span {
+  color: #ff5a4e;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.date-editor__heading h3 {
+  margin: 3px 0 0;
+  color: #334155;
+  font-size: 16px;
+}
+
+.date-editor__heading > button {
+  width: 32px;
+  height: 32px;
+  color: #64748b;
+  border: 0;
+  border-radius: 9px;
+  background: #f1f5f9;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.date-editor__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.date-editor__grid label {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.date-editor__grid label > span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.date-editor__grid input {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 9px;
+  color: #334155;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+}
+
+.date-editor__notice,
+.date-editor__error {
+  margin: 11px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.date-editor__notice {
+  color: #64748b;
+}
+
+.date-editor__error {
+  color: #b91c1c;
+}
+
+.date-editor__actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.date-editor__actions button,
+.confirmation-dialog__actions button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.date-editor__actions button:last-child,
+.confirmation-dialog__actions button:last-child {
+  color: #fff;
+  border-color: #ff5a4e;
+  background: #ff5a4e;
+}
+
+.date-editor__actions button:disabled,
+.confirmation-dialog__actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.day-tabs {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  padding-bottom: 4px;
+  overflow-x: auto;
+}
+
+.day-tab {
+  display: grid;
+  min-width: 112px;
+  gap: 4px;
+  padding: 12px 14px;
+  color: #64748b;
+  border: 1px solid #dfe5ed;
+  border-radius: 13px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.day-tab strong {
+  font-size: 14px;
+}
+
+.day-tab small {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.day-tab:hover,
+.day-tab--active {
+  color: #e8443a;
+  border-color: #ff9b93;
+  background: #fff5f4;
+}
+
+.day-tab:focus-visible {
+  outline: 3px solid rgb(255 90 78 / 20%);
+  outline-offset: 2px;
 }
 
 .day-preview {
@@ -405,8 +880,7 @@ onBeforeUnmount(editorStore.resetEditor)
   color: #64748b;
 }
 
-.empty-schedule,
-.schedule-preview {
+.empty-schedule {
   display: grid;
   min-height: 250px;
   padding: 28px;
@@ -431,14 +905,12 @@ onBeforeUnmount(editorStore.resetEditor)
   font-weight: 400;
 }
 
-.empty-schedule strong,
-.schedule-preview strong {
+.empty-schedule strong {
   color: #334155;
   font-size: 17px;
 }
 
-.empty-schedule p,
-.schedule-preview p {
+.empty-schedule p {
   max-width: 310px;
   margin: 9px 0 0;
   color: #64748b;
@@ -447,10 +919,108 @@ onBeforeUnmount(editorStore.resetEditor)
   word-break: keep-all;
 }
 
-.schedule-preview strong {
-  margin-top: 8px;
+.schedule-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.schedule-group {
+  padding: 16px;
+  border: 1px solid #e5eaf1;
+  border-radius: 16px;
+  background: #fbfcfe;
+}
+
+.schedule-group__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.schedule-group__header h3 {
+  margin: 0;
+  color: #334155;
+  font-size: 16px;
+}
+
+.schedule-group__header span {
   color: #ff5a4e;
-  font-size: 34px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.schedule-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.schedule-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e8edf3;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.schedule-card > img {
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+.schedule-card__body {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  align-content: center;
+}
+
+.schedule-card__body > span {
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.schedule-card__body > strong {
+  overflow: hidden;
+  color: #263247;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-card__body > p {
+  overflow: hidden;
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-card__body > .schedule-card__description {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.schedule-group__empty {
+  margin: 12px 0 0;
+  padding: 16px;
+  color: #94a3b8;
+  border: 1px dashed #d6dce5;
+  border-radius: 11px;
+  background: #fff;
+  font-size: 12px;
+  text-align: center;
 }
 
 .schedule-panel__footer {
@@ -591,6 +1161,57 @@ onBeforeUnmount(editorStore.resetEditor)
   line-height: 1.6;
 }
 
+.confirmation-backdrop {
+  position: fixed;
+  z-index: 50;
+  inset: 0;
+  display: grid;
+  padding: 20px;
+  place-items: center;
+  background: rgb(15 23 42 / 48%);
+  backdrop-filter: blur(4px);
+}
+
+.confirmation-dialog {
+  width: min(100%, 440px);
+  padding: 30px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgb(15 23 42 / 24%);
+}
+
+.confirmation-dialog__icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: #b91c1c;
+  border-radius: 50%;
+  background: #fee2e2;
+  font-size: 20px;
+  font-weight: 850;
+}
+
+.confirmation-dialog h2 {
+  margin: 18px 0 0;
+  color: #1e293b;
+  font-size: 21px;
+  letter-spacing: -0.03em;
+}
+
+.confirmation-dialog p {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.7;
+  word-break: keep-all;
+}
+
+.confirmation-dialog__actions {
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -640,6 +1261,10 @@ onBeforeUnmount(editorStore.resetEditor)
     grid-template-columns: 1fr;
   }
 
+  .date-editor__grid {
+    grid-template-columns: 1fr;
+  }
+
   .map-search {
     top: 16px;
     right: 16px;
@@ -648,8 +1273,11 @@ onBeforeUnmount(editorStore.resetEditor)
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .editor-state__spinner {
+  .editor-state__spinner,
+  .day-tab,
+  .date-editor__open {
     animation: none;
+    transition: none;
   }
 }
 </style>

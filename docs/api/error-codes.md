@@ -44,6 +44,7 @@
 | `404` | `REGION_NOT_FOUND` | 활성화된 시·도 지역코드가 존재하지 않음 |
 | `404` | `PLAN_NOT_FOUND` | 플랜이 없거나 삭제 상태여서 조회할 수 없음 |
 | `409` | `PLAN_VERSION_CONFLICT` | 플랜 Metadata Version 불일치 |
+| `409` | `PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED` | 날짜 변경으로 일정이 포함된 DAY가 제외되지만 삭제 확인이 없음 |
 | `409` | `SCHEDULE_VERSION_CONFLICT` | 일차 일정 Version 불일치 |
 | `409` | `ITEM_VERSION_CONFLICT` | 일정 항목 Version 불일치 |
 | `409` | `DUPLICATE_OPERATION` | 이미 처리된 `operationId`를 다른 Payload로 재요청 |

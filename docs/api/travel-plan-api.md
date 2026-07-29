@@ -1,19 +1,20 @@
 # 여행 플랜 1차 API 계약
 
-- 계약 버전: `2026-07-23`
-- 상태: 1차 구현 기준
-- 대상 화면: 여행 플랜 설정, 여행 플랜 제작 초기 진입
+- 계약 버전: `2026-07-29`
+- 상태: 날짜 편집 구현 기준
+- 대상 화면: 여행 플랜 설정, 여행 플랜 제작 및 날짜 편집
 - 관련 Schema: `docs/database/ddl/001_create_travel_plan_schema.sql`
 
 ## 범위
 
-이번 계약에서 확정하는 API는 다음 세 가지입니다.
+이번 계약에서 확정하는 API는 다음 네 가지입니다.
 
 | Method | Endpoint | 목적 |
 | --- | --- | --- |
 | `GET` | `/api/regions` | 활성 국내 시·도 목록 조회 |
 | `POST` | `/api/plans` | 플랜, 생성자, 여행 일차 생성 |
 | `GET` | `/api/plans/{planId}/editor` | 제작 페이지 초기 상태 조회 |
+| `PATCH` | `/api/plans/{planId}/dates` | 여행 기간 및 일차 재구성 |
 
 장소 검색, 일정 자동 저장, 제목·공개 범위 수정, 초대 API는 후속 계약에서 추가합니다.
 
@@ -317,12 +318,69 @@ Status: `200 OK`
 | `401` | `CURRENT_MEMBER_NOT_AVAILABLE` | 현재 회원 ID 조회 실패 |
 | `404` | `PLAN_NOT_FOUND` | 플랜이 없거나 삭제 상태이거나 현재 회원 소유가 아님 |
 
+---
+
+## 4. 여행 날짜 변경
+
+```http
+PATCH /api/plans/{planId}/dates
+Content-Type: application/json
+```
+
+### Request
+
+```json
+{
+  "startDate": "2026-08-09",
+  "endDate": "2026-08-12",
+  "versionNo": 0,
+  "force": false
+}
+```
+
+| Property | Type | Required | Validation |
+| --- | --- | --- | --- |
+| `startDate` | `string(date)` | Yes | `YYYY-MM-DD` |
+| `endDate` | `string(date)` | Yes | `startDate` 이상, 포함 기간 최대 14일 |
+| `versionNo` | `integer` | Yes | 현재 `TRAVEL_PLAN.VERSION_NO`, 0 이상 |
+| `force` | `boolean` | No | 기본 `false`, 일정이 포함된 제외 DAY 삭제 확인 |
+
+### 처리 규칙
+
+1. 현재 소유자의 활성 플랜만 변경할 수 있습니다.
+2. 시작일과 종료일을 함께 같은 간격으로 이동해 여행 일수가 유지되면 기존 DAY ID, DAY 번호 및 일정을 유지하고 날짜만 이동합니다.
+3. 기간이 늘어나면 기존 날짜의 DAY와 일정은 유지하고 새 날짜에 빈 DAY를 추가합니다.
+4. 기간이 줄어들면 범위에 남는 날짜의 DAY와 일정은 유지하고 DAY 번호를 다시 계산합니다.
+5. 제외되는 DAY에 일정이 있고 `force=false`이면 데이터를 변경하지 않고 `409 PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED`를 반환합니다.
+6. 같은 요청을 `force=true`로 다시 보내면 제외 DAY와 그 일정을 하나의 Transaction에서 삭제합니다.
+7. 성공 시 `TRAVEL_PLAN.VERSION_NO`를 1 증가시키고 제작 페이지 조회와 같은 응답을 반환합니다.
+
+### 성공 응답
+
+Status: `200 OK`
+
+응답 Body는 `GET /api/plans/{planId}/editor`의 성공 응답과 동일하며 변경된 `plan`, `days`, `items`를 반환합니다.
+
+### 오류
+
+| Status | Code | 조건 |
+| --- | --- | --- |
+| `400` | `VALIDATION_ERROR` | 필수 날짜 또는 Version Validation 실패 |
+| `400` | `MALFORMED_JSON` | 날짜 또는 JSON 형식 오류 |
+| `400` | `INVALID_PATH_PARAMETER` | `planId` 형식 또는 범위 오류 |
+| `400` | `INVALID_TRAVEL_DATE_RANGE` | 시작일이 종료일보다 늦음 |
+| `400` | `TRAVEL_PLAN_DURATION_EXCEEDED` | 여행 기간이 14일 초과 |
+| `404` | `PLAN_NOT_FOUND` | 플랜이 없거나 삭제 상태이거나 현재 회원 소유가 아님 |
+| `409` | `PLAN_VERSION_CONFLICT` | Request Version과 현재 플랜 Version 불일치 |
+| `409` | `PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED` | 제외 DAY에 일정이 있으나 삭제 확인이 없음 |
+
 ## Version 의미
 
 | 변경 범위 | 기준 Version | 충돌 오류 |
 | --- | --- | --- |
 | 제목, 공개 범위 등 플랜 Metadata | `TRAVEL_PLAN.VERSION_NO` | `PLAN_VERSION_CONFLICT` |
-| 일차의 추가, 삭제, 이동, 정렬 | `PLAN_DAY.SCHEDULE_VERSION` | `SCHEDULE_VERSION_CONFLICT` |
+| 여행 기간 변경에 따른 DAY 추가, 삭제, 날짜 이동 | `TRAVEL_PLAN.VERSION_NO` | `PLAN_VERSION_CONFLICT` |
+| DAY 내부 일정 이동, 정렬 | `PLAN_DAY.SCHEDULE_VERSION` | `SCHEDULE_VERSION_CONFLICT` |
 | 일정 항목 자체 수정 | `PLAN_SCHEDULE_ITEM.ITEM_VERSION` | `ITEM_VERSION_CONFLICT` |
 
 Version은 성공한 변경마다 `현재 값 + 1`로 증가시킵니다. 자동 저장 API는 현재 Version을 Request에 포함하고, 불일치하면 데이터를 덮어쓰지 않고 `409 Conflict`를 반환해야 합니다.
@@ -341,14 +399,15 @@ dto/plan/
 ├── PlanEditorResponse
 ├── PlanEditorSummaryResponse
 ├── PlanEditorDayResponse
-└── PlanEditorItemResponse
+├── PlanEditorItemResponse
+└── UpdateTravelPlanDatesRequest
 ```
 
 DTO의 19자리 ID Property는 Java 내부에서 `long` 또는 `Long`을 사용할 수 있지만 JSON에서는 문자열로 직렬화해야 합니다. Domain Object나 Mapper 결과를 Controller에서 직접 반환하지 않습니다.
 
 ## 구현 완료 조건
 
-- 세 API가 이 문서의 Status, Header, Body 구조를 반환합니다.
+- 네 API가 이 문서의 Status, Header, Body 구조를 반환합니다.
 - 날짜 경계값 1일, 14일, 15일 Test가 존재합니다.
 - 생성 실패 시 `TRAVEL_PLAN`, `PLAN_MEMBER`, `PLAN_DAY`에 부분 Data가 남지 않습니다.
 - 현재 회원 ID를 Request에서 받지 않습니다.

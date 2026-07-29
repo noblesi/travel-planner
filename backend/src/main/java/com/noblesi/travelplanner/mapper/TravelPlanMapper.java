@@ -1,5 +1,7 @@
 package com.noblesi.travelplanner.mapper;
 
+import java.time.LocalDate;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -23,5 +25,13 @@ public interface TravelPlanMapper {
 	PlanEditorPlan findActiveOwnedPlanForEditor(
 			@Param("planId") long planId,
 			@Param("memberId") long memberId
+	);
+
+	int updateTravelDates(
+			@Param("planId") long planId,
+			@Param("memberId") long memberId,
+			@Param("startDate") LocalDate startDate,
+			@Param("endDate") LocalDate endDate,
+			@Param("versionNo") int versionNo
 	);
 }

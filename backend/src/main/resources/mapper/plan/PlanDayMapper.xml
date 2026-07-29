@@ -44,4 +44,24 @@
 		 ORDER BY DAY_NO ASC
 	</select>
 
+	<update id="updateDayNo">
+		UPDATE PLAN_DAY
+		   SET DAY_NO = #{dayNo}
+		 WHERE PLAN_DAY_ID = #{planDayId}
+	</update>
+
+	<update id="updateTravelDate">
+		UPDATE PLAN_DAY
+		   SET TRAVEL_DATE = #{travelDate}
+		 WHERE PLAN_DAY_ID = #{planDayId}
+	</update>
+
+	<delete id="deleteByPlanDayIds">
+		DELETE FROM PLAN_DAY
+		 WHERE PLAN_DAY_ID IN
+		<foreach collection="planDayIds" item="planDayId" open="(" separator="," close=")">
+			#{planDayId}
+		</foreach>
+	</delete>
+
 </mapper>

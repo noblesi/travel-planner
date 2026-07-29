@@ -1,7 +1,7 @@
 <script setup>
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
 
-defineProps({
+const props = defineProps({
   regions: {
     type: Array,
     required: true,
@@ -14,9 +14,13 @@ defineProps({
     type: String,
     default: '',
   },
+  serverFieldErrors: {
+    type: Object,
+    default: () => ({}),
+  },
 })
 
-const emit = defineEmits(['submit'])
+const emit = defineEmits(['field-change', 'submit'])
 
 const form = reactive({
   regionCode: '',
@@ -31,8 +35,32 @@ const errors = reactive({
   endDate: '',
 })
 
+function toDateInputValue(date) {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return localDate.toISOString().slice(0, 10)
+}
+
+const today = toDateInputValue(new Date())
+const maxEndDate = computed(() => {
+  if (!form.startDate) return undefined
+
+  const date = new Date(`${form.startDate}T00:00:00`)
+  date.setDate(date.getDate() + 13)
+  return toDateInputValue(date)
+})
+
+function fieldError(field) {
+  return errors[field] || props.serverFieldErrors[field] || ''
+}
+
 function clearError(field) {
   errors[field] = ''
+  emit('field-change', field)
+}
+
+function clearDateErrors() {
+  clearError('startDate')
+  clearError('endDate')
 }
 
 function inclusiveDayCount(startDate, endDate) {
@@ -45,6 +73,10 @@ function validate() {
   errors.regionCode = form.regionCode ? '' : '여행지역을 선택해 주세요.'
   errors.startDate = form.startDate ? '' : '시작 날짜를 선택해 주세요.'
   errors.endDate = form.endDate ? '' : '종료 날짜를 선택해 주세요.'
+
+  if (form.startDate && form.startDate < today) {
+    errors.startDate = '오늘 이후의 시작 날짜를 선택해 주세요.'
+  }
 
   if (form.startDate && form.endDate) {
     if (form.startDate > form.endDate) {
@@ -78,8 +110,8 @@ function submitForm() {
           id="regionCode"
           v-model="form.regionCode"
           name="regionCode"
-          :aria-describedby="errors.regionCode ? 'regionCode-error' : undefined"
-          :aria-invalid="Boolean(errors.regionCode)"
+          :aria-describedby="fieldError('regionCode') ? 'regionCode-error' : undefined"
+          :aria-invalid="Boolean(fieldError('regionCode'))"
           @change="clearError('regionCode')"
         >
           <option value="" disabled>여행지역을 선택해 주세요</option>
@@ -87,8 +119,8 @@ function submitForm() {
             {{ region.regionName }}
           </option>
         </select>
-        <p v-if="errors.regionCode" id="regionCode-error" class="field-error">
-          {{ errors.regionCode }}
+        <p v-if="fieldError('regionCode')" id="regionCode-error" class="field-error">
+          {{ fieldError('regionCode') }}
         </p>
       </div>
 
@@ -106,12 +138,13 @@ function submitForm() {
               v-model="form.startDate"
               name="startDate"
               type="date"
-              :aria-describedby="errors.startDate ? 'startDate-error' : undefined"
-              :aria-invalid="Boolean(errors.startDate)"
-              @input="clearError('startDate')"
+              :min="today"
+              :aria-describedby="fieldError('startDate') ? 'startDate-error' : undefined"
+              :aria-invalid="Boolean(fieldError('startDate'))"
+              @input="clearDateErrors"
             />
-            <p v-if="errors.startDate" id="startDate-error" class="field-error">
-              {{ errors.startDate }}
+            <p v-if="fieldError('startDate')" id="startDate-error" class="field-error">
+              {{ fieldError('startDate') }}
             </p>
           </div>
 
@@ -122,13 +155,14 @@ function submitForm() {
               v-model="form.endDate"
               name="endDate"
               type="date"
-              :min="form.startDate || undefined"
-              :aria-describedby="errors.endDate ? 'endDate-error' : undefined"
-              :aria-invalid="Boolean(errors.endDate)"
+              :min="form.startDate || today"
+              :max="maxEndDate"
+              :aria-describedby="fieldError('endDate') ? 'endDate-error' : undefined"
+              :aria-invalid="Boolean(fieldError('endDate'))"
               @input="clearError('endDate')"
             />
-            <p v-if="errors.endDate" id="endDate-error" class="field-error">
-              {{ errors.endDate }}
+            <p v-if="fieldError('endDate')" id="endDate-error" class="field-error">
+              {{ fieldError('endDate') }}
             </p>
           </div>
         </div>

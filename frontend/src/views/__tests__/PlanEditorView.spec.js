@@ -4,12 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlanEditorView from '@/views/PlanEditorView.vue'
 
-const { getTravelPlanEditorMock } = vi.hoisted(() => ({
+const { getTravelPlanEditorMock, updateTravelPlanDatesMock } = vi.hoisted(() => ({
   getTravelPlanEditorMock: vi.fn(),
+  updateTravelPlanDatesMock: vi.fn(),
 }))
 
 vi.mock('@/api/plans', () => ({
   getTravelPlanEditor: getTravelPlanEditorMock,
+  updateTravelPlanDates: updateTravelPlanDatesMock,
 }))
 
 const editor = {
@@ -55,6 +57,7 @@ function mountView(planId = '101') {
 
 beforeEach(() => {
   getTravelPlanEditorMock.mockReset().mockResolvedValue(editor)
+  updateTravelPlanDatesMock.mockReset()
 })
 
 describe('PlanEditorView', () => {
@@ -66,8 +69,56 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('서울특별시 여행')
     expect(wrapper.text()).toContain('여행 일정')
     expect(wrapper.text()).toContain('2일')
-    expect(wrapper.text()).toContain('아직 등록된 장소가 없습니다.')
+    expect(wrapper.findAll('.day-tab')).toHaveLength(2)
+    expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
     expect(wrapper.text()).toContain('서울특별시 지도')
+  })
+
+  it('선택한 DAY의 오전·오후 일정 카드와 해당 DAY의 빈 상태를 표시한다', async () => {
+    getTravelPlanEditorMock.mockResolvedValueOnce({
+      ...editor,
+      days: [
+        {
+          ...editor.days[0],
+          items: [
+            {
+              scheduleItemId: '301',
+              timeSlot: 'MORNING',
+              positionNo: 1,
+              placeName: '경복궁',
+              categoryName: '관광지',
+              address: '서울 종로구 사직로 161',
+              description: '조선 시대의 법궁',
+            },
+            {
+              scheduleItemId: '302',
+              timeSlot: 'AFTERNOON',
+              positionNo: 1,
+              placeName: '북촌한옥마을',
+              categoryName: '문화마을',
+              address: '서울 종로구 계동길 37',
+              description: '한옥 골목 산책',
+            },
+          ],
+        },
+        editor.days[1],
+      ],
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('오전')
+    expect(wrapper.text()).toContain('경복궁')
+    expect(wrapper.text()).toContain('오후')
+    expect(wrapper.text()).toContain('북촌한옥마을')
+    expect(wrapper.findAll('.schedule-card')).toHaveLength(2)
+
+    await wrapper.findAll('.day-tab')[1].trigger('click')
+
+    expect(wrapper.findAll('.day-tab')[1].attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('DAY 2에 등록된 장소가 없습니다.')
+    expect(wrapper.text()).not.toContain('경복궁')
+    expect(wrapper.findAll('.schedule-card')).toHaveLength(0)
   })
 
   it('플랜 ID prop이 변경되면 새로운 편집 데이터를 조회한다', async () => {
@@ -95,5 +146,101 @@ describe('PlanEditorView', () => {
 
     expect(getTravelPlanEditorMock).toHaveBeenCalledTimes(2)
     expect(wrapper.text()).toContain('서울특별시 여행')
+  })
+
+  it('제작 페이지에서 여행 날짜를 변경하고 응답 DAY를 반영한다', async () => {
+    const updatedEditor = {
+      plan: {
+        ...editor.plan,
+        startDate: '2026-08-09',
+        endDate: '2026-08-11',
+        versionNo: 1,
+      },
+      days: [
+        {
+          planDayId: '200',
+          dayNo: 1,
+          travelDate: '2026-08-09',
+          scheduleVersion: 0,
+          items: [],
+        },
+        { ...editor.days[0], dayNo: 2 },
+        { ...editor.days[1], dayNo: 3 },
+      ],
+    }
+    updateTravelPlanDatesMock.mockResolvedValueOnce(updatedEditor)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-09')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-11')
+    await wrapper.get('.date-editor__form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTravelPlanDatesMock).toHaveBeenCalledWith('101', {
+      startDate: '2026-08-09',
+      endDate: '2026-08-11',
+      versionNo: 0,
+      force: false,
+    })
+    expect(wrapper.text()).toContain('3일')
+    expect(wrapper.findAll('.day-tab')).toHaveLength(3)
+    expect(wrapper.find('.date-editor__form').exists()).toBe(false)
+  })
+
+  it('일정이 있는 DAY가 제외되면 확인 후 강제로 날짜를 변경한다', async () => {
+    updateTravelPlanDatesMock
+      .mockRejectedValueOnce({
+        response: {
+          status: 409,
+          data: {
+            code: 'PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED',
+            message: '변경 범위에서 제외되는 날짜에 일정이 있습니다.',
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        plan: { ...editor.plan, startDate: '2026-08-11', versionNo: 1 },
+        days: [{ ...editor.days[1], dayNo: 1 }],
+      })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-11')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-11')
+    await wrapper.get('.date-editor__form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alertdialog"]').exists()).toBe(true)
+
+    const confirmButton = wrapper
+      .findAll('.confirmation-dialog__actions button')
+      .find((button) => button.text().includes('일정 삭제 후 변경'))
+    await confirmButton.trigger('click')
+    await flushPromises()
+
+    expect(updateTravelPlanDatesMock).toHaveBeenNthCalledWith(2, '101', {
+      startDate: '2026-08-11',
+      endDate: '2026-08-11',
+      versionNo: 0,
+      force: true,
+    })
+    expect(wrapper.find('[role="alertdialog"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('1일')
+  })
+
+  it('14일을 초과한 날짜 변경은 API를 호출하지 않는다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-01')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-15')
+    await wrapper.get('.date-editor__form').trigger('submit')
+
+    expect(updateTravelPlanDatesMock).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('여행 기간은 최대 14일까지 설정할 수 있습니다.')
   })
 })

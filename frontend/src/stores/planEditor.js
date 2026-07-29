@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { getTravelPlanEditor } from '@/api/plans'
+import { getTravelPlanEditor, updateTravelPlanDates } from '@/api/plans'
 
 function apiErrorMessage(error) {
   if (error?.response?.status === 401) {
@@ -29,12 +29,19 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
   const selectedDay = computed(
     () => days.value.find((day) => day.planDayId === selectedDayId.value) ?? null,
   )
-  const scheduleItems = computed(() => selectedDay.value?.items ?? [])
+  const scheduleItems = computed(() =>
+    Array.isArray(selectedDay.value?.items) ? selectedDay.value.items : [],
+  )
+  const isSelectedDayEmpty = computed(() => scheduleItems.value.length === 0)
   const morningItems = computed(() =>
-    scheduleItems.value.filter((item) => item.timeSlot === 'MORNING'),
+    scheduleItems.value
+      .filter((item) => item.timeSlot === 'MORNING')
+      .sort((left, right) => left.positionNo - right.positionNo),
   )
   const afternoonItems = computed(() =>
-    scheduleItems.value.filter((item) => item.timeSlot === 'AFTERNOON'),
+    scheduleItems.value
+      .filter((item) => item.timeSlot === 'AFTERNOON')
+      .sort((left, right) => left.positionNo - right.positionNo),
   )
 
   function selectDay(planDayId) {
@@ -52,6 +59,19 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     selectedDayId.value = null
   }
 
+  function applyEditorData(data, preferredDayId = null) {
+    const loadedDays = Array.isArray(data.days) ? data.days : []
+
+    plan.value = data.plan
+    days.value = loadedDays
+    selectedDayId.value = loadedDays.some((day) => day.planDayId === preferredDayId)
+      ? preferredDayId
+      : (loadedDays[0]?.planDayId ?? null)
+    status.value = loadedDays.every((day) => !Array.isArray(day.items) || day.items.length === 0)
+      ? 'empty'
+      : 'success'
+  }
+
   async function loadPlanEditor(planId) {
     status.value = 'loading'
     errorMessage.value = ''
@@ -61,12 +81,7 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
 
     try {
       const data = await getTravelPlanEditor(planId)
-      const loadedDays = Array.isArray(data.days) ? data.days : []
-
-      plan.value = data.plan
-      days.value = loadedDays
-      selectedDayId.value = loadedDays[0]?.planDayId ?? null
-      status.value = loadedDays.every((day) => day.items.length === 0) ? 'empty' : 'success'
+      applyEditorData(data)
 
       return data
     } catch (error) {
@@ -74,6 +89,13 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
       errorMessage.value = apiErrorMessage(error)
       return null
     }
+  }
+
+  async function savePlanDates(payload) {
+    const preferredDayId = selectedDayId.value
+    const data = await updateTravelPlanDates(plan.value.planId, payload)
+    applyEditorData(data, preferredDayId)
+    return data
   }
 
   return {
@@ -88,10 +110,12 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     isReady,
     selectedDay,
     scheduleItems,
+    isSelectedDayEmpty,
     morningItems,
     afternoonItems,
     selectDay,
     resetEditor,
     loadPlanEditor,
+    savePlanDates,
   }
 })

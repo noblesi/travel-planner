@@ -11,4 +11,6 @@ import com.noblesi.travelplanner.domain.plan.PlanScheduleItem;
 public interface PlanScheduleItemMapper {
 
 	List<PlanScheduleItem> findByPlanIdForEditor(@Param("planId") long planId);
+
+	int deleteByPlanDayIds(@Param("planDayIds") List<Long> planDayIds);
 }

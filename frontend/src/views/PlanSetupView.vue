@@ -12,7 +12,10 @@ const regions = ref([])
 const regionStatus = ref('loading')
 const regionError = ref('')
 const createError = ref('')
+const createFieldErrors = ref({})
 const submitting = ref(false)
+
+const setupFields = new Set(['regionCode', 'startDate', 'endDate'])
 
 function apiErrorMessage(error, fallbackMessage) {
   if (error?.response?.status === 401) {
@@ -21,6 +24,33 @@ function apiErrorMessage(error, fallbackMessage) {
 
   const message = error?.response?.data?.message
   return typeof message === 'string' && message ? message : fallbackMessage
+}
+
+function apiFieldErrors(error) {
+  const errors = error?.response?.data?.errors
+  if (!Array.isArray(errors)) return {}
+
+  return Object.fromEntries(
+    errors
+      .filter(
+        (error) =>
+          error &&
+          setupFields.has(error.field) &&
+          typeof error.message === 'string' &&
+          error.message.length > 0,
+      )
+      .map(({ field, message }) => [field, message]),
+  )
+}
+
+function clearCreateError(field) {
+  createError.value = ''
+
+  if (!(field in createFieldErrors.value)) return
+
+  const nextErrors = { ...createFieldErrors.value }
+  delete nextErrors[field]
+  createFieldErrors.value = nextErrors
 }
 
 async function loadRegions() {
@@ -41,15 +71,19 @@ async function createPlan(payload) {
 
   submitting.value = true
   createError.value = ''
+  createFieldErrors.value = {}
 
   try {
     const plan = await createTravelPlan(payload)
     await router.push({ name: 'plan-editor', params: { planId: plan.planId } })
   } catch (error) {
-    createError.value = apiErrorMessage(
-      error,
-      '여행 계획을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
-    )
+    createFieldErrors.value = apiFieldErrors(error)
+    if (Object.keys(createFieldErrors.value).length === 0) {
+      createError.value = apiErrorMessage(
+        error,
+        '여행 계획을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
+      )
+    }
   } finally {
     submitting.value = false
   }
@@ -88,6 +122,8 @@ onMounted(loadRegions)
           :regions="regions"
           :submitting="submitting"
           :server-error="createError"
+          :server-field-errors="createFieldErrors"
+          @field-change="clearCreateError"
           @submit="createPlan"
         />
       </div>

@@ -15,4 +15,16 @@ public interface PlanDayMapper {
 	int insertPlanDay(PlanDay planDay);
 
 	List<PlanDay> findByPlanIdOrderByDayNo(@Param("planId") long planId);
+
+	int updateDayNo(
+			@Param("planDayId") long planDayId,
+			@Param("dayNo") int dayNo
+	);
+
+	int updateTravelDate(
+			@Param("planDayId") long planDayId,
+			@Param("travelDate") java.time.LocalDate travelDate
+	);
+
+	int deleteByPlanDayIds(@Param("planDayIds") List<Long> planDayIds);
 }
