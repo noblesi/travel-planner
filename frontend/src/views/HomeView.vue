@@ -1,5 +1,6 @@
 <script setup>
 import { onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import { getHealth } from '@/api/system'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
@@ -28,7 +29,7 @@ onMounted(async () => {
           일정을 만들고, 가고 싶은 장소를 담고, 동선을 한눈에 정리하는 여행 플래너입니다.
         </p>
         <div class="hero__actions">
-          <button class="primary-action" type="button">새 일정 만들기</button>
+          <RouterLink class="primary-action" to="/plans/new">새 일정 만들기</RouterLink>
           <a class="secondary-action" href="#explore">인기 일정 둘러보기</a>
         </div>
       </div>

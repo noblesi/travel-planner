@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.noblesi.travelplanner.domain.plan.ParticipantType;
+import com.noblesi.travelplanner.domain.plan.PlanEditorPlan;
 import com.noblesi.travelplanner.domain.plan.TravelPlan;
 
 @Mapper
@@ -17,5 +18,10 @@ public interface TravelPlanMapper {
 			@Param("planId") long planId,
 			@Param("memberId") long memberId,
 			@Param("participantType") ParticipantType participantType
+	);
+
+	PlanEditorPlan findActiveOwnedPlanForEditor(
+			@Param("planId") long planId,
+			@Param("memberId") long memberId
 	);
 }
