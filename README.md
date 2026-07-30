@@ -89,8 +89,8 @@ Eclipse에서 Terminal을 두 개 열고 각각 실행합니다. Oracle을 먼�
 터미널 1 — Spring Boot:
 
 ```powershell
-cd travel-planner/backend
-.\gradlew.bat bootRun
+cd travel-planner
+.\scripts\run-backend.ps1
 ```
 
 터미널 2 — Vue:
@@ -156,8 +156,7 @@ VS Code에서 Terminal을 두 개 열고 각각 실행합니다. Oracle을 먼�
 터미널 1 — Spring Boot:
 
 ```powershell
-cd backend
-.\gradlew.bat bootRun
+.\scripts\run-backend.ps1
 ```
 
 터미널 2 — Vue:
@@ -216,7 +215,7 @@ travel-planner/
 │   ├── src/views/                     # 라우트 단위 화면
 │   ├── package.json
 │   └── vite.config.js
-├── scripts/                           # Linux 빌드·실행 스크립트
+├── scripts/                           # Windows·Linux 빌드 및 실행 스크립트
 ├── .env.example                       # 백엔드 환경변수 예시
 ├── .nvmrc                             # Node.js 공통 버전
 ├── CONTRIBUTING.md
@@ -227,7 +226,15 @@ travel-planner/
 
 ### 백엔드
 
-루트의 `.env.example`은 값의 형식을 확인하기 위한 예시입니다. Spring Boot를 실행할 터미널에 환경변수를 등록합니다.
+루트의 `.env.example`은 값의 형식을 확인하기 위한 예시입니다. 실제 DB 비밀번호와 API 키는 팀 보안 채널로 공유하고 Git에는 커밋하지 않습니다.
+
+Windows에서는 저장소 루트에서 예시 파일을 복사한 뒤 전달받은 값을 입력합니다.
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+`.env.local`은 `.gitignore`에 포함되어 있습니다. `scripts/run-backend.ps1`은 이 파일에서 백엔드에 필요한 변수만 현재 실행 프로세스에 로드하고, 실제 값은 콘솔에 출력하지 않습니다. `ORACLE_SYSTEM_*`과 `VITE_*`처럼 백엔드 실행에 필요하지 않은 항목은 하위 Java 프로세스에 전달하지 않습니다.
 
 | 환경변수 | 예시 | 용도 |
 | --- | --- | --- |
@@ -235,6 +242,8 @@ travel-planner/
 | `ORACLE_USERNAME` | `travel_planner` | DB 계정 |
 | `ORACLE_PASSWORD` | `change-me` | DB 비밀번호 |
 | `SERVER_PORT` | `8080` | 백엔드 포트 |
+| `TOUR_API_SERVICE_KEY` | `change-me` | TourAPI 서비스 인증키 |
+| `KAKAO_REST_API_KEY` | `change-me` | Kakao REST API 키 |
 
 macOS/Linux:
 
@@ -245,13 +254,23 @@ export ORACLE_PASSWORD='change-me'
 export SERVER_PORT='8080'
 ```
 
-Windows PowerShell:
+Windows PowerShell에서는 환경변수를 매번 직접 입력하는 대신 실행 스크립트를 권장합니다.
 
 ```powershell
-$env:ORACLE_URL='jdbc:oracle:thin:@//localhost:1521/FREEPDB1'
-$env:ORACLE_USERNAME='travel_planner'
-$env:ORACLE_PASSWORD='change-me'
-$env:SERVER_PORT='8080'
+.\scripts\run-backend.ps1
+```
+
+다른 위치의 환경변수 파일을 사용하려면 `-EnvironmentFile`을 지정합니다.
+
+```powershell
+.\scripts\run-backend.ps1 -EnvironmentFile C:\secure\withtrip.env
+```
+
+PowerShell 실행 정책으로 스크립트 실행이 차단되면 현재 터미널에만 임시로 허용한 뒤 다시 실행합니다.
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\run-backend.ps1
 ```
 
 Oracle 접속 정보가 아직 준비되지 않은 경우에는 Backend의 `local` Profile을 사용합니다. 이 Profile은 Memory 기반 H2를 Oracle 호환 모드로 실행하고 개발용 Schema와 Seed를 자동으로 적용합니다.
@@ -317,9 +336,8 @@ Oracle을 실행하고 환경변수를 설정하거나 Backend `local` Profile�
 
 Windows:
 
-```bat
-cd backend
-gradlew.bat bootRun
+```powershell
+.\scripts\run-backend.ps1
 ```
 
 macOS/Linux:
