@@ -279,9 +279,12 @@ cd backend
 ```dotenv
 VITE_API_BASE_URL=/api
 VITE_API_PROXY_TARGET=http://localhost:8080
+VITE_KAKAO_MAP_KEY=change-me
 ```
 
 개인 설정이 필요하면 `frontend/.env.local`을 만들고 Git에는 커밋하지 않습니다. Vite 개발 서버는 `/api` 요청을 Spring Boot로 프록시하므로 기본 구성에서는 별도 CORS 설정이 필요하지 않습니다.
+
+TourAPI와 Kakao REST API의 Backend 환경변수 및 Kakao JavaScript SDK 도메인 등록 방법은 [`docs/api/external-api-setup.md`](docs/api/external-api-setup.md)를 따릅니다.
 
 ## 5. 최초 설치
 

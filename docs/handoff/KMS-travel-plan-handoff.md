@@ -173,7 +173,7 @@ UI 설계서 기준 참고 화면:
 
 ```dotenv
 TOUR_API_SERVICE_KEY=
-KAKAO_MAP_APP_KEY=
+VITE_KAKAO_MAP_KEY=
 KAKAO_REST_API_KEY=
 ```
 

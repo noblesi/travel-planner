@@ -5,6 +5,7 @@ Frontend와 Backend가 함께 사용하는 HTTP 계약의 기준 문서입니다
 ## 문서
 
 - [여행 플랜 1차 API](travel-plan-api.md): 지역 조회, 플랜 생성, 제작 페이지 초기 조회
+- [외부 API 설정](external-api-setup.md): TourAPI·Kakao 환경변수, 키 보관, JavaScript SDK 도메인
 - [오류 코드](error-codes.md): 공통 오류 응답 형식과 안정적인 오류 코드
 
 ## 공통 규칙
