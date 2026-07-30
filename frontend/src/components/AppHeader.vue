@@ -1,5 +1,7 @@
 <script setup>
-import { RouterLink,useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
+
+import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.png'
 
 const haederRouter = useRouter()
 const loginCheck = false;
@@ -11,7 +13,6 @@ const moveLoginPage = () => {
 const moveJoinPage = () => {
   haederRouter.push('/joinView')
 }
-
 </script>
 
 <template>

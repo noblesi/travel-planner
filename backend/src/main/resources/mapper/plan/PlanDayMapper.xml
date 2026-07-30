@@ -4,6 +4,16 @@
 		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.noblesi.travelplanner.mapper.PlanDayMapper">
 
+	<resultMap id="planDayResultMap" type="com.noblesi.travelplanner.domain.plan.PlanDay">
+		<constructor>
+			<idArg column="PLAN_DAY_ID" javaType="_long" />
+			<arg column="PLAN_ID" javaType="_long" />
+			<arg column="DAY_NO" javaType="_int" />
+			<arg column="TRAVEL_DATE" javaType="java.time.LocalDate" />
+			<arg column="SCHEDULE_VERSION" javaType="_int" />
+		</constructor>
+	</resultMap>
+
 	<select id="nextPlanDayId" resultType="long">
 		SELECT SEQ_PLAN_DAY.NEXTVAL
 		  FROM DUAL
@@ -22,5 +32,16 @@
 			#{travelDate}
 		)
 	</insert>
+
+	<select id="findByPlanIdOrderByDayNo" resultMap="planDayResultMap">
+		SELECT PLAN_DAY_ID,
+		       PLAN_ID,
+		       DAY_NO,
+		       TRAVEL_DATE,
+		       SCHEDULE_VERSION
+		  FROM PLAN_DAY
+		 WHERE PLAN_ID = #{planId}
+		 ORDER BY DAY_NO ASC
+	</select>
 
 </mapper>

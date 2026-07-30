@@ -10,43 +10,48 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: "/plans",
-      name: "plan-search",
-      component: () => import('@/views/PlanSearch/PlanSearchView.vue')
+      path: '/plans/new',
+      name: 'plan-setup',
+      component: () => import('@/views/PlanSetupView.vue'),
     },
     {
-      path: "/plans/:id",
-      name: "plan-detail",
+      path: '/plans/:planId/edit',
+      name: 'plan-editor',
+      component: () => import('@/views/PlanEditorView.vue'),
+      props: true,
+    },
+    {
+      path: '/plans',
+      name: 'plan-search',
+      component: () => import('@/views/PlanSearch/PlanSearchView.vue'),
+    },
+    {
+      path: '/plans/:id',
+      name: 'plan-detail',
       component: () => import('@/views/PlanSearch/PlanDetailView.vue'),
       props: true,
     },
     {
-      path: "/announcements",
-      name: "announcements-list",
-      component: () => import('@/views/Announcement/AnnouncementListView.vue')
+      path: '/announcements',
+      name: 'announcements-list',
+      component: () => import('@/views/Announcement/AnnouncementListView.vue'),
     },
     {
-      path: "/announcements/:id",
-      name: "announcements-detail",
+      path: '/announcements/:id',
+      name: 'announcements-detail',
       component: () => import('@/views/Announcement/AnnouncementDetailView.vue'),
-      props: true
+      props: true,
     },
     {
-      path: "/invite",
-      name: "invite",
+      path: '/invite',
+      name: 'invite',
       component: () => import('@/views/Invite/InviteView.vue'),
     },
     {
-      path: "/invite/accept",
-      name: "invite-accept",
+      path: '/invite/accept',
+      name: 'invite-accept',
       component: () => import('@/views/Invite/InviteAcceptView.vue'),
     },
-    {
-      path: '/:pathMatch(.*)*',
-      name: 'not-found',
-      component: () => import('@/views/NotFoundView.vue'),
-    },
-    //로그인 화면
     {
       path: '/loginView',
       name: 'login',
