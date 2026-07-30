@@ -55,44 +55,44 @@ const router = createRouter({
     {
       path: '/loginView',
       name: 'login',
-      component: () => import('@/views/loginView/LoginView.vue'),
+      component: () => import('@/views/LoginView/LoginView.vue'),
     },
     {
       path: '/emailFind',
       name: 'emailFind',
-      component: () => import('@/views/loginView/EmailFindView.vue'),
+      component: () => import('@/views/LoginView/EmailFindView.vue'),
     },
     {
       path: '/passwordFind',
       name: 'passwordFind',
-      component: () => import('@/views/loginView/PasswordFindView.vue'),
+      component: () => import('@/views/LoginView/PasswordFindView.vue'),
     },
     //회원 가입
     {
       path: '/joinView',
       name: 'join',
-      component: () => import('@/views/joinView/JoinView.vue'),
+      component: () => import('@/views/JoinView/JoinView.vue'),
     },
     {
       path: '/joinProfileView',
       name: 'joinProfile',
-      component: () => import('@/views/joinView/JoinProfileView.vue'),
+      component: () => import('@/views/JoinView/JoinProfileView.vue'),
     },
     {
       path: '/joinComplete',
       name: 'complete',
-      component: () => import('@/views/joinView/JoinCompleteView.vue'),
+      component: () => import('@/views/JoinView/JoinCompleteView.vue'),
     },
     //마이 페이지
     {
       path: '/myPage',
       name: 'myPage',
-      component: () => import('@/views/myPage/MyPage.vue'),
+      component: () => import('@/views/MyPage/MyPage.vue'),
     },
      {
       path: '/testView',
       name: 'testView',
-      component: () => import('@/views/myPage/testView.vue'),
+      component: () => import('@/views/MyPage/testView.vue'),
     },
   ],
   scrollBehavior(to, from, savedPosition) {
