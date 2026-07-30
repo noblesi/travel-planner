@@ -3,6 +3,8 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { RouterLink } from 'vue-router'
 
+import KakaoMap from '@/components/map/KakaoMap.vue'
+import PlaceSearchPanel from '@/components/plan/PlaceSearchPanel.vue'
 import { usePlanEditorStore } from '@/stores/planEditor'
 
 const props = defineProps({
@@ -20,6 +22,7 @@ const {
   days,
   selectedDayId,
   selectedDay,
+  scheduleItems,
   morningItems,
   afternoonItems,
   isSelectedDayEmpty,
@@ -34,6 +37,30 @@ const editStartDate = ref('')
 const editEndDate = ref('')
 const removalConfirmationOpen = ref(false)
 const pendingDatePayload = ref(null)
+const searchResults = ref([])
+const selectedSearchPlace = ref(null)
+
+const selectedSearchPlaceId = computed(() => {
+  if (!selectedSearchPlace.value) return null
+  return `${selectedSearchPlace.value.placeProvider}:${selectedSearchPlace.value.externalPlaceId}`
+})
+
+const selectedMapPlaceId = computed(() =>
+  selectedSearchPlaceId.value ? `search:${selectedSearchPlaceId.value}` : null,
+)
+
+const mapPlaces = computed(() => [
+  ...scheduleItems.value.map((item) => ({
+    ...item,
+    mapPlaceId: `schedule:${item.scheduleItemId}`,
+    markerSource: 'SCHEDULE',
+  })),
+  ...searchResults.value.map((place) => ({
+    ...place,
+    mapPlaceId: `search:${place.placeProvider}:${place.externalPlaceId}`,
+    markerSource: 'SEARCH',
+  })),
+])
 
 const maxEditableEndDate = computed(() => {
   if (!editStartDate.value) return undefined
@@ -64,6 +91,31 @@ function retryLoad() {
 
 function selectDay(planDayId) {
   editorStore.selectDay(planDayId)
+}
+
+function updateSearchResults(places) {
+  searchResults.value = places
+
+  if (
+    selectedSearchPlace.value &&
+    !places.some(
+      (place) =>
+        place.placeProvider === selectedSearchPlace.value.placeProvider &&
+        place.externalPlaceId === selectedSearchPlace.value.externalPlaceId,
+    )
+  ) {
+    selectedSearchPlace.value = null
+  }
+}
+
+function selectSearchPlace(place) {
+  selectedSearchPlace.value = place
+}
+
+function selectMapPlace(place) {
+  if (place.markerSource === 'SEARCH') {
+    selectedSearchPlace.value = place
+  }
 }
 
 function syncDateForm(planValue = plan.value) {
@@ -395,20 +447,22 @@ onBeforeUnmount(editorStore.resetEditor)
         </aside>
 
         <section class="map-panel" aria-label="여행 장소 지도 영역">
-          <div class="map-search">
-            <span aria-hidden="true">⌕</span>
-            <input type="search" placeholder="장소 검색 기능을 준비하고 있습니다" disabled />
-          </div>
+          <KakaoMap
+            class="editor-map"
+            :places="mapPlaces"
+            :selected-place-id="selectedMapPlaceId"
+            :empty-message="`${plan.regionName}의 장소를 검색하면 지도에 표시됩니다.`"
+            @select="selectMapPlace"
+          />
 
-          <div class="map-canvas">
-            <div class="map-grid" aria-hidden="true" />
-            <span class="map-pin map-pin--one" aria-hidden="true" />
-            <span class="map-pin map-pin--two" aria-hidden="true" />
-            <div class="map-placeholder">
-              <span class="map-placeholder__icon" aria-hidden="true">⌖</span>
-              <strong>{{ plan.regionName }} 지도</strong>
-              <p>카카오맵과 장소 검색은 다음 연동 단계에서 표시됩니다.</p>
-            </div>
+          <div class="map-overlay">
+            <PlaceSearchPanel
+              :region-code="plan.regionCode"
+              :region-name="plan.regionName"
+              :selected-place-id="selectedSearchPlaceId"
+              @results-change="updateSearchResults"
+              @select="selectSearchPlace"
+            />
           </div>
         </section>
       </template>
@@ -1046,119 +1100,18 @@ onBeforeUnmount(editorStore.resetEditor)
   background: #dbe9e4;
 }
 
-.map-search {
+.editor-map {
   position: absolute;
-  z-index: 3;
+  inset: 0;
+  border-radius: 0;
+}
+
+.map-overlay {
+  position: absolute;
+  z-index: 4;
   top: 28px;
   right: 28px;
-  display: flex;
   width: min(390px, calc(100% - 56px));
-  min-height: 50px;
-  gap: 10px;
-  align-items: center;
-  padding: 0 17px;
-  border: 1px solid rgb(148 163 184 / 60%);
-  border-radius: 14px;
-  background: rgb(255 255 255 / 94%);
-  box-shadow: 0 12px 36px rgb(15 23 42 / 12%);
-}
-
-.map-search span {
-  color: #475569;
-  font-size: 25px;
-}
-
-.map-search input {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: #64748b;
-}
-
-.map-canvas {
-  position: relative;
-  min-height: inherit;
-  overflow: hidden;
-  background:
-    radial-gradient(circle at 74% 60%, rgb(120 194 211 / 70%) 0 16%, transparent 17%),
-    radial-gradient(circle at 38% 38%, rgb(161 203 167 / 85%) 0 20%, transparent 21%),
-    linear-gradient(135deg, #e9f2ec 0 46%, #d9e8e0 47% 60%, #b9dce4 61%);
-}
-
-.map-grid {
-  position: absolute;
-  inset: -20%;
-  opacity: 0.32;
-  background-image:
-    linear-gradient(28deg, transparent 47%, #fff 48% 51%, transparent 52%),
-    linear-gradient(118deg, transparent 47%, #fff 48% 51%, transparent 52%);
-  background-size: 110px 90px;
-  transform: rotate(-5deg);
-}
-
-.map-pin {
-  position: absolute;
-  z-index: 1;
-  width: 24px;
-  height: 24px;
-  border: 5px solid #fff;
-  border-radius: 50% 50% 50% 0;
-  background: #ff5a4e;
-  box-shadow: 0 5px 14px rgb(15 23 42 / 22%);
-  transform: rotate(-45deg);
-}
-
-.map-pin--one {
-  top: 31%;
-  left: 31%;
-}
-
-.map-pin--two {
-  right: 24%;
-  bottom: 30%;
-  background: #2c7be5;
-}
-
-.map-placeholder {
-  position: absolute;
-  z-index: 2;
-  top: 50%;
-  left: 50%;
-  display: grid;
-  width: min(420px, calc(100% - 48px));
-  padding: 32px;
-  place-items: center;
-  border: 1px solid rgb(255 255 255 / 80%);
-  border-radius: 20px;
-  background: rgb(255 255 255 / 88%);
-  box-shadow: 0 24px 60px rgb(15 23 42 / 13%);
-  text-align: center;
-  transform: translate(-50%, -50%);
-  backdrop-filter: blur(10px);
-}
-
-.map-placeholder__icon {
-  display: grid;
-  width: 52px;
-  height: 52px;
-  margin-bottom: 14px;
-  place-items: center;
-  color: #fff;
-  border-radius: 16px;
-  background: #ff5a4e;
-  font-size: 27px;
-}
-
-.map-placeholder strong {
-  font-size: 21px;
-}
-
-.map-placeholder p {
-  margin: 8px 0 0;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.6;
 }
 
 .confirmation-backdrop {
@@ -1237,7 +1190,7 @@ onBeforeUnmount(editorStore.resetEditor)
   }
 
   .map-panel {
-    min-height: 520px;
+    min-height: 680px;
   }
 }
 
@@ -1265,7 +1218,7 @@ onBeforeUnmount(editorStore.resetEditor)
     grid-template-columns: 1fr;
   }
 
-  .map-search {
+  .map-overlay {
     top: 16px;
     right: 16px;
     width: calc(100% - 32px);

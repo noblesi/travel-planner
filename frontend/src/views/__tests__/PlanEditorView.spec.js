@@ -4,8 +4,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlanEditorView from '@/views/PlanEditorView.vue'
 
-const { getTravelPlanEditorMock, updateTravelPlanDatesMock } = vi.hoisted(() => ({
+const { getTravelPlanEditorMock, searchPlacesMock, updateTravelPlanDatesMock } = vi.hoisted(() => ({
   getTravelPlanEditorMock: vi.fn(),
+  searchPlacesMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
 }))
 
@@ -13,6 +14,17 @@ vi.mock('@/api/plans', () => ({
   getTravelPlanEditor: getTravelPlanEditorMock,
   updateTravelPlanDates: updateTravelPlanDatesMock,
 }))
+
+vi.mock('@/api/places', () => ({
+  searchPlaces: searchPlacesMock,
+}))
+
+const KakaoMapStub = {
+  name: 'KakaoMap',
+  props: ['places', 'selectedPlaceId', 'emptyMessage'],
+  emits: ['select'],
+  template: '<div class="kakao-map-stub" />',
+}
 
 const editor = {
   plan: {
@@ -49,6 +61,7 @@ function mountView(planId = '101') {
     global: {
       plugins: [createPinia()],
       stubs: {
+        KakaoMap: KakaoMapStub,
         RouterLink: { template: '<a><slot /></a>' },
       },
     },
@@ -57,6 +70,7 @@ function mountView(planId = '101') {
 
 beforeEach(() => {
   getTravelPlanEditorMock.mockReset().mockResolvedValue(editor)
+  searchPlacesMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
 })
 
@@ -71,7 +85,7 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('2일')
     expect(wrapper.findAll('.day-tab')).toHaveLength(2)
     expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
-    expect(wrapper.text()).toContain('서울특별시 지도')
+    expect(wrapper.text()).toContain('서울특별시의 관광정보를 TourAPI에서 검색합니다.')
   })
 
   it('선택한 DAY의 오전·오후 일정 카드와 해당 DAY의 빈 상태를 표시한다', async () => {
@@ -88,6 +102,8 @@ describe('PlanEditorView', () => {
               placeName: '경복궁',
               categoryName: '관광지',
               address: '서울 종로구 사직로 161',
+              latitude: 37.5796,
+              longitude: 126.977,
               description: '조선 시대의 법궁',
             },
             {
@@ -112,6 +128,11 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('오후')
     expect(wrapper.text()).toContain('북촌한옥마을')
     expect(wrapper.findAll('.schedule-card')).toHaveLength(2)
+    expect(wrapper.getComponent(KakaoMapStub).props('places')[0]).toMatchObject({
+      mapPlaceId: 'schedule:301',
+      markerSource: 'SCHEDULE',
+      placeName: '경복궁',
+    })
 
     await wrapper.findAll('.day-tab')[1].trigger('click')
 
@@ -130,6 +151,50 @@ describe('PlanEditorView', () => {
 
     expect(getTravelPlanEditorMock).toHaveBeenNthCalledWith(1, '101')
     expect(getTravelPlanEditorMock).toHaveBeenNthCalledWith(2, '102')
+  })
+
+  it('장소 검색 결과와 선택 장소를 지도에 전달한다', async () => {
+    const place = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '1001',
+      placeName: '여의도 한강공원',
+      categoryName: '관광지',
+      address: '서울 영등포구 여의동로 330',
+      latitude: 37.5284,
+      longitude: 126.934,
+      imageUrl: null,
+    }
+    searchPlacesMock.mockResolvedValueOnce({
+      places: [place],
+      page: 1,
+      size: 10,
+      totalCount: 1,
+      hasNext: false,
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('[name="placeKeyword"]').setValue('한강')
+    await wrapper.get('.place-search-panel__form').trigger('submit')
+    await flushPromises()
+    await wrapper.get('.place-search-panel__results button').trigger('click')
+
+    const map = wrapper.getComponent(KakaoMapStub)
+    expect(searchPlacesMock).toHaveBeenCalledWith({
+      keyword: '한강',
+      regionCode: '1',
+      page: 1,
+      size: 10,
+    })
+    expect(map.props('places')).toEqual([
+      {
+        ...place,
+        mapPlaceId: 'search:TOUR_API:1001',
+        markerSource: 'SEARCH',
+      },
+    ])
+    expect(map.props('selectedPlaceId')).toBe('search:TOUR_API:1001')
+    expect(wrapper.text()).toContain('여의도 한강공원')
   })
 
   it('조회 실패 메시지를 표시하고 다시 시도한다', async () => {

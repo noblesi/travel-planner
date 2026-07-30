@@ -1,14 +1,14 @@
 # KMS 여행 플랜 개발 인수인계
 
-최종 정리일: 2026-07-30
+최종 정리일: 2026-07-31
 
 ## 저장소 상태
 
 - 원격 저장소: `https://github.com/noblesi/travel-planner.git`
 - 작업 브랜치: `KMS`
-- 현재 통합 기준 Commit: `7955289 플랜 설정 폼과 지역 선택 UI 개선`
+- 현재 통합 기준: 이 문서를 갱신한 `장소 검색 UI와 카카오맵 연결` Commit
 - 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
-- 현재 작업 묶음: 플랜 설정 페이지 보완, 제작 페이지 날짜 변경·DAY 일정 UI, TourAPI 장소 검색 Backend, Oracle 지역 조회 연동 완료. 장소 검색 UI와 Kakao Map 연결 전
+- 현재 작업 묶음: 플랜 설정 페이지, 제작 페이지 날짜 변경·DAY 일정 UI, TourAPI 장소 검색 Backend·Frontend, 공용 Kakao Map과 검색 결과·저장 일정 Marker 연결, Oracle 지역 조회 연동 완료. 일정 CRUD·자동 저장 구현 전
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
 
@@ -99,6 +99,12 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - 플랜 설정 Form의 필수 입력·서버 오류·중복 제출 처리를 보완하고 지역 선택을 사이트 스타일의 하단 고정 커스텀 드롭다운으로 교체했다.
 - 원격 Oracle Application Schema에 전체 DDL을 적용하고 시·도 Seed 17건을 입력했으며, `/api/health`와 `/api/regions`를 실제 Oracle 연결로 확인했다.
 - 실제 접속정보와 인증키는 Git에서 제외되는 루트 `.env.local`에 보관하고, Windows 실행용 `scripts/run-backend.ps1`과 팀 실행 절차를 추가했다.
+- `frontend/src/api/places.js`와 장소 검색 Panel·상세 Card를 추가하고 검색어 검증, Loading·Empty·Error, Pagination과 결과 선택 상태를 구현했다.
+- 제작 페이지의 검색 결과와 선택 DAY에 저장된 일정 장소를 하나의 지도 Marker 목록으로 연결했다.
+- Kakao SDK Loading·Key 누락·Load 실패·빈 Marker 상태와 Marker 선택 정보창을 처리하는 공용 `KakaoMap` Component를 구현했다.
+- 기존 공개 플랜 상세 화면도 공용 `KakaoMap` Component를 사용하도록 변경해 중복 지도 구현을 제거했다.
+- 장소 검색 API·Panel·Kakao Map·제작 화면 Test를 추가해 Frontend Test 34건을 통과하고 대상 ESLint·Oxlint를 통과했다.
+- H2 local 제작 화면을 Desktop·Mobile Browser로 확인하고 장소 검색 Panel과 Kakao Key 미설정 오류 상태를 검증했다.
 
 플랜 생성·편집 API의 H2 통합 검증과 Oracle Schema·지역 조회 검증은 완료했다. 기본 Profile은 실제 인증이 연결되기 전까지 현재 회원을 제공하지 않으므로 Oracle에서 플랜 생성·날짜 변경을 끝까지 검증하려면 인증 Provider 연결 또는 승인된 개발용 Provider 전략이 추가로 필요하다.
 
@@ -106,11 +112,11 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 
 ## 리소스 점검
 
-2026-07-30 기준 점검 결과다.
+2026-07-31 기준 점검 결과다.
 
 | 구분 | 상태 | 비고 |
 | --- | --- | --- |
-| Git | 준비 완료 | `7955289` 플랜 설정 Form·지역 선택 UI까지 KMS에 Commit 완료 |
+| Git | 준비 완료 | 장소 검색 UI·공용 Kakao Map·Handoff 갱신까지 하나의 KMS Commit으로 관리 |
 | Java | 준비 완료 | Temurin JDK 21.0.11 |
 | Gradle | 준비 완료 | Wrapper 9.5.1, `clean test bootJar` 성공 |
 | Backend JAR | 준비 완료 | `backend/build/libs/travel-planner.jar` 생성 |
@@ -119,13 +125,13 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 | Backend local 기동 | 준비 완료 | `/api/health` UP, `/api/regions` 17건 확인 |
 | UI·ERD·DDL | 준비 완료 | PDF, eXERD, Oracle DDL 4개와 문서 Link 확인 |
 | Branding | 준비 완료 | Favicon, Manifest, Header·Symbol Logo 확인 |
-| Node.js·npm | 준비 완료 | Node.js 24.18.0, npm 12.0.1 |
-| Frontend Build | 타 담당 영역 대기 | 기존 빈 `frontend/src/views/joinView/JoinCompleteView.vue` 때문에 Production Build 실패 |
+| Node.js·npm | 준비 완료 | 현재 환경 Node.js 24.14.0, npm 11.11.1. `package.json` Engine 범위 충족 |
+| Frontend Build | 타 담당 영역 대기 | 빈 `frontend/src/views/joinView/JoinCompleteView.vue`와 현재 로컬 `node_modules`의 `sass-embedded` 누락 때문에 Production Build 실패 |
 | Oracle | 부분 검증 완료 | 전체 DDL·시도 Seed 적용, `/api/health`와 `/api/regions` 17건 확인. 인증 필요 API는 추가 검증 필요 |
 | 실제 인증 | 대기 | 정책과 Provider 경계만 확정, 회원 Schema와 Spring Security·Google OIDC 구현 필요 |
-| 외부 API | 부분 준비 | TourAPI·Kakao Key는 로컬 설정, TourAPI 검색 Backend 구현 완료. 검색 UI·지도 연결과 실 API 결과 검증 필요 |
+| 외부 API | 부분 검증 완료 | TourAPI 검색 Backend·Frontend와 Kakao Map·Marker 연결 완료. 실제 Key를 사용한 TourAPI·Kakao SDK Browser 검증 필요 |
 | Backend 자동 Test | 준비 완료 | 5개 Test Class, 전체 34건 통과 |
-| Frontend Test | 준비 완료 | 5개 Test File, 전체 25건 통과 |
+| Frontend Test | 준비 완료 | 8개 Test File, 전체 34건 통과. 변경 대상 ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -134,7 +140,8 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 
 - `frontend/src/api/plans.js`, `regions.js`, 설정 View, 제작 View와 `planEditor` Store를 구현했다.
 - `PlanScheduleItemMapper`와 편집 초기 조회 응답 DTO를 추가했다. 일정 추가·수정·삭제·정렬 Mapper는 자동 저장 API 단계에서 확장한다.
-- `TourApiClient`, 장소 검색 Controller·Service·DTO와 통합 Test를 추가했다. Frontend 장소 검색 Panel은 아직 구현하지 않았다.
+- `TourApiClient`, 장소 검색 Controller·Service·DTO·Frontend API Module·검색 Panel·상세 Card와 자동 Test를 추가했다.
+- `frontend/src/components/map/KakaoMap.vue`를 공용 지도 Component로 사용하며 제작 화면과 공개 플랜 상세 화면이 함께 참조한다.
 - Root `.env.example`에는 Oracle·TourAPI·Kakao REST 변수명이 있으며 실제 값은 `.env.local`과 팀 보안 채널에서만 관리한다.
 - Vue SPA 전환 전에 사용하던 `backend/src/main/webapp/WEB-INF/jsp/common/`과 `backend/src/main/resources/static/css/layout.css`가 남아 있다. 현재 코드에서 사용 여부를 확인한 뒤 별도 정리 Commit으로 제거 여부를 결정한다.
 - Root README의 JUnit·MockMvc와 `src/test/java` 안내에 맞춰 Backend 통합 테스트 구성을 복구했다.
@@ -274,7 +281,7 @@ GET    /api/places/search?keyword=&regionCode=&page=&size=
 | `POST /api/plans` | Backend 구현 및 H2 local HTTP·Transaction 통합 검증 완료, Oracle 검증 필요 |
 | `GET /api/plans/{planId}/editor` | Backend 구현 및 H2 local HTTP·소유권·정렬·ID 정밀도 통합 검증 완료, Oracle 검증 필요 |
 | `PATCH /api/plans/{planId}/dates` | Backend·Frontend 구현 및 H2 날짜 재구성·일정 삭제 확인 흐름 검증 완료, Oracle 검증 필요 |
-| `GET /api/places/search` | TourAPI Backend Client·Controller·오류 매핑·자동 Test 완료, 실 API와 Frontend 연결 필요 |
+| `GET /api/places/search` | Backend·Frontend API·검색 Panel·오류 상태·Pagination 연결과 자동 Test 완료, 실제 TourAPI Key 결과 검증 필요 |
 
 아래 Endpoint는 후속 구현 방향이며 Request·Response 계약은 아직 확정되지 않았다.
 
@@ -309,9 +316,12 @@ POST   /api/plan-invitations/{token}/accept
 frontend/src/
 ├── api/plans.js
 ├── api/places.js
+├── utils/kakaoMapSdk.js
 ├── stores/planEditor.js
 ├── views/PlanSetupView.vue
 ├── views/PlanEditorView.vue
+├── components/map/
+│   └── KakaoMap.vue
 └── components/plan/
     ├── PlanSetupForm.vue
     ├── PlanEditorHeader.vue
@@ -345,8 +355,8 @@ backend/src/main/java/com/noblesi/travelplanner/
 5. 설정 페이지 구현 및 생성 API 연결 (완료, 커스텀 지역 드롭다운 포함)
 6. 제작 페이지 초기 조회 Backend API 구현 (H2 local 구현·HTTP 통합 검증 완료, Oracle 검증 필요)
 7. 제작 페이지 레이아웃·Pinia 편집 상태·DAY/오전/오후 일정·날짜 변경 구현 (완료)
-8. TourAPI 장소 검색 Backend 연동 (완료, Frontend 연결 필요)
-9. 카카오맵과 장소 마커 연결
+8. TourAPI 장소 검색 Backend·Frontend 연동 (완료, 실제 Key 결과 검증 필요)
+9. 공용 카카오맵과 검색 결과·저장 일정 장소 Marker 연결 (구현·자동 Test 완료, 실제 Key Browser 검증 필요)
 10. 일정 추가·수정·삭제·순서 변경 구현
 11. 작업별 자동 저장과 버전 충돌 처리
 12. 플랜 제목과 공개 범위 수정
@@ -359,7 +369,6 @@ backend/src/main/java/com/noblesi/travelplanner/
 - 회원 및 로그인 수단 Table의 실제 이름과 Column
 - 초대 전달 방식
 - 초대 참여자의 편집 권한 범위
-- TourAPI 장애 또는 검색 결과 없음 처리 방식
 - 자동 저장 충돌 시 사용자 UI
 - 삭제한 일정의 복구 지원 여부
 
@@ -370,9 +379,10 @@ backend/src/main/java/com/noblesi/travelplanner/
 1. `KMS` 브랜치와 작업 트리 상태를 확인하고 이 문서 및 README의 `.env.local` 실행 절차를 검토한다.
 2. `dev` 전용 Commit은 반영하지 않고 로그인·회원가입 담당자의 파일은 수정하지 않는다.
 3. Frontend 공통 lint·build 실패는 담당 팀원의 작업 완료 후 통합 검증한다.
-4. `GET /api/places/search`를 호출하는 Frontend 장소 검색 API와 결과 Panel을 구현한다.
-5. 검색 결과 선택과 선택 DAY·오전/오후 일정 추가 UI를 연결한다.
-6. 제작 페이지에 Kakao Map 공용 Component를 연결하고 검색 결과·일정 장소 Marker를 표시한다.
-7. 일정 추가·수정·삭제·순서 변경 Backend API와 작업별 자동 저장·버전 충돌 처리를 구현한다.
-8. 플랜 제목·공개 범위 수정과 초대 기능을 순서대로 구현한다.
-9. 실제 인증 Provider가 준비되면 Oracle에서 플랜 생성·조회·날짜 변경·장소 검색 전체 흐름을 통합 검증한다.
+4. 일정 추가·수정·삭제·순서 변경 API의 Request·Response, Snapshot, `scheduleVersion`·`itemVersion` 계약을 먼저 확정한다.
+5. 일정 CRUD·정렬 Backend API와 H2 Transaction·소유권·버전 충돌 통합 Test를 구현한다.
+6. 검색 결과 선택과 선택 DAY·오전/오후 일정 추가, 수정·삭제·정렬 UI를 연결한다.
+7. Pinia에 작업별 자동 저장 상태와 `409 Conflict` 복구 흐름을 구현한다.
+8. 실제 TourAPI·Kakao Key로 검색 결과·Marker·정보창을 Browser에서 통합 검증한다.
+9. 플랜 제목·공개 범위 수정과 초대 기능을 순서대로 구현한다.
+10. 실제 인증 Provider가 준비되면 Oracle에서 플랜 생성·조회·날짜 변경·장소 검색 전체 흐름을 통합 검증한다.
