@@ -13,6 +13,7 @@
 | --- | --- | --- |
 | `TOUR_API_BASE_URL` | `https://apis.data.go.kr/B551011/KorService2` | TourAPI 국문 관광정보 서비스 Base URL |
 | `TOUR_API_SERVICE_KEY` | 없음 | 공공데이터포털 TourAPI 인증키 |
+| `TOUR_API_MOBILE_APP` | `WithTrip` | TourAPI 호출 서비스명 |
 | `TOUR_API_CONNECT_TIMEOUT` | `3s` | TourAPI 연결 제한시간 |
 | `TOUR_API_READ_TIMEOUT` | `5s` | TourAPI 응답 제한시간 |
 | `KAKAO_REST_BASE_URL` | `https://dapi.kakao.com` | Kakao REST API Base URL |
@@ -54,7 +55,7 @@ VITE_KAKAO_MAP_KEY=발급받은-JavaScript-키
 
 ## 코드 바인딩
 
-Backend 환경변수는 `ExternalApiProperties`의 `app.external-api.tour`, `app.external-api.kakao` 속성으로 바인딩됩니다. 키가 없더라도 일반 플랜 기능과 자동 테스트는 실행할 수 있으며, 외부 API Client는 `configured()`를 확인해 명시적인 설정 오류를 반환해야 합니다.
+Backend 환경변수는 `ExternalApiProperties`의 `app.external-api.tour`, `app.external-api.kakao` 속성으로 바인딩됩니다. 키가 없더라도 일반 플랜 기능과 자동 테스트는 실행할 수 있으며, TourAPI 장소 검색 호출 시 `TOUR_API_NOT_CONFIGURED` 오류를 반환합니다.
 
 ## 참고
 

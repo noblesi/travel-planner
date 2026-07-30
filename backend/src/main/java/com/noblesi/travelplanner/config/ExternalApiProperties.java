@@ -14,6 +14,7 @@ public record ExternalApiProperties(
 	public record TourApi(
 			URI baseUrl,
 			String serviceKey,
+			String mobileApp,
 			Duration connectTimeout,
 			Duration readTimeout
 	) {

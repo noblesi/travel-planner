@@ -21,6 +21,7 @@ class ExternalApiPropertiesTest {
 				.withPropertyValues(
 						"app.external-api.tour.base-url=https://apis.data.go.kr/B551011/KorService2",
 						"app.external-api.tour.service-key=tour-test-key",
+						"app.external-api.tour.mobile-app=WithTripTest",
 						"app.external-api.tour.connect-timeout=3s",
 						"app.external-api.tour.read-timeout=5s",
 						"app.external-api.kakao.base-url=https://dapi.kakao.com",
@@ -35,6 +36,7 @@ class ExternalApiPropertiesTest {
 							.isEqualTo(URI.create("https://apis.data.go.kr/B551011/KorService2"));
 					assertThat(properties.tour().connectTimeout()).isEqualTo(Duration.ofSeconds(3));
 					assertThat(properties.tour().readTimeout()).isEqualTo(Duration.ofSeconds(5));
+					assertThat(properties.tour().mobileApp()).isEqualTo("WithTripTest");
 					assertThat(properties.tour().configured()).isTrue();
 					assertThat(properties.kakao().baseUrl())
 							.isEqualTo(URI.create("https://dapi.kakao.com"));
@@ -50,6 +52,7 @@ class ExternalApiPropertiesTest {
 				.withPropertyValues(
 						"app.external-api.tour.base-url=https://apis.data.go.kr/B551011/KorService2",
 						"app.external-api.tour.service-key=",
+						"app.external-api.tour.mobile-app=WithTripTest",
 						"app.external-api.tour.connect-timeout=3s",
 						"app.external-api.tour.read-timeout=5s",
 						"app.external-api.kakao.base-url=https://dapi.kakao.com",

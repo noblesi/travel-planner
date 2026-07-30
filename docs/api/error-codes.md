@@ -31,6 +31,7 @@
 | `400` | `VALIDATION_ERROR` | Jakarta Validation 실패 |
 | `400` | `MALFORMED_JSON` | JSON 문법 오류, 잘못된 날짜 또는 Enum 형식 |
 | `400` | `INVALID_PATH_PARAMETER` | Path Parameter 형식 또는 범위 오류 |
+| `400` | `INVALID_REQUEST_PARAMETER` | Query Parameter 형식 또는 범위 오류 |
 | `401` | `CURRENT_MEMBER_NOT_AVAILABLE` | 현재 회원을 확인할 수 없음 |
 | `500` | `INTERNAL_SERVER_ERROR` | 처리되지 않은 서버 오류 |
 
@@ -51,12 +52,27 @@
 
 Version 및 Operation 오류는 자동 저장 API에서 사용합니다. 1차 API 중 생성과 초기 조회에서는 반환하지 않습니다.
 
+## 장소 검색 오류
+
+| HTTP Status | Code | 사용 조건 |
+| --- | --- | --- |
+| `502` | `TOUR_API_AUTHENTICATION_FAILED` | TourAPI가 인증키를 거부함 |
+| `502` | `TOUR_API_UNAVAILABLE` | TourAPI HTTP 또는 연결 오류 |
+| `502` | `TOUR_API_INVALID_RESPONSE` | TourAPI 응답 형식 오류 |
+| `503` | `TOUR_API_NOT_CONFIGURED` | Backend에 TourAPI 인증키가 설정되지 않음 |
+| `504` | `TOUR_API_TIMEOUT` | TourAPI 연결 또는 응답 시간 초과 |
+
 ## 구현 반영 사항
 
-현재 `GlobalExceptionHandler`는 `VALIDATION_ERROR`, `BusinessException`, `INTERNAL_SERVER_ERROR`를 처리합니다. 계약 구현 시 다음 Handler를 추가해야 합니다.
+현재 `GlobalExceptionHandler`는 다음 오류를 처리합니다.
 
 - `HttpMessageNotReadableException` → `MALFORMED_JSON`
-- `MethodArgumentTypeMismatchException`, `HandlerMethodValidationException` → `INVALID_PATH_PARAMETER`
+- `MethodArgumentTypeMismatchException`, `HandlerMethodValidationException` → `INVALID_REQUEST_PARAMETER`
+- `BusinessException` → 기능별 안정적인 오류 코드
+- 그 외 처리되지 않은 예외 → `INTERNAL_SERVER_ERROR`
+
+다음 항목은 인증 구현 시 추가해야 합니다.
+
 - 인증 확정 후 현재 회원 조회 실패 → `CURRENT_MEMBER_NOT_AVAILABLE`
 
 Business Error는 `BusinessException(HttpStatus, code, message)`로 전달하고 Field Error가 필요한 경우에만 별도 Validation 처리로 확장합니다.
