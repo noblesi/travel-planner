@@ -16,6 +16,11 @@ const createFieldErrors = ref({})
 const submitting = ref(false)
 
 const setupFields = new Set(['regionCode', 'startDate', 'endDate'])
+const businessFieldErrors = {
+  REGION_NOT_FOUND: ['regionCode', '선택한 여행지역을 사용할 수 없습니다. 다시 선택해 주세요.'],
+  INVALID_TRAVEL_DATE_RANGE: ['endDate', '종료 날짜는 시작 날짜보다 빠를 수 없습니다.'],
+  TRAVEL_PLAN_DURATION_EXCEEDED: ['endDate', '여행 기간은 최대 14일까지 설정할 수 있습니다.'],
+}
 
 function apiErrorMessage(error, fallbackMessage) {
   if (error?.response?.status === 401) {
@@ -28,19 +33,23 @@ function apiErrorMessage(error, fallbackMessage) {
 
 function apiFieldErrors(error) {
   const errors = error?.response?.data?.errors
-  if (!Array.isArray(errors)) return {}
+  if (Array.isArray(errors)) {
+    const fieldErrors = Object.fromEntries(
+      errors
+        .filter(
+          (error) =>
+            error &&
+            setupFields.has(error.field) &&
+            typeof error.message === 'string' &&
+            error.message.length > 0,
+        )
+        .map(({ field, message }) => [field, message]),
+    )
+    if (Object.keys(fieldErrors).length > 0) return fieldErrors
+  }
 
-  return Object.fromEntries(
-    errors
-      .filter(
-        (error) =>
-          error &&
-          setupFields.has(error.field) &&
-          typeof error.message === 'string' &&
-          error.message.length > 0,
-      )
-      .map(({ field, message }) => [field, message]),
-  )
+  const businessError = businessFieldErrors[error?.response?.data?.code]
+  return businessError ? { [businessError[0]]: businessError[1] } : {}
 }
 
 function clearCreateError(field) {
@@ -58,7 +67,15 @@ async function loadRegions() {
   regionError.value = ''
 
   try {
-    regions.value = await getRegions()
+    const loadedRegions = await getRegions()
+    regions.value = Array.isArray(loadedRegions)
+      ? loadedRegions.filter(
+          (region) =>
+            region &&
+            typeof region.regionCode === 'string' &&
+            typeof region.regionName === 'string',
+        )
+      : []
     regionStatus.value = regions.value.length > 0 ? 'success' : 'empty'
   } catch (error) {
     regionStatus.value = 'error'
@@ -75,6 +92,9 @@ async function createPlan(payload) {
 
   try {
     const plan = await createTravelPlan(payload)
+    if (!plan?.planId) {
+      throw new Error('Travel plan response does not include planId')
+    }
     await router.push({ name: 'plan-editor', params: { planId: plan.planId } })
   } catch (error) {
     createFieldErrors.value = apiFieldErrors(error)
@@ -94,11 +114,11 @@ onMounted(loadRegions)
 
 <template>
   <DefaultLayout>
-    <section class="setup-page">
+    <section class="setup-page" aria-labelledby="plan-setup-title">
       <div class="setup-card">
         <header class="setup-card__header">
           <p>NEW TRAVEL PLAN</p>
-          <h1>새로운 여행 계획하기</h1>
+          <h1 id="plan-setup-title">새로운 여행 계획하기</h1>
           <span>여행지역과 날짜를 선택하면 일차별 계획을 바로 시작할 수 있어요.</span>
         </header>
 
