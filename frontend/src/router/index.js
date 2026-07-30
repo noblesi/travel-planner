@@ -67,6 +67,7 @@ const router = createRouter({
       name: 'passwordFind',
       component: () => import('@/views/loginView/PasswordFindView.vue'),
     },
+    //회원 가입
     {
       path: '/joinView',
       name: 'join',
@@ -82,10 +83,16 @@ const router = createRouter({
       name: 'complete',
       component: () => import('@/views/joinView/JoinCompleteView.vue'),
     },
+    //마이 페이지
     {
-      path: '/:pathMatch(.*)*',
-      name: 'not-found',
-      component: () => import('@/views/NotFoundView.vue'),
+      path: '/myPage',
+      name: 'myPage',
+      component: () => import('@/views/myPage/MyPage.vue'),
+    },
+     {
+      path: '/testView',
+      name: 'testView',
+      component: () => import('@/views/myPage/testView.vue'),
     },
   ],
   scrollBehavior(to, from, savedPosition) {
