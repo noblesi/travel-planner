@@ -2,29 +2,29 @@
   <DefaultLayout>
     <div class="detail-page">
     <div class="detail-head">
-      <span class="cat-badge" :class="'badge-' + (announcement.category ?? 'guide')">{{ announcement.categoryLabel }}</span>
-      <h1 class="detail-title">{{ announcement.title }}</h1>
+      <span class="cat-badge" :class="'badge-' + (notice.category ?? 'guide')">{{ notice.categoryLabel }}</span>
+      <h1 class="detail-title">{{ notice.title }}</h1>
       <div class="detail-meta">
-        <span class="meta-item"><i class="ti ti-calendar" aria-hidden="true"></i>{{ announcement.createdAt }}</span>
+        <span class="meta-item"><i class="ti ti-calendar" aria-hidden="true"></i>{{ notice.createdAt }}</span>
         <span class="meta-divider"></span>
-        <span class="meta-item"><i class="ti ti-eye" aria-hidden="true"></i>조회 {{ announcement.viewCount }}</span>
+        <span class="meta-item"><i class="ti ti-eye" aria-hidden="true"></i>조회 {{ notice.viewCount }}</span>
       </div>
     </div>
 
     <div class="detail-divider"></div>
 
-    <div class="detail-body" v-html="announcement.content"></div>
+    <div class="detail-body" v-html="notice.content"></div>
 
     <div class="nav-block">
-      <button class="nav-row" @click="goToAnnouncement(prevAnnouncement.id)">
+      <button class="nav-row" @click="goToNotice(prevNotice.id)">
         <i class="ti ti-chevron-up nav-icon" aria-hidden="true"></i>
         <span class="nav-label">이전글</span>
-        <span class="nav-title">{{ prevAnnouncement.title }}</span>
+        <span class="nav-title">{{ prevNotice.title }}</span>
       </button>
-      <button class="nav-row" @click="goToAnnouncement(nextAnnouncement.id)">
+      <button class="nav-row" @click="goToNotice(nextNotice.id)">
         <i class="ti ti-chevron-down nav-icon" aria-hidden="true"></i>
         <span class="nav-label">다음글</span>
-        <span class="nav-title">{{ nextAnnouncement.title }}</span>
+        <span class="nav-title">{{ nextNotice.title }}</span>
       </button>
     </div>
 
@@ -43,7 +43,7 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 const router = useRouter()
 
 // ── mock 데이터: 백엔드 연동 시 API 호출로 교체 ──
-const announcement = ref({
+const notice = ref({
   id: 2,
   category: 'maintenance',
   categoryLabel: '시스템 점검',
@@ -80,15 +80,15 @@ const announcement = ref({
 
 // 이전글/다음글은 실제로 이동할 대상이 필요하므로 id를 함께 들고 있는다.
 // TODO: 백엔드 연동 시 현재 글 기준으로 이전/다음 게시물을 API에서 조회해 채운다.
-const prevAnnouncement = ref({ id: 6, title: '"내가 만든 인생 코스는?" 최고의 여름 휴가 가이드북 투표 이벤트 오픈' })
-const nextAnnouncement = ref({ id: 7, title: '구글 맵 트래픽 실시간 연동 및 동선 최적화 알고리즘 업데이트 완료' })
+const prevNotice = ref({ id: 6, title: '"내가 만든 인생 코스는?" 최고의 여름 휴가 가이드북 투표 이벤트 오픈' })
+const nextNotice = ref({ id: 7, title: '구글 맵 트래픽 실시간 연동 및 동선 최적화 알고리즘 업데이트 완료' })
 
-function goToAnnouncement(id) {
-  router.push({ name: 'announcements-detail', params: { id } })
+function goToNotice(id) {
+  router.push({ name: 'notice-detail', params: { id } })
 }
 
 function goToList() {
-  router.push({ name: 'announcements-list' })
+  router.push({ name: 'notice-list' })
 }
 </script>
 
