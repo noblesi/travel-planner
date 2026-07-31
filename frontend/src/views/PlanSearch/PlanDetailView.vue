@@ -95,10 +95,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import KakaoMap from '@/components/map/KakaoMap.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import ReportModal from './ReportModal.vue'
 import ImportModal from './ImportModal.vue'
-import KakaoMap from './KakaoMap.vue'
 
 const router = useRouter()
 

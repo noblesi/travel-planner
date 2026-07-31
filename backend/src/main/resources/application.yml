@@ -15,3 +15,17 @@ mybatis:
 
 server:
   port: ${SERVER_PORT:8080}
+
+app:
+  external-api:
+    tour:
+      base-url: ${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}
+      service-key: ${TOUR_API_SERVICE_KEY:}
+      mobile-app: ${TOUR_API_MOBILE_APP:WithTrip}
+      connect-timeout: ${TOUR_API_CONNECT_TIMEOUT:3s}
+      read-timeout: ${TOUR_API_READ_TIMEOUT:5s}
+    kakao:
+      base-url: ${KAKAO_REST_BASE_URL:https://dapi.kakao.com}
+      rest-api-key: ${KAKAO_REST_API_KEY:}
+      connect-timeout: ${KAKAO_REST_CONNECT_TIMEOUT:3s}
+      read-timeout: ${KAKAO_REST_READ_TIMEOUT:5s}

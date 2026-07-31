@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import KakaoMap from '@/views/PlanSearch/KakaoMap.vue'
+import KakaoMap from '@/components/map/KakaoMap.vue'
 
 const route = useRoute()
 const router = useRouter()
