@@ -1,7 +1,18 @@
 <script setup>
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 
-import headerLogoUrl from '@/assets/branding/travel-planner-logo-header.png'
+import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.png'
+
+const haederRouter = useRouter()
+const loginCheck = false;
+
+const moveLoginPage = () => {
+  haederRouter.push('/loginView')
+}
+
+const moveJoinPage = () => {
+  haederRouter.push('/joinView')
+}
 </script>
 
 <template>
@@ -14,13 +25,19 @@ import headerLogoUrl from '@/assets/branding/travel-planner-logo-header.png'
 
       <nav class="navigation" aria-label="주요 메뉴">
         <RouterLink to="/">홈</RouterLink>
-        <a href="#explore">일정 탐색</a>
-        <a href="#notice">공지사항</a>
+        <a href="/plans">일정 탐색</a>
+        <a href="/announcements">공지사항</a>
       </nav>
 
       <div class="header__actions">
-        <button class="text-button" type="button">로그인</button>
-        <button class="primary-button" type="button">회원가입</button>
+        <div v-if="!loginCheck">
+          <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage">로그인</button>
+          <button class="primary-button" type="button" v-on:click="moveJoinPage">회원가입</button>
+        </div>
+        <div v-if="loginCheck">
+          <!-- 알람 이미지 버튼 만들어야 함 -->
+          <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage"></button>
+        </div>
       </div>
     </div>
   </header>
@@ -30,7 +47,7 @@ import headerLogoUrl from '@/assets/branding/travel-planner-logo-header.png'
 .header {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 11;
   border-bottom: 1px solid #e5e7eb;
   background: rgb(255 255 255 / 92%);
   backdrop-filter: blur(12px);
