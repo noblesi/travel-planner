@@ -6,9 +6,9 @@
 
 - 원격 저장소: `https://github.com/noblesi/travel-planner.git`
 - 작업 브랜치: `KMS`
-- 현재 통합 기준: 이 문서를 갱신한 `장소 검색 UI와 카카오맵 연결` Commit
+- 현재 통합 기준: `2366508 일정 자동 저장과 Oracle 통합 검증` Commit
 - 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
-- 현재 작업 묶음: 플랜 설정 페이지, 제작 페이지 날짜 변경·DAY 일정 UI, TourAPI 장소 검색 Backend·Frontend, 공용 Kakao Map과 검색 결과·저장 일정 Marker 연결, Oracle 지역 조회 연동 완료. 일정 CRUD·자동 저장 구현 전
+- 현재 작업 묶음: 플랜 설정 페이지, 제작 페이지 날짜 변경·DAY 일정 UI, TourAPI 장소 검색 Backend·Frontend, 공용 Kakao Map과 검색 결과·저장 일정 Marker 연결 완료. 일정 CRUD·정렬 Backend·Frontend와 작업별 멱등 자동 저장 Queue·Version 충돌 복구 UI 구현 및 Oracle `005` 적용·실제 일정 CRUD 검증 완료
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
 
@@ -63,7 +63,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 
 ## 이번 작업 완료 사항
 
-- 여행 플랜 핵심 Table 8개, Sequence 4개, Index 11개, Constraint 45개를 Oracle DDL로 작성했다.
+- 여행 플랜 핵심 Table 8개, Sequence 4개, Index 11개, Constraint 46개를 Oracle DDL로 작성했다.
 - TourAPI 시·도 코드 17건을 `REGION_MASTER` 초기 Data로 작성했다.
 - 인증이 확정되기 전에도 Schema를 생성할 수 있도록 `MEMBER`, `ADMIN` 외래키는 선택 Script로 분리했다.
 - `GET /api/regions`, `POST /api/plans`, `GET /api/plans/{planId}/editor` 계약을 확정했다.
@@ -91,7 +91,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - H2 `local` Schema에 `PLAN_SCHEDULE_ITEM` Table, Sequence와 Oracle 기준 Constraint를 추가했다.
 - 일차는 `DAY_NO`, 일정은 `MORNING`·`AFTERNOON`과 `POSITION_NO` 순서로 조회하고 빈 일정은 `items: []`로 반환하도록 구현했다.
 - JavaScript 안전 정수를 넘는 플랜·일차·일정 ID가 JSON 문자열로 손실 없이 반환되는지 통합 검증했다.
-- Backend Test를 현재 전체 34건으로 확장했으며 모두 통과한다.
+- Backend Test를 일정 자동 저장 통합 Test까지 현재 전체 46건으로 확장했으며 모두 통과한다.
 - 제작 페이지에 DAY 선택, 오전·오후 일정 카드, 선택 DAY 기준 빈 상태와 여행 시작일·종료일 변경 UI를 구현했다.
 - `PATCH /api/plans/{planId}/dates`를 구현하고 일정이 포함된 DAY 제외 시 확인 후 강제 변경하는 흐름과 날짜 범위 검증을 추가했다.
 - TourAPI와 Kakao 외부 API 환경변수 계약, 설정 객체와 설정 검증 Test를 추가했다.
@@ -103,12 +103,26 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - 제작 페이지의 검색 결과와 선택 DAY에 저장된 일정 장소를 하나의 지도 Marker 목록으로 연결했다.
 - Kakao SDK Loading·Key 누락·Load 실패·빈 Marker 상태와 Marker 선택 정보창을 처리하는 공용 `KakaoMap` Component를 구현했다.
 - 기존 공개 플랜 상세 화면도 공용 `KakaoMap` Component를 사용하도록 변경해 중복 지도 구현을 제거했다.
-- 장소 검색 API·Panel·Kakao Map·제작 화면 Test를 추가해 Frontend Test 34건을 통과하고 대상 ESLint·Oxlint를 통과했다.
+- 장소 검색 API·Panel·Kakao Map·제작 화면 Test를 추가하고 대상 ESLint·Oxlint를 통과했다.
 - H2 local 제작 화면을 Desktop·Mobile Browser로 확인하고 장소 검색 Panel과 Kakao Key 미설정 오류 상태를 검증했다.
+- 일정 추가·시간대 수정·삭제·정렬 API의 Request·Response, Snapshot, `operationId`, `scheduleVersion`·`itemVersion` 계약을 확정했다.
+- `PLAN_EDIT_OPERATION.REQUEST_HASH`를 추가해 같은 작업 ID의 동일 Payload 재시도는 멱등 성공하고 다른 Payload 재사용은 `DUPLICATE_OPERATION`으로 차단하도록 구현했다.
+- 일정 추가 시 선택 시간대 마지막 배치, 시간대 이동·삭제 시 순번 압축, 정렬 시 전체 ID 목록 원자적 교체를 구현했다.
+- 일정 변경과 DAY·항목 Version 갱신, 작업 이력 저장을 하나의 Transaction으로 묶고 소유권·버전 충돌·중복 장소·시간대별 100개 제한을 구현했다.
+- H2 local Schema에 `PLAN_EDIT_OPERATION`을 추가하고 일정 자동 저장 통합 Test 11건을 추가했다.
+- Frontend 일정 추가·오전/오후 이동·삭제·위아래 정렬 UI를 일정 API에 연결하고 저장 중·완료·실패·충돌 상태를 표시하도록 구현했다.
+- Pinia 편집 Store에 직렬 자동 저장 Queue를 추가하고, Queue 실행 시점의 최신 DAY·항목 Version 사용, 동일 `operationId` 재시도, `409 Conflict` 최신 Editor Snapshot 복구 흐름을 구현했다.
+- Frontend API·Store·View Test를 전체 42건으로 확장했으며 변경 대상 ESLint·Oxlint를 통과했다.
+- 실제 TourAPI Key로 서울 지역 장소 검색 22건을 확인하고, 검색 결과를 H2 일정에 추가·오후 이동·삭제해 일정 Version이 0에서 3으로 증가하는 전체 API 흐름을 검증했다.
+- 실제 Kakao REST Key로 공식 장소 검색 API 응답을 확인하고, JavaScript Key와 localhost Referer로 공식 SDK Script가 `200 text/javascript`를 반환하는지 확인했다. Marker·정보창 브라우저 렌더링은 인앱 브라우저의 localhost URL 보안 정책으로 이번 환경에서 완료하지 못했다.
+- 원격 Oracle에 `005_add_plan_operation_request_hash.sql`을 적용하고 `REQUEST_HASH VARCHAR2(64) NOT NULL`, `CK_PLAN_OPERATION_HASH ENABLED VALIDATED` 상태를 확인했다.
+- 원격 Oracle의 활성 시·도 Seed가 0건인 상태를 발견해 멱등 `002_seed_region_master.sql`을 다시 적용하고 17건을 복구했다.
+- Oracle JDBC에서 선택 Snapshot 필드와 정렬 작업 대상 ID가 `null`일 때 발생하는 `ORA-17004`를 막도록 MyBatis Parameter에 명시적 JDBC Type을 추가했다.
+- P4 전용 임시 회원으로 Oracle 플랜 생성, 동일 작업 멱등 재시도, 일정 2건 추가·정렬·시간대 이동·삭제를 검증했다. DAY Version은 0에서 6으로 증가했고 작업 이력 6건의 Hash가 모두 유효했으며, 검증 플랜·회원·작업 이력은 종료 후 삭제했다.
 
-플랜 생성·편집 API의 H2 통합 검증과 Oracle Schema·지역 조회 검증은 완료했다. 기본 Profile은 실제 인증이 연결되기 전까지 현재 회원을 제공하지 않으므로 Oracle에서 플랜 생성·날짜 변경을 끝까지 검증하려면 인증 Provider 연결 또는 승인된 개발용 Provider 전략이 추가로 필요하다.
+플랜 생성·편집 API의 H2 통합 검증과 Oracle Schema·지역 조회·일정 CRUD 검증을 완료했다. Oracle 검증에서는 P4 전용 임시 회원과 `local` Provider를 사용했으며 데이터를 종료 후 정리했다. 기본 Profile은 실제 인증이 연결되기 전까지 현재 회원을 제공하지 않으므로 실제 계정 기반 검증에는 인증 Provider 연결이 필요하다.
 
-회원·관리자 Table을 참조하는 선택 FK Script인 `003_add_identity_foreign_keys.sql`은 해당 담당 영역의 Schema 확정 전까지 실행하지 않는다.
+원격 Oracle에는 `MEMBER`, `ADMIN` Table과 `003_add_identity_foreign_keys.sql`의 FK 7개가 이미 적용돼 모두 `ENABLED` 상태다. 재실행하지 않는다.
 
 ## 리소스 점검
 
@@ -116,22 +130,22 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 
 | 구분 | 상태 | 비고 |
 | --- | --- | --- |
-| Git | 준비 완료 | 장소 검색 UI·공용 Kakao Map·Handoff 갱신까지 하나의 KMS Commit으로 관리 |
+| Git | 준비 완료 | 일정 CRUD·자동 저장 Backend·Frontend와 Oracle 검증 변경을 `2366508`로 Commit, Handoff는 별도 Commit으로 관리 |
 | Java | 준비 완료 | Temurin JDK 21.0.11 |
 | Gradle | 준비 완료 | Wrapper 9.5.1, `clean test bootJar` 성공 |
 | Backend JAR | 준비 완료 | `backend/build/libs/travel-planner.jar` 생성 |
 | H2 local DB | 준비 완료 | 지역 17건, 플랜·생성자·일차·일정 항목 Schema와 Sequence 포함 |
 | MyBatis | 준비 완료 | 지역·플랜·일차·일정 항목 Mapper Interface와 XML 1:1 대응 |
 | Backend local 기동 | 준비 완료 | `/api/health` UP, `/api/regions` 17건 확인 |
-| UI·ERD·DDL | 준비 완료 | PDF, eXERD, Oracle DDL 4개와 문서 Link 확인 |
+| UI·ERD·DDL | 준비 완료 | PDF, eXERD, Oracle DDL 5개와 문서 Link 확인. 기존 Schema용 `005` 포함 |
 | Branding | 준비 완료 | Favicon, Manifest, Header·Symbol Logo 확인 |
 | Node.js·npm | 준비 완료 | 현재 환경 Node.js 24.14.0, npm 11.11.1. `package.json` Engine 범위 충족 |
-| Frontend Build | 타 담당 영역 대기 | 빈 `frontend/src/views/joinView/JoinCompleteView.vue`와 현재 로컬 `node_modules`의 `sass-embedded` 누락 때문에 Production Build 실패 |
-| Oracle | 부분 검증 완료 | 전체 DDL·시도 Seed 적용, `/api/health`와 `/api/regions` 17건 확인. 인증 필요 API는 추가 검증 필요 |
-| 실제 인증 | 대기 | 정책과 Provider 경계만 확정, 회원 Schema와 Spring Security·Google OIDC 구현 필요 |
-| 외부 API | 부분 검증 완료 | TourAPI 검색 Backend·Frontend와 Kakao Map·Marker 연결 완료. 실제 Key를 사용한 TourAPI·Kakao SDK Browser 검증 필요 |
-| Backend 자동 Test | 준비 완료 | 5개 Test Class, 전체 34건 통과 |
-| Frontend Test | 준비 완료 | 8개 Test File, 전체 34건 통과. 변경 대상 ESLint·Oxlint 통과 |
+| Frontend Build | 타 담당 영역 대기 | 빈 `frontend/src/views/joinView/JoinCompleteView.vue` 때문에 Production Build 실패. 전체 lint는 로그인·회원가입 담당 파일 2곳의 기존 오류로 실패 |
+| Oracle | 일정 범위 검증 완료 | `005` 적용, 시·도 Seed 17건 복구, Schema 검증, 임시 회원 기반 플랜 생성·일정 CRUD·정렬·멱등 재시도 완료 |
+| 실제 인증 | 대기 | `MEMBER`·`ADMIN` 및 여행 플랜 FK 7개는 존재. Spring Security·Google OIDC와 실제 회원 생성·Provider 연결 필요 |
+| 외부 API | 부분 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 검증 완료. Kakao Map·Marker 자동 Test 통과, 실제 Browser 렌더링은 localhost 보안 정책으로 미검증 |
+| Backend 자동 Test | 준비 완료 | 6개 Test Class, 전체 46건 통과 |
+| Frontend Test | 준비 완료 | 8개 Test File, 전체 42건 통과. 변경 대상 ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -139,7 +153,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 후속 작업에서 추가하거나 정리할 리소스:
 
 - `frontend/src/api/plans.js`, `regions.js`, 설정 View, 제작 View와 `planEditor` Store를 구현했다.
-- `PlanScheduleItemMapper`와 편집 초기 조회 응답 DTO를 추가했다. 일정 추가·수정·삭제·정렬 Mapper는 자동 저장 API 단계에서 확장한다.
+- `PlanScheduleItemMapper`와 편집 초기 조회 응답 DTO, 일정 추가·시간대 수정·삭제·정렬 Mapper를 구현했다.
 - `TourApiClient`, 장소 검색 Controller·Service·DTO·Frontend API Module·검색 Panel·상세 Card와 자동 Test를 추가했다.
 - `frontend/src/components/map/KakaoMap.vue`를 공용 지도 Component로 사용하며 제작 화면과 공개 플랜 상세 화면이 함께 참조한다.
 - Root `.env.example`에는 Oracle·TourAPI·Kakao REST 변수명이 있으며 실제 값은 `.env.local`과 팀 보안 채널에서만 관리한다.
@@ -208,10 +222,10 @@ CurrentMemberProvider
 
 플랜 서비스는 Session이나 Google Claim을 직접 참조하지 않고 이 계층을 사용한다. 인증 구현이 완료되기 전에는 개발 Profile의 Mock 구현을 사용할 수 있지만 운영 코드의 기본값으로 사용하지 않는다.
 
-인증 방식은 확정되었지만 회원 Schema와 인증 구현이 완료되기 전까지 실제 계정 연동을 보류할 기능:
+Oracle의 `MEMBER`, `ADMIN`과 여행 플랜 FK는 존재하지만 인증 구현이 완료되기 전까지 실제 계정 연동을 보류할 기능:
 
-- `TRAVEL_PLAN.OWNER_MEMBER_ID` 확정
-- `PLAN_MEMBER` 생성자 및 초대자 연결
+- 로그인·가입 완료 시 `MEMBER` 생성 및 계정 연결
+- 실제 Session 회원을 반환하는 `CurrentMemberProvider` 연결
 - 초대 수락과 권한 검사
 
 `local` Profile에서는 `LOCAL_MEMBER_ID` 환경변수로 개발 회원 ID를 제공하며 기본값은 `1`이다. 운영 기본 Profile은 회원 ID를 임의 생성하지 않고 실제 인증 구현 전까지 `CURRENT_MEMBER_NOT_AVAILABLE`을 반환한다.
@@ -278,20 +292,19 @@ GET    /api/places/search?keyword=&regionCode=&page=&size=
 | Endpoint | 상태 |
 | --- | --- |
 | `GET /api/regions` | Backend 구현, H2 및 실제 Oracle 17건 검증 완료 |
-| `POST /api/plans` | Backend 구현 및 H2 local HTTP·Transaction 통합 검증 완료, Oracle 검증 필요 |
-| `GET /api/plans/{planId}/editor` | Backend 구현 및 H2 local HTTP·소유권·정렬·ID 정밀도 통합 검증 완료, Oracle 검증 필요 |
+| `POST /api/plans` | Backend 구현, H2 HTTP·Transaction 통합 검증 및 Oracle 임시 회원 기반 생성 검증 완료 |
+| `GET /api/plans/{planId}/editor` | Backend 구현, H2 소유권·정렬·ID 정밀도 및 Oracle 일정 변경 Snapshot 응답 검증 완료 |
 | `PATCH /api/plans/{planId}/dates` | Backend·Frontend 구현 및 H2 날짜 재구성·일정 삭제 확인 흐름 검증 완료, Oracle 검증 필요 |
-| `GET /api/places/search` | Backend·Frontend API·검색 Panel·오류 상태·Pagination 연결과 자동 Test 완료, 실제 TourAPI Key 결과 검증 필요 |
+| `GET /api/places/search` | Backend·Frontend API·검색 Panel·오류 상태·Pagination 연결과 자동 Test 완료, 실제 TourAPI Key로 서울 장소 검색 검증 완료 |
+| `POST /api/plans/{planId}/days/{dayId}/items` | 계약·Backend·Frontend 연결, H2 멱등·Transaction·충돌 및 Oracle nullable Snapshot·멱등 재시도 검증 완료 |
+| `PATCH /api/plans/{planId}/days/{dayId}/items/{itemId}` | 계약·Backend·Frontend 시간대 이동 연결, H2 순번 압축·항목 Version 및 Oracle 이동 검증 완료 |
+| `DELETE /api/plans/{planId}/days/{dayId}/items/{itemId}` | 계약·Backend·Frontend 삭제 연결, H2 순번 압축·Rollback 및 Oracle 삭제 검증 완료 |
+| `PUT /api/plans/{planId}/days/{dayId}/items/order` | 계약·Backend·Frontend 위아래 정렬 연결, H2 원자적 정렬 및 Oracle nullable 작업 대상·정렬 검증 완료 |
 
-아래 Endpoint는 후속 구현 방향이며 Request·Response 계약은 아직 확정되지 않았다.
+아래 플랜 Metadata와 초대 Endpoint는 후속 구현 방향이며 Request·Response 계약은 아직 확정되지 않았다.
 
 ```text
 PATCH  /api/plans/{planId}
-
-POST   /api/plans/{planId}/days/{dayId}/items
-PATCH  /api/plans/{planId}/days/{dayId}/items/{itemId}
-DELETE /api/plans/{planId}/days/{dayId}/items/{itemId}
-PUT    /api/plans/{planId}/days/{dayId}/items/order
 
 POST   /api/plans/{planId}/invitations
 GET    /api/plan-invitations/{token}
@@ -348,28 +361,27 @@ backend/src/main/java/com/noblesi/travelplanner/
 
 ## 구현 순서
 
-1. ERD 기준 Oracle DDL 작성 및 적용 (완료, 회원·관리자 선택 FK는 보류)
+1. ERD 기준 Oracle DDL 작성 및 적용 (완료, 원격 Oracle의 회원·관리자 FK 7개 적용 상태 확인)
 2. API 요청·응답 DTO와 오류 코드를 확정 (플랜 생성·초기 조회·날짜 변경·장소 검색 범위 완료)
 3. 국내 지역 조회 API 구현 (H2 및 Oracle 검증 완료)
-4. 여행 플랜 생성 API 구현 (H2 local 구현·HTTP·Transaction 통합 검증 완료, Oracle 검증 필요)
+4. 여행 플랜 생성 API 구현 (H2 HTTP·Transaction 및 Oracle 임시 회원 기반 검증 완료)
 5. 설정 페이지 구현 및 생성 API 연결 (완료, 커스텀 지역 드롭다운 포함)
-6. 제작 페이지 초기 조회 Backend API 구현 (H2 local 구현·HTTP 통합 검증 완료, Oracle 검증 필요)
+6. 제작 페이지 초기 조회 Backend API 구현 (H2 HTTP 및 Oracle 일정 변경 Snapshot 검증 완료)
 7. 제작 페이지 레이아웃·Pinia 편집 상태·DAY/오전/오후 일정·날짜 변경 구현 (완료)
-8. TourAPI 장소 검색 Backend·Frontend 연동 (완료, 실제 Key 결과 검증 필요)
-9. 공용 카카오맵과 검색 결과·저장 일정 장소 Marker 연결 (구현·자동 Test 완료, 실제 Key Browser 검증 필요)
-10. 일정 추가·수정·삭제·순서 변경 구현
-11. 작업별 자동 저장과 버전 충돌 처리
+8. TourAPI 장소 검색 Backend·Frontend 연동 (완료, 실제 Key 검색 및 일정 CRUD 연계 검증 완료)
+9. 공용 카카오맵과 검색 결과·저장 일정 장소 Marker 연결 (구현·자동 Test 완료, 실제 SDK Browser 렌더링은 localhost 보안 정책으로 미검증)
+10. 일정 추가·수정·삭제·순서 변경 구현 (Backend·Frontend·계약·H2 Test·Oracle 통합 검증 완료)
+11. 작업별 자동 저장과 버전 충돌 처리 (Backend 멱등·작업 이력·Version 충돌, Frontend Queue·재시도·Snapshot 복구, Oracle 요청 Hash 검증 완료)
 12. 플랜 제목과 공개 범위 수정
 13. 초대 링크 생성 및 조회 구현
-14. 회원 Schema와 인증 구현 완료 후 소유자·참여자·초대 수락 연결
-15. Oracle 및 외부 API 통합 검증
+14. 실제 인증 구현 완료 후 소유자·참여자·초대 수락 연결
+15. Oracle 및 외부 API 통합 검증 (Oracle 일정·TourAPI·Kakao API 완료, 실제 인증과 Kakao Browser 렌더링 남음)
 
 ## 아직 미정인 항목
 
-- 회원 및 로그인 수단 Table의 실제 이름과 Column
+- 로컬 로그인·Google OIDC 계정 연결 Table과 정책
 - 초대 전달 방식
 - 초대 참여자의 편집 권한 범위
-- 자동 저장 충돌 시 사용자 UI
 - 삭제한 일정의 복구 지원 여부
 
 ## 다음 작업 시작점
@@ -379,10 +391,6 @@ backend/src/main/java/com/noblesi/travelplanner/
 1. `KMS` 브랜치와 작업 트리 상태를 확인하고 이 문서 및 README의 `.env.local` 실행 절차를 검토한다.
 2. `dev` 전용 Commit은 반영하지 않고 로그인·회원가입 담당자의 파일은 수정하지 않는다.
 3. Frontend 공통 lint·build 실패는 담당 팀원의 작업 완료 후 통합 검증한다.
-4. 일정 추가·수정·삭제·순서 변경 API의 Request·Response, Snapshot, `scheduleVersion`·`itemVersion` 계약을 먼저 확정한다.
-5. 일정 CRUD·정렬 Backend API와 H2 Transaction·소유권·버전 충돌 통합 Test를 구현한다.
-6. 검색 결과 선택과 선택 DAY·오전/오후 일정 추가, 수정·삭제·정렬 UI를 연결한다.
-7. Pinia에 작업별 자동 저장 상태와 `409 Conflict` 복구 흐름을 구현한다.
-8. 실제 TourAPI·Kakao Key로 검색 결과·Marker·정보창을 Browser에서 통합 검증한다.
-9. 플랜 제목·공개 범위 수정과 초대 기능을 순서대로 구현한다.
-10. 실제 인증 Provider가 준비되면 Oracle에서 플랜 생성·조회·날짜 변경·장소 검색 전체 흐름을 통합 검증한다.
+4. localhost 접근이 허용된 브라우저 환경에서 실제 Kakao JavaScript SDK의 Marker·정보창 렌더링을 최종 확인한다.
+5. 플랜 제목·공개 범위 수정과 초대 기능을 순서대로 구현한다.
+6. 실제 인증 Provider가 준비되면 Oracle에서 실제 회원 기준 플랜 생성·조회·날짜 변경·장소 검색 전체 흐름을 통합 검증한다.
