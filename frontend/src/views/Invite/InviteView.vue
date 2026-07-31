@@ -50,8 +50,7 @@ const props = defineProps({
 
 const router = useRouter()
 
-// TODO: 여행 플랜 편집 화면 라우트가 만들어지면 이 이름으로 교체한다. (예: 'plan-edit')
-const PLAN_EDIT_ROUTE_NAME = null
+const PLAN_EDIT_ROUTE_NAME = 'plan-editor'
 
 function goBackToPlan() {
   // 1순위: 브라우저 히스토리로 돌아가기.
@@ -70,7 +69,8 @@ function goBackToPlan() {
   }
 
   if (PLAN_EDIT_ROUTE_NAME && props.id) {
-    router.push({ name: PLAN_EDIT_ROUTE_NAME, params: { id: props.id } })
+    // plan-editor 라우트는 파라미터명이 planId이다 (/plans/:planId/edit).
+    router.push({ name: PLAN_EDIT_ROUTE_NAME, params: { planId: props.id } })
   } else {
     // 편집 화면 라우트가 아직 없으므로 임시로 탐색 페이지로 보낸다.
     router.push({ name: 'plan-search' })

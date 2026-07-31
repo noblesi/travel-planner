@@ -100,6 +100,12 @@ import ReportModal from './ReportModal.vue'
 import ImportModal from './ImportModal.vue'
 import KakaoMap from './KakaoMap.vue'
 
+// 라우터가 plan-detail 경로(/plans/:id)에 props: true로 연결돼 있어 id를 prop으로 받는다.
+// TODO: 백엔드 연동 시 이 id로 GET /plans/{id}를 호출해 plan 데이터를 채운다.
+const props = defineProps({
+  id: { type: [String, Number], required: false, default: null },
+})
+
 const router = useRouter()
 
 function goBack() {
@@ -110,11 +116,11 @@ function goBack() {
   router.back()
 }
 
-// ── mock 데이터: 백엔드 연동 시 props나 API 호출로 교체 ──
+// ── mock 데이터: 백엔드 연동 시 props.id로 GET /plans/{id}를 호출하는 형태로 교체 ──
 // DAY 2에는 장소를 많이 넣어서 "일정 카드가 넘칠 때" 스크롤 동작을 확인할 수 있게 했고,
 // DAY도 8개까지 늘려서 "사이드바가 넘칠 때" 스크롤 동작을 확인할 수 있게 했다.
 const plan = ref({
-  id: 101,
+  id: props.id ?? 101,
   title: '부산 여행',
   authorName: '김민준',
   periodLabel: '07.20 - 07.27 (8일)',

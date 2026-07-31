@@ -32,20 +32,21 @@ const router = createRouter({
       props: true,
     },
     {
-      path: '/announcements',
-      name: 'announcements-list',
-      component: () => import('@/views/Announcement/AnnouncementListView.vue'),
+      path: '/notice',
+      name: 'notice-list',
+      component: () => import('@/views/Notice/NoticeListView.vue'),
     },
     {
-      path: '/announcements/:id',
-      name: 'announcements-detail',
-      component: () => import('@/views/Announcement/AnnouncementDetailView.vue'),
+      path: '/notice/:id',
+      name: 'notice-detail',
+      component: () => import('@/views/Notice/NoticeDetailView.vue'),
       props: true,
     },
     {
-      path: '/invite',
+      path: '/plans/:id/invite',
       name: 'invite',
       component: () => import('@/views/Invite/InviteView.vue'),
+      props: true,
     },
     {
       path: '/invite/accept',

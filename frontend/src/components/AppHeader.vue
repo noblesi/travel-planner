@@ -26,7 +26,7 @@ const moveJoinPage = () => {
       <nav class="navigation" aria-label="주요 메뉴">
         <RouterLink to="/">홈</RouterLink>
         <a href="/plans">일정 탐색</a>
-        <a href="/announcements">공지사항</a>
+        <a href="/notice">공지사항</a>
       </nav>
 
       <div class="header__actions">
