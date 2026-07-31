@@ -503,15 +503,16 @@ function formatCount(n) {
   margin-bottom: 0;
 }
 
-/* 시안 B: 오전은 블루, 오후는 코랄로 구분. 라벨 텍스트 색과 카드 왼쪽 컬러바에 같은 색을 사용한다. */
+/* 오전은 레드, 오후는 블루 계열로 구분. 라벨 텍스트 색과 카드 왼쪽 컬러바에 같은 색을 사용한다.
+   두 색 모두 헤더 로고(연필의 주황, 핀의 파랑)에서 뽑은 톤이라 사이트 전체 톤과 어울린다. */
 .time-section--morning {
-  --slot-color: #378ADD;
-  --slot-color-dark: #185FA5;
+  --slot-color: #FB633C;
+  --slot-color-dark: #AB4329;
 }
 
 .time-section--afternoon {
-  --slot-color: #0f766e;
-  --slot-color-dark: #993C1D;
+  --slot-color: #0082FC;
+  --slot-color-dark: #0058AB;
 }
 
 .time-section-head {
