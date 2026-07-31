@@ -4,14 +4,30 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlanEditorView from '@/views/PlanEditorView.vue'
 
-const { getTravelPlanEditorMock, searchPlacesMock, updateTravelPlanDatesMock } = vi.hoisted(() => ({
+const {
+  addScheduleItemMock,
+  deleteScheduleItemMock,
+  getTravelPlanEditorMock,
+  reorderScheduleItemsMock,
+  searchPlacesMock,
+  updateScheduleItemMock,
+  updateTravelPlanDatesMock,
+} = vi.hoisted(() => ({
+  addScheduleItemMock: vi.fn(),
+  deleteScheduleItemMock: vi.fn(),
   getTravelPlanEditorMock: vi.fn(),
+  reorderScheduleItemsMock: vi.fn(),
   searchPlacesMock: vi.fn(),
+  updateScheduleItemMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
 }))
 
 vi.mock('@/api/plans', () => ({
+  addScheduleItem: addScheduleItemMock,
+  deleteScheduleItem: deleteScheduleItemMock,
   getTravelPlanEditor: getTravelPlanEditorMock,
+  reorderScheduleItems: reorderScheduleItemsMock,
+  updateScheduleItem: updateScheduleItemMock,
   updateTravelPlanDates: updateTravelPlanDatesMock,
 }))
 
@@ -72,6 +88,10 @@ beforeEach(() => {
   getTravelPlanEditorMock.mockReset().mockResolvedValue(editor)
   searchPlacesMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
+  addScheduleItemMock.mockReset()
+  updateScheduleItemMock.mockReset()
+  deleteScheduleItemMock.mockReset()
+  reorderScheduleItemsMock.mockReset()
 })
 
 describe('PlanEditorView', () => {
@@ -195,6 +215,136 @@ describe('PlanEditorView', () => {
     ])
     expect(map.props('selectedPlaceId')).toBe('search:TOUR_API:1001')
     expect(wrapper.text()).toContain('여의도 한강공원')
+  })
+
+  it('검색한 장소를 오전 일정에 추가하고 자동 저장 상태를 표시한다', async () => {
+    const place = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '1001',
+      placeName: '여의도 한강공원',
+      categoryName: '관광지',
+      address: '서울 영등포구 여의동로 330',
+      latitude: 37.5284,
+      longitude: 126.934,
+      imageUrl: null,
+    }
+    const updated = {
+      ...editor,
+      days: [
+        {
+          ...editor.days[0],
+          scheduleVersion: 1,
+          items: [
+            {
+              ...place,
+              scheduleItemId: '301',
+              timeSlot: 'MORNING',
+              positionNo: 1,
+              itemVersion: 0,
+            },
+          ],
+        },
+        editor.days[1],
+      ],
+    }
+    searchPlacesMock.mockResolvedValue({
+      places: [place],
+      page: 1,
+      size: 10,
+      totalCount: 1,
+      hasNext: false,
+    })
+    addScheduleItemMock.mockResolvedValue({
+      operationId: 'operation-id',
+      scheduleItemId: '301',
+      resultScheduleVersion: 1,
+      editor: updated,
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('[name="placeKeyword"]').setValue('한강')
+    await wrapper.get('.place-search-panel__form').trigger('submit')
+    await flushPromises()
+    await wrapper.get('.place-search-panel__results button').trigger('click')
+    const addButton = wrapper
+      .findAll('.place-detail-card__actions button')
+      .find((button) => button.text().includes('오전에 추가'))
+    await addButton.trigger('click')
+    await flushPromises()
+
+    expect(addScheduleItemMock).toHaveBeenCalledWith(
+      '101',
+      '201',
+      expect.objectContaining({
+        scheduleVersion: 0,
+        timeSlot: 'MORNING',
+        externalPlaceId: '1001',
+      }),
+    )
+    expect(wrapper.text()).toContain('모든 변경사항이 자동 저장되었습니다.')
+    expect(wrapper.text()).toContain('여의도 한강공원')
+    expect(wrapper.findAll('.schedule-card')).toHaveLength(1)
+  })
+
+  it('일정 카드에서 시간대를 이동하고 삭제한다', async () => {
+    const item = {
+      scheduleItemId: '301',
+      timeSlot: 'MORNING',
+      positionNo: 1,
+      itemVersion: 0,
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '100',
+      placeName: '경복궁',
+    }
+    const withItem = {
+      ...editor,
+      days: [{ ...editor.days[0], items: [item] }, editor.days[1]],
+    }
+    const moved = {
+      ...editor,
+      days: [
+        {
+          ...editor.days[0],
+          scheduleVersion: 1,
+          items: [{ ...item, timeSlot: 'AFTERNOON', itemVersion: 1 }],
+        },
+        editor.days[1],
+      ],
+    }
+    const deleted = {
+      ...editor,
+      days: [{ ...editor.days[0], scheduleVersion: 2, items: [] }, editor.days[1]],
+    }
+    getTravelPlanEditorMock.mockResolvedValueOnce(withItem)
+    updateScheduleItemMock.mockResolvedValueOnce({ editor: moved, resultScheduleVersion: 1 })
+    deleteScheduleItemMock.mockResolvedValueOnce({ editor: deleted, resultScheduleVersion: 2 })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper
+      .findAll('.schedule-card__actions button')
+      .find((button) => button.text().includes('오후로'))
+      .trigger('click')
+    await flushPromises()
+
+    expect(updateScheduleItemMock).toHaveBeenCalledWith(
+      '101',
+      '201',
+      '301',
+      expect.objectContaining({ scheduleVersion: 0, itemVersion: 0, timeSlot: 'AFTERNOON' }),
+    )
+
+    await wrapper.get('[aria-label="경복궁 일정 삭제"]').trigger('click')
+    await flushPromises()
+
+    expect(deleteScheduleItemMock).toHaveBeenCalledWith(
+      '101',
+      '201',
+      '301',
+      expect.objectContaining({ scheduleVersion: 1, itemVersion: 1 }),
+    )
+    expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
   })
 
   it('조회 실패 메시지를 표시하고 다시 시도한다', async () => {

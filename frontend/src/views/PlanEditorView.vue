@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 
 import KakaoMap from '@/components/map/KakaoMap.vue'
 import PlaceSearchPanel from '@/components/plan/PlaceSearchPanel.vue'
+import ScheduleList from '@/components/plan/ScheduleList.vue'
 import { usePlanEditorStore } from '@/stores/planEditor'
 
 const props = defineProps({
@@ -28,6 +29,13 @@ const {
   isSelectedDayEmpty,
   isLoading,
   isReady,
+  isSaving,
+  hasSaveError,
+  canRetrySave,
+  saveStatus,
+  saveMessage,
+  saveErrorMessage,
+  pendingSaveCount,
 } = storeToRefs(editorStore)
 
 const editingDates = ref(false)
@@ -116,6 +124,37 @@ function selectMapPlace(place) {
   if (place.markerSource === 'SEARCH') {
     selectedSearchPlace.value = place
   }
+}
+
+async function runScheduleOperation(operation) {
+  try {
+    return await operation
+  } catch {
+    return null
+  }
+}
+
+function addSearchPlace({ place, timeSlot }) {
+  if (!selectedDay.value) return null
+  return runScheduleOperation(editorStore.addPlaceToSchedule(place, timeSlot))
+}
+
+function moveScheduleItem(item, targetTimeSlot) {
+  return runScheduleOperation(
+    editorStore.moveScheduleItemTimeSlot(item.scheduleItemId, targetTimeSlot),
+  )
+}
+
+function moveScheduleItemPosition(item, direction) {
+  return runScheduleOperation(editorStore.moveScheduleItemPosition(item.scheduleItemId, direction))
+}
+
+function removeScheduleItem(item) {
+  return runScheduleOperation(editorStore.removeScheduleItem(item.scheduleItemId))
+}
+
+function retryScheduleSave() {
+  return runScheduleOperation(editorStore.retryLastSave())
 }
 
 function syncDateForm(planValue = plan.value) {
@@ -237,9 +276,16 @@ onBeforeUnmount(editorStore.resetEditor)
         </div>
 
         <div class="editor-toolbar__actions">
-          <span v-if="isReady" class="save-state">
+          <span
+            v-if="isReady"
+            class="save-state"
+            :class="`save-state--${saveStatus}`"
+            role="status"
+            aria-live="polite"
+          >
             <span aria-hidden="true" />
-            불러오기 완료
+            {{ saveMessage }}
+            <small v-if="pendingSaveCount > 1">{{ pendingSaveCount }}건</small>
           </span>
           <RouterLink class="exit-button" to="/">나가기</RouterLink>
         </div>
@@ -292,6 +338,7 @@ onBeforeUnmount(editorStore.resetEditor)
               v-if="!editingDates"
               class="date-editor__open"
               type="button"
+              :disabled="isSaving"
               @click="openDateEditor"
             >
               여행 날짜 변경
@@ -342,6 +389,19 @@ onBeforeUnmount(editorStore.resetEditor)
             </form>
           </section>
 
+          <section v-if="hasSaveError" class="save-error" role="alert">
+            <div>
+              <strong>{{ saveStatus === 'conflict' ? '일정 충돌을 확인해 주세요.' : '자동 저장이 중단되었습니다.' }}</strong>
+              <p>{{ saveErrorMessage }}</p>
+            </div>
+            <div class="save-error__actions">
+              <button v-if="canRetrySave" type="button" @click="retryScheduleSave">
+                같은 작업 다시 시도
+              </button>
+              <button type="button" @click="editorStore.discardFailedSave">닫기</button>
+            </div>
+          </section>
+
           <nav class="day-tabs" aria-label="여행 일차 선택">
             <button
               v-for="day in days"
@@ -374,7 +434,7 @@ onBeforeUnmount(editorStore.resetEditor)
             <div v-else-if="isSelectedDayEmpty" class="empty-schedule" role="status">
               <span class="empty-schedule__mark" aria-hidden="true">+</span>
               <strong>DAY {{ selectedDay.dayNo }}에 등록된 장소가 없습니다.</strong>
-              <p>장소 검색 기능이 연결되면 이 날짜의 오전·오후 일정을 추가할 수 있어요.</p>
+              <p>장소를 검색한 뒤 오전 또는 오후 일정에 바로 추가할 수 있어요.</p>
             </div>
 
             <div v-else class="schedule-groups">
@@ -384,27 +444,16 @@ onBeforeUnmount(editorStore.resetEditor)
                   <span>{{ morningItems.length }}곳</span>
                 </header>
 
-                <div v-if="morningItems.length" class="schedule-list">
-                  <article
-                    v-for="item in morningItems"
-                    :key="item.scheduleItemId"
-                    class="schedule-card"
-                  >
-                    <img
-                      v-if="item.imageUrl"
-                      :src="item.imageUrl"
-                      :alt="`${item.placeName} 이미지`"
-                    />
-                    <div class="schedule-card__body">
-                      <span>{{ item.positionNo }}번째 · {{ item.categoryName || '장소' }}</span>
-                      <strong>{{ item.placeName }}</strong>
-                      <p v-if="item.address">{{ item.address }}</p>
-                      <p v-if="item.description" class="schedule-card__description">
-                        {{ item.description }}
-                      </p>
-                    </div>
-                  </article>
-                </div>
+                <ScheduleList
+                  v-if="morningItems.length"
+                  :items="morningItems"
+                  time-slot="MORNING"
+                  :disabled="dateSubmitting"
+                  @move-up="moveScheduleItemPosition($event, -1)"
+                  @move-down="moveScheduleItemPosition($event, 1)"
+                  @move-time-slot="moveScheduleItem($event, 'AFTERNOON')"
+                  @remove="removeScheduleItem"
+                />
                 <p v-else class="schedule-group__empty">오전 일정이 없습니다.</p>
               </section>
 
@@ -414,27 +463,16 @@ onBeforeUnmount(editorStore.resetEditor)
                   <span>{{ afternoonItems.length }}곳</span>
                 </header>
 
-                <div v-if="afternoonItems.length" class="schedule-list">
-                  <article
-                    v-for="item in afternoonItems"
-                    :key="item.scheduleItemId"
-                    class="schedule-card"
-                  >
-                    <img
-                      v-if="item.imageUrl"
-                      :src="item.imageUrl"
-                      :alt="`${item.placeName} 이미지`"
-                    />
-                    <div class="schedule-card__body">
-                      <span>{{ item.positionNo }}번째 · {{ item.categoryName || '장소' }}</span>
-                      <strong>{{ item.placeName }}</strong>
-                      <p v-if="item.address">{{ item.address }}</p>
-                      <p v-if="item.description" class="schedule-card__description">
-                        {{ item.description }}
-                      </p>
-                    </div>
-                  </article>
-                </div>
+                <ScheduleList
+                  v-if="afternoonItems.length"
+                  :items="afternoonItems"
+                  time-slot="AFTERNOON"
+                  :disabled="dateSubmitting"
+                  @move-up="moveScheduleItemPosition($event, -1)"
+                  @move-down="moveScheduleItemPosition($event, 1)"
+                  @move-time-slot="moveScheduleItem($event, 'MORNING')"
+                  @remove="removeScheduleItem"
+                />
                 <p v-else class="schedule-group__empty">오후 일정이 없습니다.</p>
               </section>
             </div>
@@ -460,8 +498,10 @@ onBeforeUnmount(editorStore.resetEditor)
               :region-code="plan.regionCode"
               :region-name="plan.regionName"
               :selected-place-id="selectedSearchPlaceId"
+              :schedule-disabled="dateSubmitting || !selectedDay"
               @results-change="updateSearchResults"
               @select="selectSearchPlace"
+              @add="addSearchPlace"
             />
           </div>
         </section>
@@ -592,6 +632,36 @@ onBeforeUnmount(editorStore.resetEditor)
   border-radius: 50%;
   background: #22c55e;
   box-shadow: 0 0 0 4px rgb(34 197 94 / 12%);
+}
+
+.save-state small {
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-size: 10px;
+}
+
+.save-state--saving span {
+  background: #f59e0b;
+  box-shadow: 0 0 0 4px rgb(245 158 11 / 14%);
+  animation: save-pulse 1s ease-in-out infinite;
+}
+
+.save-state--error,
+.save-state--conflict {
+  color: #b91c1c;
+}
+
+.save-state--error span,
+.save-state--conflict span {
+  background: #ef4444;
+  box-shadow: 0 0 0 4px rgb(239 68 68 / 13%);
+}
+
+@keyframes save-pulse {
+  50% {
+    opacity: 0.35;
+  }
 }
 
 .exit-button {
@@ -745,6 +815,56 @@ onBeforeUnmount(editorStore.resetEditor)
   border-radius: 12px;
   background: #fff8f7;
   font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.date-editor__open:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.save-error {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 13px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fff1f2;
+}
+
+.save-error strong,
+.save-error p {
+  display: block;
+  margin: 0;
+}
+
+.save-error strong {
+  color: #991b1b;
+  font-size: 12px;
+}
+
+.save-error p {
+  margin-top: 4px;
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.save-error__actions {
+  display: flex;
+  gap: 7px;
+}
+
+.save-error__actions button {
+  min-height: 31px;
+  padding: 0 10px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #991b1b;
+  font-size: 10px;
   font-weight: 800;
   cursor: pointer;
 }
@@ -1010,62 +1130,6 @@ onBeforeUnmount(editorStore.resetEditor)
   margin-top: 12px;
 }
 
-.schedule-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  padding: 12px;
-  border: 1px solid #e8edf3;
-  border-radius: 13px;
-  background: #fff;
-}
-
-.schedule-card > img {
-  width: 68px;
-  height: 68px;
-  border-radius: 10px;
-  object-fit: cover;
-}
-
-.schedule-card__body {
-  display: grid;
-  min-width: 0;
-  gap: 4px;
-  align-content: center;
-}
-
-.schedule-card__body > span {
-  color: #94a3b8;
-  font-size: 10px;
-  font-weight: 750;
-}
-
-.schedule-card__body > strong {
-  overflow: hidden;
-  color: #263247;
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.schedule-card__body > p {
-  overflow: hidden;
-  margin: 0;
-  color: #64748b;
-  font-size: 11px;
-  line-height: 1.45;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.schedule-card__body > .schedule-card__description {
-  display: -webkit-box;
-  overflow: hidden;
-  white-space: normal;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
 .schedule-group__empty {
   margin: 12px 0 0;
   padding: 16px;
@@ -1231,6 +1295,10 @@ onBeforeUnmount(editorStore.resetEditor)
   .date-editor__open {
     animation: none;
     transition: none;
+  }
+
+  .save-state--saving span {
+    animation: none;
   }
 }
 </style>

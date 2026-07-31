@@ -44,13 +44,18 @@
 | `403` | `PLAN_ACCESS_DENIED` | 현재 회원에게 플랜 조회 또는 편집 권한이 없음 |
 | `404` | `REGION_NOT_FOUND` | 활성화된 시·도 지역코드가 존재하지 않음 |
 | `404` | `PLAN_NOT_FOUND` | 플랜이 없거나 삭제 상태여서 조회할 수 없음 |
+| `404` | `PLAN_DAY_NOT_FOUND` | 일차가 없거나 대상 플랜에 속하지 않음 |
+| `404` | `SCHEDULE_ITEM_NOT_FOUND` | 일정 항목이 없거나 대상 일차에 속하지 않음 |
+| `400` | `INVALID_SCHEDULE_ORDER` | 정렬 목록이 현재 시간대의 항목과 일치하지 않음 |
 | `409` | `PLAN_VERSION_CONFLICT` | 플랜 Metadata Version 불일치 |
 | `409` | `PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED` | 날짜 변경으로 일정이 포함된 DAY가 제외되지만 삭제 확인이 없음 |
 | `409` | `SCHEDULE_VERSION_CONFLICT` | 일차 일정 Version 불일치 |
 | `409` | `ITEM_VERSION_CONFLICT` | 일정 항목 Version 불일치 |
 | `409` | `DUPLICATE_OPERATION` | 이미 처리된 `operationId`를 다른 Payload로 재요청 |
+| `409` | `SCHEDULE_ITEM_ALREADY_EXISTS` | 같은 일차·시간대에 동일 장소가 존재 |
+| `409` | `SCHEDULE_ITEM_LIMIT_EXCEEDED` | 시간대별 일정 100개 제한 초과 |
 
-Version 및 Operation 오류는 자동 저장 API에서 사용합니다. 1차 API 중 생성과 초기 조회에서는 반환하지 않습니다.
+Version 및 Operation 오류는 자동 저장 API에서 사용합니다. 동일한 `operationId`와 동일한 Payload 재요청은 오류가 아니라 멱등 성공으로 처리합니다.
 
 ## 장소 검색 오류
 

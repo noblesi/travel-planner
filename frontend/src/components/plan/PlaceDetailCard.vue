@@ -4,7 +4,13 @@ defineProps({
     type: Object,
     required: true,
   },
+  addDisabled: {
+    type: Boolean,
+    default: false,
+  },
 })
+
+defineEmits(['add'])
 </script>
 
 <template>
@@ -19,6 +25,14 @@ defineProps({
       <small v-if="place.latitude == null || place.longitude == null">
         지도 좌표가 없는 장소입니다.
       </small>
+      <div class="place-detail-card__actions" aria-label="선택 장소 일정 추가">
+        <button type="button" :disabled="addDisabled" @click="$emit('add', 'MORNING')">
+          오전에 추가
+        </button>
+        <button type="button" :disabled="addDisabled" @click="$emit('add', 'AFTERNOON')">
+          오후에 추가
+        </button>
+      </div>
     </div>
   </article>
 </template>
@@ -85,5 +99,32 @@ defineProps({
 
 .place-detail-card__body > small {
   color: #b45309;
+}
+
+.place-detail-card__actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.place-detail-card__actions button {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  background: #ff5a4e;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.place-detail-card__actions button:last-child {
+  background: #475569;
+}
+
+.place-detail-card__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 </style>

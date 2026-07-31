@@ -17,9 +17,13 @@ const props = defineProps({
     type: [String, Number],
     default: null,
   },
+  scheduleDisabled: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['results-change', 'select'])
+const emit = defineEmits(['results-change', 'select', 'add'])
 
 const PAGE_SIZE = 10
 const keyword = ref('')
@@ -201,7 +205,12 @@ watch(
         </li>
       </ul>
 
-      <PlaceDetailCard v-if="selectedPlace" :place="selectedPlace" />
+      <PlaceDetailCard
+        v-if="selectedPlace"
+        :place="selectedPlace"
+        :add-disabled="scheduleDisabled"
+        @add="emit('add', { place: selectedPlace, timeSlot: $event })"
+      />
 
       <nav class="place-search-panel__pagination" aria-label="장소 검색 결과 페이지">
         <button type="button" :disabled="page <= 1 || isLoading" @click="executeSearch(page - 1)">

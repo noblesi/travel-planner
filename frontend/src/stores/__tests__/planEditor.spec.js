@@ -3,13 +3,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePlanEditorStore } from '@/stores/planEditor'
 
-const { getTravelPlanEditorMock, updateTravelPlanDatesMock } = vi.hoisted(() => ({
+const {
+  addScheduleItemMock,
+  deleteScheduleItemMock,
+  getTravelPlanEditorMock,
+  reorderScheduleItemsMock,
+  updateScheduleItemMock,
+  updateTravelPlanDatesMock,
+} = vi.hoisted(() => ({
+  addScheduleItemMock: vi.fn(),
+  deleteScheduleItemMock: vi.fn(),
   getTravelPlanEditorMock: vi.fn(),
+  reorderScheduleItemsMock: vi.fn(),
+  updateScheduleItemMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
 }))
 
 vi.mock('@/api/plans', () => ({
+  addScheduleItem: addScheduleItemMock,
+  deleteScheduleItem: deleteScheduleItemMock,
   getTravelPlanEditor: getTravelPlanEditorMock,
+  reorderScheduleItems: reorderScheduleItemsMock,
+  updateScheduleItem: updateScheduleItemMock,
   updateTravelPlanDates: updateTravelPlanDatesMock,
 }))
 
@@ -28,6 +43,10 @@ beforeEach(() => {
   setActivePinia(createPinia())
   getTravelPlanEditorMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
+  addScheduleItemMock.mockReset()
+  updateScheduleItemMock.mockReset()
+  deleteScheduleItemMock.mockReset()
+  reorderScheduleItemsMock.mockReset()
 })
 
 describe('planEditor store', () => {
@@ -172,5 +191,193 @@ describe('planEditor store', () => {
     expect(store.plan).toEqual(updated.plan)
     expect(store.days).toEqual(updated.days)
     expect(store.selectedDayId).toBe('202')
+  })
+
+  it('선택 장소를 일정에 추가하고 자동 저장 응답을 반영한다', async () => {
+    const days = [
+      { planDayId: '201', dayNo: 1, travelDate: '2026-08-10', scheduleVersion: 0, items: [] },
+    ]
+    const place = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '100',
+      placeName: '경복궁',
+      categoryName: '관광지',
+      address: '서울 종로구',
+      latitude: 37.5796,
+      longitude: 126.977,
+      imageUrl: null,
+    }
+    const updated = {
+      plan,
+      days: [
+        {
+          ...days[0],
+          scheduleVersion: 1,
+          items: [
+            {
+              scheduleItemId: '301',
+              timeSlot: 'MORNING',
+              positionNo: 1,
+              itemVersion: 0,
+              ...place,
+            },
+          ],
+        },
+      ],
+    }
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    addScheduleItemMock.mockResolvedValue({
+      operationId: 'operation-id',
+      scheduleItemId: '301',
+      resultScheduleVersion: 1,
+      editor: updated,
+    })
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const request = store.addPlaceToSchedule(place, 'MORNING')
+    expect(store.saveStatus).toBe('saving')
+    expect(store.pendingSaveCount).toBe(1)
+    await request
+
+    expect(addScheduleItemMock).toHaveBeenCalledWith(
+      '101',
+      '201',
+      expect.objectContaining({
+        operationId: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        ),
+        scheduleVersion: 0,
+        timeSlot: 'MORNING',
+        externalPlaceId: '100',
+      }),
+    )
+    expect(store.days).toEqual(updated.days)
+    expect(store.saveStatus).toBe('saved')
+    expect(store.pendingSaveCount).toBe(0)
+  })
+
+  it('여러 작업을 직렬화하고 앞 작업의 최신 Version으로 다음 요청을 보낸다', async () => {
+    const days = [
+      { planDayId: '201', dayNo: 1, travelDate: '2026-08-10', scheduleVersion: 0, items: [] },
+    ]
+    const firstPlace = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '100',
+      placeName: '경복궁',
+    }
+    const secondPlace = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '101',
+      placeName: '창덕궁',
+    }
+    let resolveFirst
+    let resolveSecond
+    addScheduleItemMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = resolve
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveSecond = resolve
+          }),
+      )
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const firstRequest = store.addPlaceToSchedule(firstPlace, 'MORNING')
+    const secondRequest = store.addPlaceToSchedule(secondPlace, 'AFTERNOON')
+    await Promise.resolve()
+    expect(addScheduleItemMock).toHaveBeenCalledTimes(1)
+
+    const afterFirst = {
+      plan,
+      days: [
+        {
+          ...days[0],
+          scheduleVersion: 1,
+          items: [
+            {
+              scheduleItemId: '301',
+              timeSlot: 'MORNING',
+              positionNo: 1,
+              itemVersion: 0,
+              ...firstPlace,
+            },
+          ],
+        },
+      ],
+    }
+    resolveFirst({ editor: afterFirst, resultScheduleVersion: 1 })
+    await firstRequest
+    await Promise.resolve()
+
+    expect(addScheduleItemMock).toHaveBeenCalledTimes(2)
+    expect(addScheduleItemMock.mock.calls[1][2].scheduleVersion).toBe(1)
+
+    resolveSecond({
+      editor: {
+        plan,
+        days: [{ ...afterFirst.days[0], scheduleVersion: 2 }],
+      },
+      resultScheduleVersion: 2,
+    })
+    await secondRequest
+
+    expect(store.pendingSaveCount).toBe(0)
+    expect(store.saveStatus).toBe('saved')
+  })
+
+  it('Version 충돌 시 최신 Editor를 다시 불러오고 같은 작업을 재시도한다', async () => {
+    const days = [
+      { planDayId: '201', dayNo: 1, travelDate: '2026-08-10', scheduleVersion: 0, items: [] },
+    ]
+    const latest = {
+      plan,
+      days: [{ ...days[0], scheduleVersion: 1 }],
+    }
+    const resolved = {
+      plan,
+      days: [{ ...days[0], scheduleVersion: 2 }],
+    }
+    const place = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '100',
+      placeName: '경복궁',
+    }
+    getTravelPlanEditorMock.mockResolvedValueOnce({ plan, days }).mockResolvedValueOnce(latest)
+    addScheduleItemMock
+      .mockRejectedValueOnce({
+        response: {
+          status: 409,
+          data: { code: 'SCHEDULE_VERSION_CONFLICT', message: '일정 버전 충돌' },
+        },
+      })
+      .mockResolvedValueOnce({ editor: resolved, resultScheduleVersion: 2 })
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await expect(store.addPlaceToSchedule(place, 'MORNING')).rejects.toBeTruthy()
+
+    expect(getTravelPlanEditorMock).toHaveBeenCalledTimes(2)
+    expect(store.days).toEqual(latest.days)
+    expect(store.saveStatus).toBe('conflict')
+    expect(store.canRetrySave).toBe(true)
+    const firstOperationId = addScheduleItemMock.mock.calls[0][2].operationId
+
+    await store.retryLastSave()
+
+    expect(addScheduleItemMock.mock.calls[1][2]).toMatchObject({
+      operationId: firstOperationId,
+      scheduleVersion: 1,
+    })
+    expect(store.days).toEqual(resolved.days)
+    expect(store.saveStatus).toBe('saved')
+    expect(store.canRetrySave).toBe(false)
   })
 })
