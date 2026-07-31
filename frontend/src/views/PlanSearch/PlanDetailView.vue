@@ -29,7 +29,7 @@
         <div class="detail-body">
           <div class="day-sidebar">
             <button v-for="day in plan.days" :key="day.dayNumber" class="day-item"
-              :class="{ active: selectedDay === day.dayNumber }" @click="selectedDay = day.dayNumber">
+              :class="{ active: selectedDay === day.dayNumber }" @click="selectDay(day.dayNumber)">
               <div class="day-num">DAY {{ day.dayNumber }}</div>
               <div class="day-date">{{ day.dateLabel }}</div>
             </button>
@@ -94,7 +94,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import ReportModal from './ReportModal.vue'
 import ImportModal from './ImportModal.vue'
@@ -107,6 +107,7 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const route = useRoute()
 
 function goBack() {
   // 브라우저 히스토리를 한 칸 뒤로 이동한다.
@@ -190,8 +191,19 @@ const plan = ref({
   ],
 })
 
-const selectedDay = ref(1)
+// 새로고침해도 보고 있던 DAY가 유지되도록 URL 쿼리(day)에서 초기값을 복원한다.
+// 쿼리가 없거나 plan에 없는 dayNumber면 1일차로 되돌아간다.
+const queryDay = Number(route.query.day)
+const initialDay = plan.value.days.some((d) => d.dayNumber === queryDay) ? queryDay : 1
+const selectedDay = ref(initialDay)
 const currentDay = computed(() => plan.value.days.find((d) => d.dayNumber === selectedDay.value))
+
+function selectDay(dayNumber) {
+  selectedDay.value = dayNumber
+  // push가 아니라 replace를 쓰는 이유: DAY를 바꿀 때마다 히스토리가 쌓이면
+  // 뒤로가기 한 번으로 이전 DAY로 안 돌아가고 탐색 페이지까지 나가버린다.
+  router.replace({ query: { ...route.query, day: dayNumber } })
+}
 
 // DAY 요약 패널용 계산: 오전/오후 개수
 const morningCount = computed(() => currentDay.value.places.filter((p) => p.timeSlot === '오전').length)
