@@ -95,10 +95,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import KakaoMap from '@/components/map/KakaoMap.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import ReportModal from './ReportModal.vue'
 import ImportModal from './ImportModal.vue'
-import KakaoMap from './KakaoMap.vue'
 
 // 라우터가 plan-detail 경로(/plans/:id)에 props: true로 연결돼 있어 id를 prop으로 받는다.
 // TODO: 백엔드 연동 시 이 id로 GET /plans/{id}를 호출해 plan 데이터를 채운다.

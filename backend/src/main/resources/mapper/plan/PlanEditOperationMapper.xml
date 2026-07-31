@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.PlanEditOperationMapper">
+
+	<resultMap id="planEditOperationResultMap" type="com.noblesi.travelplanner.domain.plan.PlanEditOperation">
+		<constructor>
+			<idArg column="OPERATION_ID" javaType="string" />
+			<arg column="PLAN_ID" javaType="_long" />
+			<arg column="MEMBER_ID" javaType="_long" />
+			<arg column="OPERATION_TYPE" javaType="com.noblesi.travelplanner.domain.plan.ScheduleOperationType" />
+			<arg column="TARGET_ITEM_ID" javaType="java.lang.Long" />
+			<arg column="BASE_VERSION" javaType="_int" />
+			<arg column="RESULT_VERSION" javaType="_int" />
+			<arg column="REQUEST_HASH" javaType="string" />
+		</constructor>
+	</resultMap>
+
+	<select id="findByOperationId" resultMap="planEditOperationResultMap">
+		SELECT OPERATION_ID,
+		       PLAN_ID,
+		       MEMBER_ID,
+		       OPERATION_TYPE,
+		       TARGET_ITEM_ID,
+		       BASE_VERSION,
+		       RESULT_VERSION,
+		       REQUEST_HASH
+		  FROM PLAN_EDIT_OPERATION
+		 WHERE OPERATION_ID = #{operationId}
+	</select>
+
+	<insert id="insertOperation" parameterType="com.noblesi.travelplanner.domain.plan.PlanEditOperation">
+		INSERT INTO PLAN_EDIT_OPERATION (
+			OPERATION_ID,
+			PLAN_ID,
+			MEMBER_ID,
+			OPERATION_TYPE,
+			TARGET_ITEM_ID,
+			BASE_VERSION,
+			RESULT_VERSION,
+			REQUEST_HASH
+		) VALUES (
+			#{operationId},
+			#{planId},
+			#{memberId},
+			#{operationType},
+			#{targetItemId,jdbcType=NUMERIC},
+			#{baseVersion},
+			#{resultVersion},
+			#{requestHash}
+		)
+	</insert>
+
+</mapper>

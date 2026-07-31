@@ -4,6 +4,7 @@ import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -14,6 +15,7 @@ import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanRequest;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorResponse;
+import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanDatesRequest;
 import com.noblesi.travelplanner.service.TravelPlanService;
 
 import jakarta.validation.Valid;
@@ -40,5 +42,13 @@ public class TravelPlanController {
 	@GetMapping("/{planId}/editor")
 	public ApiResponse<PlanEditorResponse> getPlanEditor(@PathVariable String planId) {
 		return ApiResponse.success(travelPlanService.getPlanEditor(planId));
+	}
+
+	@PatchMapping("/{planId}/dates")
+	public ApiResponse<PlanEditorResponse> updatePlanDates(
+			@PathVariable String planId,
+			@Valid @RequestBody UpdateTravelPlanDatesRequest request
+	) {
+		return ApiResponse.success(travelPlanService.updateTravelPlanDates(planId, request));
 	}
 }

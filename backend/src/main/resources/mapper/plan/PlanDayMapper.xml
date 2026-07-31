@@ -44,4 +44,43 @@
 		 ORDER BY DAY_NO ASC
 	</select>
 
+	<select id="findByIdAndPlanId" resultMap="planDayResultMap">
+		SELECT PLAN_DAY_ID,
+		       PLAN_ID,
+		       DAY_NO,
+		       TRAVEL_DATE,
+		       SCHEDULE_VERSION
+		  FROM PLAN_DAY
+		 WHERE PLAN_DAY_ID = #{planDayId}
+		   AND PLAN_ID = #{planId}
+	</select>
+
+	<update id="incrementScheduleVersion">
+		UPDATE PLAN_DAY
+		   SET SCHEDULE_VERSION = SCHEDULE_VERSION + 1
+		 WHERE PLAN_DAY_ID = #{planDayId}
+		   AND PLAN_ID = #{planId}
+		   AND SCHEDULE_VERSION = #{scheduleVersion}
+	</update>
+
+	<update id="updateDayNo">
+		UPDATE PLAN_DAY
+		   SET DAY_NO = #{dayNo}
+		 WHERE PLAN_DAY_ID = #{planDayId}
+	</update>
+
+	<update id="updateTravelDate">
+		UPDATE PLAN_DAY
+		   SET TRAVEL_DATE = #{travelDate}
+		 WHERE PLAN_DAY_ID = #{planDayId}
+	</update>
+
+	<delete id="deleteByPlanDayIds">
+		DELETE FROM PLAN_DAY
+		 WHERE PLAN_DAY_ID IN
+		<foreach collection="planDayIds" item="planDayId" open="(" separator="," close=")">
+			#{planDayId}
+		</foreach>
+	</delete>
+
 </mapper>

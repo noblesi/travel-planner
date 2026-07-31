@@ -1,10 +1,15 @@
 package com.noblesi.travelplanner.service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -23,6 +28,7 @@ import com.noblesi.travelplanner.dto.plan.PlanEditorDayResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorItemResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorSummaryResponse;
+import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanDatesRequest;
 import com.noblesi.travelplanner.mapper.PlanDayMapper;
 import com.noblesi.travelplanner.mapper.PlanScheduleItemMapper;
 import com.noblesi.travelplanner.mapper.RegionMapper;
@@ -87,15 +93,64 @@ public class TravelPlanService {
 	public PlanEditorResponse getPlanEditor(String planIdValue) {
 		long planId = parsePlanId(planIdValue);
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		PlanEditorPlan plan = travelPlanMapper.findActiveOwnedPlanForEditor(planId, memberId);
-		if (plan == null) {
-			throw new BusinessException(
-					HttpStatus.NOT_FOUND,
-					"PLAN_NOT_FOUND",
-					"여행 플랜을 찾을 수 없습니다."
-			);
+		PlanEditorPlan plan = findOwnedPlanForEditor(planId, memberId);
+
+		return buildPlanEditorResponse(planId, plan);
+	}
+
+	@Transactional
+	public PlanEditorResponse updateTravelPlanDates(
+			String planIdValue,
+			UpdateTravelPlanDatesRequest request
+	) {
+		long planId = parsePlanId(planIdValue);
+		long memberId = currentMemberProvider.getCurrentMemberId();
+		PlanEditorPlan plan = findOwnedPlanForEditor(planId, memberId);
+		requestValidator.validateDates(request.startDate(), request.endDate());
+
+		if (request.versionNo() != plan.versionNo()) {
+			throw planVersionConflict();
 		}
 
+		if (plan.startDate().equals(request.startDate())
+				&& plan.endDate().equals(request.endDate())) {
+			return buildPlanEditorResponse(planId, plan);
+		}
+
+		List<PlanDay> existingDays = planDayMapper.findByPlanIdOrderByDayNo(planId);
+		long oldDuration = ChronoUnit.DAYS.between(plan.startDate(), plan.endDate()) + 1;
+		long newDuration = ChronoUnit.DAYS.between(request.startDate(), request.endDate()) + 1;
+
+		List<PlanDay> removedDays = oldDuration == newDuration
+				? List.of()
+				: existingDays.stream()
+						.filter(day -> day.travelDate().isBefore(request.startDate())
+								|| day.travelDate().isAfter(request.endDate()))
+						.toList();
+		requireScheduleRemovalConfirmation(planId, removedDays, request.force());
+
+		int updatedRows = travelPlanMapper.updateTravelDates(
+				planId,
+				memberId,
+				request.startDate(),
+				request.endDate(),
+				request.versionNo()
+		);
+		if (updatedRows != 1) {
+			throw planVersionConflict();
+		}
+
+		if (oldDuration == newDuration) {
+			shiftPlanDays(existingDays, ChronoUnit.DAYS.between(plan.startDate(), request.startDate()));
+		} else {
+			reshapePlanDays(planId, existingDays, removedDays, request.startDate(), request.endDate());
+		}
+
+		PlanEditorPlan updatedPlan = findOwnedPlanForEditor(planId, memberId);
+		return buildPlanEditorResponse(planId, updatedPlan);
+	}
+
+	private PlanEditorResponse buildPlanEditorResponse(long planId, PlanEditorPlan plan) {
 		List<PlanDay> days = planDayMapper.findByPlanIdOrderByDayNo(planId);
 		Map<Long, List<PlanEditorItemResponse>> itemsByDayId = groupItemsByDayId(
 				planScheduleItemMapper.findByPlanIdForEditor(planId)
@@ -110,6 +165,123 @@ public class TravelPlanService {
 		return new PlanEditorResponse(
 				PlanEditorSummaryResponse.from(plan),
 				dayResponses
+		);
+	}
+
+	private PlanEditorPlan findOwnedPlanForEditor(long planId, long memberId) {
+		PlanEditorPlan plan = travelPlanMapper.findActiveOwnedPlanForEditor(planId, memberId);
+		if (plan == null) {
+			throw new BusinessException(
+					HttpStatus.NOT_FOUND,
+					"PLAN_NOT_FOUND",
+					"여행 플랜을 찾을 수 없습니다."
+			);
+		}
+		return plan;
+	}
+
+	private void requireScheduleRemovalConfirmation(
+			long planId,
+			List<PlanDay> removedDays,
+			boolean force
+	) {
+		if (force || removedDays.isEmpty()) {
+			return;
+		}
+
+		Set<Long> removedDayIds = removedDays.stream()
+				.map(PlanDay::planDayId)
+				.collect(Collectors.toSet());
+		boolean hasSchedulesToRemove = planScheduleItemMapper.findByPlanIdForEditor(planId).stream()
+				.anyMatch(item -> removedDayIds.contains(item.planDayId()));
+		if (hasSchedulesToRemove) {
+			throw new BusinessException(
+					HttpStatus.CONFLICT,
+					"PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED",
+					"변경 범위에서 제외되는 날짜에 일정이 있습니다. 확인 후 다시 요청해 주세요."
+			);
+		}
+	}
+
+	private void shiftPlanDays(List<PlanDay> existingDays, long dayOffset) {
+		if (dayOffset == 0) {
+			return;
+		}
+
+		List<PlanDay> orderedDays = new ArrayList<>(existingDays);
+		Comparator<PlanDay> byTravelDate = Comparator.comparing(PlanDay::travelDate);
+		orderedDays.sort(dayOffset > 0 ? byTravelDate.reversed() : byTravelDate);
+		for (PlanDay day : orderedDays) {
+			requireSingleRow(planDayMapper.updateTravelDate(
+					day.planDayId(),
+					day.travelDate().plusDays(dayOffset)
+			));
+		}
+	}
+
+	private void reshapePlanDays(
+			long planId,
+			List<PlanDay> existingDays,
+			List<PlanDay> removedDays,
+			LocalDate startDate,
+			LocalDate endDate
+	) {
+		Set<Long> removedDayIds = removedDays.stream()
+				.map(PlanDay::planDayId)
+				.collect(Collectors.toSet());
+		if (!removedDayIds.isEmpty()) {
+			List<Long> ids = List.copyOf(removedDayIds);
+			planScheduleItemMapper.deleteByPlanDayIds(ids);
+			int deletedDays = planDayMapper.deleteByPlanDayIds(ids);
+			if (deletedDays != ids.size()) {
+				throw new IllegalStateException(
+						"Expected " + ids.size() + " deleted plan days but got " + deletedDays
+				);
+			}
+		}
+
+		List<PlanDay> retainedDays = existingDays.stream()
+				.filter(day -> !removedDayIds.contains(day.planDayId()))
+				.collect(Collectors.toCollection(ArrayList::new));
+		long dayNoOffset = retainedDays.isEmpty()
+				? 0
+				: ChronoUnit.DAYS.between(startDate, retainedDays.get(0).travelDate()) + 1
+						- retainedDays.get(0).dayNo();
+		Comparator<PlanDay> byDayNo = Comparator.comparingInt(PlanDay::dayNo);
+		retainedDays.sort(dayNoOffset > 0 ? byDayNo.reversed() : byDayNo);
+		for (PlanDay day : retainedDays) {
+			int newDayNo = Math.toIntExact(ChronoUnit.DAYS.between(startDate, day.travelDate()) + 1);
+			if (newDayNo != day.dayNo()) {
+				requireSingleRow(planDayMapper.updateDayNo(day.planDayId(), newDayNo));
+			}
+		}
+
+		Set<LocalDate> retainedDates = new HashSet<>();
+		for (PlanDay day : retainedDays) {
+			retainedDates.add(day.travelDate());
+		}
+
+		LocalDate travelDate = startDate;
+		int dayNo = 1;
+		while (!travelDate.isAfter(endDate)) {
+			if (!retainedDates.contains(travelDate)) {
+				requireSingleRow(planDayMapper.insertPlanDay(new PlanDay(
+						planDayMapper.nextPlanDayId(),
+						planId,
+						dayNo,
+						travelDate
+				)));
+			}
+			travelDate = travelDate.plusDays(1);
+			dayNo++;
+		}
+	}
+
+	private BusinessException planVersionConflict() {
+		return new BusinessException(
+				HttpStatus.CONFLICT,
+				"PLAN_VERSION_CONFLICT",
+				"다른 변경사항이 먼저 저장되었습니다. 플랜을 새로고침한 후 다시 시도해 주세요."
 		);
 	}
 
