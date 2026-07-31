@@ -4,7 +4,7 @@ import { RouterLink, useRouter } from 'vue-router'
 import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.png'
 
 const haederRouter = useRouter()
-const loginCheck = true;
+const loginCheck = false;
 
 const moveLoginPage = () => {
   haederRouter.push('/loginView')
@@ -35,10 +35,8 @@ const moveJoinPage = () => {
           <button class="primary-button" type="button" v-on:click="moveJoinPage">회원가입</button>
         </div>
         <div v-if="loginCheck">
-          <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage">
-            <img :src="headerLogoUrl" alt="프로필" width="32" height="32" />
-          </button>
-          <button class="primary-button" type="button" v-on:click="moveJoinPage">회원가입</button>
+          <!-- 알람 이미지 버튼 만들어야 함 -->
+          <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage"></button>
         </div>
       </div>
     </div>
