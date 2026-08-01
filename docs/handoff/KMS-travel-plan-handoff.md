@@ -1,6 +1,6 @@
 # KMS 여행 플랜 개발 인수인계
 
-최종 정리일: 2026-07-31
+최종 정리일: 2026-08-01
 
 ## 저장소 상태
 
@@ -8,11 +8,11 @@
 - 작업 브랜치: `KMS`
 - 현재 통합 기준: `2366508 일정 자동 저장과 Oracle 통합 검증` Commit
 - 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
-- 현재 작업 묶음: 플랜 설정 페이지, 제작 페이지 날짜 변경·DAY 일정 UI, TourAPI 장소 검색 Backend·Frontend, 공용 Kakao Map과 검색 결과·저장 일정 Marker 연결 완료. 일정 CRUD·정렬 Backend·Frontend와 작업별 멱등 자동 저장 Queue·Version 충돌 복구 UI 구현 및 Oracle `005` 적용·실제 일정 CRUD 검증 완료
+- 현재 작업 묶음: 플랜 생성·편집·Metadata 변경, 일정 CRUD·정렬·멱등 자동 저장, TourAPI·Kakao Map, 초대 링크 생성·수락, Spring Security session 기반과 local 개발 로그인·Frontend session 복원까지 구현 완료
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
 
-현재 `dev`에만 있는 Commit은 `KMS`에 반영하지 않기로 결정했다. 로그인·회원가입 화면과 해당 영역의 공통 lint·build 오류는 다른 담당자의 작업 범위이므로 수정하지 않는다.
+현재 `dev`에만 있는 Commit은 `KMS`에 반영하지 않기로 결정했다. 4번 인증 연동 요청에 따라 `LoginView.vue`와 공통 Header의 mock 인증은 실제 local session API로 교체했지만 회원가입 화면은 다른 담당자의 작업 범위로 유지한다.
 
 다른 컴퓨터에서는 다음 명령으로 작업을 시작한다.
 
@@ -76,7 +76,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - H2 `local` Schema에 `TRAVEL_PLAN`, `PLAN_MEMBER`, `PLAN_DAY`와 플랜·일차 Sequence를 추가했다.
 - H2 `local` Schema에 제작 초기 조회와 일정 개발을 위한 `PLAN_SCHEDULE_ITEM`, `SEQ_PLAN_SCHEDULE_ITEM` 및 Oracle 기준 Constraint를 추가했다.
 - H2 일정 항목 Schema 보완 후 `clean test bootJar`를 실행해 Backend Test 8건과 실행 JAR 생성을 다시 확인했다.
-- `LocalCurrentMemberProvider`와 인증 미연동 기본 Profile용 `UnavailableCurrentMemberProvider`를 구현했다.
+- 초기에는 `LocalCurrentMemberProvider`와 인증 미연동 기본 Profile용 Provider를 사용했고, 현재 기본 Profile은 `SecurityCurrentMemberProvider`로 교체했다.
 - 플랜 생성 Request DTO, 공개 범위 Enum, 날짜 범위·14일 제한 검증과 `MALFORMED_JSON` 처리를 구현했다.
 - 플랜·생성자·일차를 하나의 Transaction으로 저장하는 MyBatis Mapper와 `TravelPlanService`를 구현했다.
 - 생성 응답의 Oracle `NUMBER(19)` ID를 JSON 문자열로 변환하고 일차 목록을 조립하도록 구현했다.
@@ -91,7 +91,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - H2 `local` Schema에 `PLAN_SCHEDULE_ITEM` Table, Sequence와 Oracle 기준 Constraint를 추가했다.
 - 일차는 `DAY_NO`, 일정은 `MORNING`·`AFTERNOON`과 `POSITION_NO` 순서로 조회하고 빈 일정은 `items: []`로 반환하도록 구현했다.
 - JavaScript 안전 정수를 넘는 플랜·일차·일정 ID가 JSON 문자열로 손실 없이 반환되는지 통합 검증했다.
-- Backend Test를 일정 자동 저장 통합 Test까지 현재 전체 46건으로 확장했으며 모두 통과한다.
+- Backend Test를 일정 자동 저장 통합 Test까지 확장했다.
 - 제작 페이지에 DAY 선택, 오전·오후 일정 카드, 선택 DAY 기준 빈 상태와 여행 시작일·종료일 변경 UI를 구현했다.
 - `PATCH /api/plans/{planId}/dates`를 구현하고 일정이 포함된 DAY 제외 시 확인 후 강제 변경하는 흐름과 날짜 범위 검증을 추가했다.
 - TourAPI와 Kakao 외부 API 환경변수 계약, 설정 객체와 설정 검증 Test를 추가했다.
@@ -112,21 +112,25 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - H2 local Schema에 `PLAN_EDIT_OPERATION`을 추가하고 일정 자동 저장 통합 Test 11건을 추가했다.
 - Frontend 일정 추가·오전/오후 이동·삭제·위아래 정렬 UI를 일정 API에 연결하고 저장 중·완료·실패·충돌 상태를 표시하도록 구현했다.
 - Pinia 편집 Store에 직렬 자동 저장 Queue를 추가하고, Queue 실행 시점의 최신 DAY·항목 Version 사용, 동일 `operationId` 재시도, `409 Conflict` 최신 Editor Snapshot 복구 흐름을 구현했다.
-- Frontend API·Store·View Test를 전체 42건으로 확장했으며 변경 대상 ESLint·Oxlint를 통과했다.
+- Frontend API·Store·View Test를 확장했으며 변경 대상 ESLint·Oxlint를 통과했다.
 - 실제 TourAPI Key로 서울 지역 장소 검색 22건을 확인하고, 검색 결과를 H2 일정에 추가·오후 이동·삭제해 일정 Version이 0에서 3으로 증가하는 전체 API 흐름을 검증했다.
 - 실제 Kakao REST Key로 공식 장소 검색 API 응답을 확인하고, JavaScript Key와 localhost Referer로 공식 SDK Script가 `200 text/javascript`를 반환하는지 확인했다. Marker·정보창 브라우저 렌더링은 인앱 브라우저의 localhost URL 보안 정책으로 이번 환경에서 완료하지 못했다.
 - 원격 Oracle에 `005_add_plan_operation_request_hash.sql`을 적용하고 `REQUEST_HASH VARCHAR2(64) NOT NULL`, `CK_PLAN_OPERATION_HASH ENABLED VALIDATED` 상태를 확인했다.
 - 원격 Oracle의 활성 시·도 Seed가 0건인 상태를 발견해 멱등 `002_seed_region_master.sql`을 다시 적용하고 17건을 복구했다.
 - Oracle JDBC에서 선택 Snapshot 필드와 정렬 작업 대상 ID가 `null`일 때 발생하는 `ORA-17004`를 막도록 MyBatis Parameter에 명시적 JDBC Type을 추가했다.
 - P4 전용 임시 회원으로 Oracle 플랜 생성, 동일 작업 멱등 재시도, 일정 2건 추가·정렬·시간대 이동·삭제를 검증했다. DAY Version은 0에서 6으로 증가했고 작업 이력 6건의 Hash가 모두 유효했으며, 검증 플랜·회원·작업 이력은 종료 후 삭제했다.
+- 플랜 제목·공개 범위 변경을 owner-only optimistic locking으로 구현하고 Frontend 편집 Form에 연결했다.
+- 초대 token 원문을 응답에만 노출하고 SHA-256 Hash만 저장하는 24시간 초대 링크 생성·조회·수락을 구현했다. 재발급 시 이전 pending 링크 취소, 동일 회원의 멱등 수락, 초대 참여자의 일정 편집 권한을 검증했다.
+- Spring Security 서버 session, CSRF, session fixation 방어, `MemberPrincipal`, `SecurityCurrentMemberProvider`를 구현했다.
+- `local` Profile 환경변수 Credential 로그인, session 조회·로그아웃 API와 Vue 인증 API·Pinia Store·redirect·Header 상태를 연결했다.
 
-플랜 생성·편집 API의 H2 통합 검증과 Oracle Schema·지역 조회·일정 CRUD 검증을 완료했다. Oracle 검증에서는 P4 전용 임시 회원과 `local` Provider를 사용했으며 데이터를 종료 후 정리했다. 기본 Profile은 실제 인증이 연결되기 전까지 현재 회원을 제공하지 않으므로 실제 계정 기반 검증에는 인증 Provider 연결이 필요하다.
+플랜 생성·편집·Metadata·초대 API의 H2 통합 검증과 Oracle Schema·지역 조회·일정 CRUD 검증을 완료했다. Oracle 검증에서는 P4 전용 임시 회원과 `local` Provider를 사용했으며 데이터를 종료 후 정리했다. 기본 Profile은 인증 없는 보호 요청을 차단하며, 실제 Oracle Credential과 Google OIDC 연결은 남아 있다.
 
 원격 Oracle에는 `MEMBER`, `ADMIN` Table과 `003_add_identity_foreign_keys.sql`의 FK 7개가 이미 적용돼 모두 `ENABLED` 상태다. 재실행하지 않는다.
 
 ## 리소스 점검
 
-2026-07-31 기준 점검 결과다.
+2026-08-01 기준 점검 결과다.
 
 | 구분 | 상태 | 비고 |
 | --- | --- | --- |
@@ -140,12 +144,12 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 | UI·ERD·DDL | 준비 완료 | PDF, eXERD, Oracle DDL 5개와 문서 Link 확인. 기존 Schema용 `005` 포함 |
 | Branding | 준비 완료 | Favicon, Manifest, Header·Symbol Logo 확인 |
 | Node.js·npm | 준비 완료 | 현재 환경 Node.js 24.14.0, npm 11.11.1. `package.json` Engine 범위 충족 |
-| Frontend Build | 타 담당 영역 대기 | 빈 `frontend/src/views/joinView/JoinCompleteView.vue` 때문에 Production Build 실패. 전체 lint는 로그인·회원가입 담당 파일 2곳의 기존 오류로 실패 |
+| Frontend Build | 타 담당 영역 대기 | 빈 `frontend/src/views/joinView/JoinCompleteView.vue`와 local `node_modules`의 `sass-embedded` 누락으로 Production Build 실패 |
 | Oracle | 일정 범위 검증 완료 | `005` 적용, 시·도 Seed 17건 복구, Schema 검증, 임시 회원 기반 플랜 생성·일정 CRUD·정렬·멱등 재시도 완료 |
-| 실제 인증 | 대기 | `MEMBER`·`ADMIN` 및 여행 플랜 FK 7개는 존재. Spring Security·Google OIDC와 실제 회원 생성·Provider 연결 필요 |
+| 실제 인증 | 부분 완료 | Spring Security session·CSRF·`MemberPrincipal`·Provider와 local 개발 로그인 완료. Oracle Credential·회원가입·Google OIDC 필요 |
 | 외부 API | 부분 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 검증 완료. Kakao Map·Marker 자동 Test 통과, 실제 Browser 렌더링은 localhost 보안 정책으로 미검증 |
-| Backend 자동 Test | 준비 완료 | 6개 Test Class, 전체 46건 통과 |
-| Frontend Test | 준비 완료 | 8개 Test File, 전체 42건 통과. 변경 대상 ESLint·Oxlint 통과 |
+| Backend 자동 Test | 준비 완료 | 7개 Test Class, 전체 67건 통과, `bootJar` 성공 |
+| Frontend Test | 준비 완료 | 14개 Test File, 전체 68건 통과. 인증 변경 대상 ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -220,15 +224,16 @@ CurrentMemberProvider
 └── 현재 로그인 회원 ID 반환
 ```
 
-플랜 서비스는 Session이나 Google Claim을 직접 참조하지 않고 이 계층을 사용한다. 인증 구현이 완료되기 전에는 개발 Profile의 Mock 구현을 사용할 수 있지만 운영 코드의 기본값으로 사용하지 않는다.
+플랜 서비스는 Session이나 Google Claim을 직접 참조하지 않고 이 계층을 사용한다. 기본 Profile의 `SecurityCurrentMemberProvider`는 Spring Security Context의 `MemberPrincipal`에서 회원 ID를 가져오며, 인증이 없으면 `CURRENT_MEMBER_NOT_AVAILABLE`을 반환한다.
 
-Oracle의 `MEMBER`, `ADMIN`과 여행 플랜 FK는 존재하지만 인증 구현이 완료되기 전까지 실제 계정 연동을 보류할 기능:
+Oracle의 `MEMBER`, `ADMIN`과 여행 플랜 FK는 존재하지만 실제 계정 연동을 보류한 기능:
 
 - 로그인·가입 완료 시 `MEMBER` 생성 및 계정 연결
-- 실제 Session 회원을 반환하는 `CurrentMemberProvider` 연결
-- 초대 수락과 권한 검사
+- DB 기반 `LOCAL_CREDENTIAL` 조회
+- Google `sub` 기반 `SOCIAL_IDENTITY` 조회와 계정 연결
+- 실제 Oracle 회원 session으로 플랜·초대 수락 E2E 검증
 
-`local` Profile에서는 `LOCAL_MEMBER_ID` 환경변수로 개발 회원 ID를 제공하며 기본값은 `1`이다. 운영 기본 Profile은 회원 ID를 임의 생성하지 않고 실제 인증 구현 전까지 `CURRENT_MEMBER_NOT_AVAILABLE`을 반환한다.
+`local` Profile에서는 기존 개발 흐름 호환을 위해 `LOCAL_MEMBER_ID` fallback을 유지한다. `LOCAL_AUTH_EMAIL`, `LOCAL_AUTH_PASSWORD`, `LOCAL_AUTH_MEMBER_ID`를 설정하면 `/api/auth/login`으로 실제 session을 만들 수 있다. `AUTH_ENFORCE_SECURITY=true`로 실행하면 플랜 보호 API가 인증 없이는 `401`을 반환한다. 기본 Profile에는 회원 ID fallback이 없다.
 
 ## 데이터 모델
 
@@ -300,8 +305,16 @@ GET    /api/places/search?keyword=&regionCode=&page=&size=
 | `PATCH /api/plans/{planId}/days/{dayId}/items/{itemId}` | 계약·Backend·Frontend 시간대 이동 연결, H2 순번 압축·항목 Version 및 Oracle 이동 검증 완료 |
 | `DELETE /api/plans/{planId}/days/{dayId}/items/{itemId}` | 계약·Backend·Frontend 삭제 연결, H2 순번 압축·Rollback 및 Oracle 삭제 검증 완료 |
 | `PUT /api/plans/{planId}/days/{dayId}/items/order` | 계약·Backend·Frontend 위아래 정렬 연결, H2 원자적 정렬 및 Oracle nullable 작업 대상·정렬 검증 완료 |
+| `PATCH /api/plans/{planId}` | Backend·Frontend 구현, owner-only Metadata 변경·Version 충돌 H2 검증 완료 |
+| `POST /api/plans/{planId}/invitations` | Backend·Frontend 구현, token Hash 저장·재발급 취소 H2 검증 완료 |
+| `GET /api/plan-invitations/{token}` | 공개 token 조회와 pending·만료·잘못된 token 처리 H2 검증 완료 |
+| `POST /api/plan-invitations/{token}/accept` | session 회원 수락·멱등 처리·일정 편집 권한 H2 검증 완료 |
+| `GET /api/auth/csrf` | CSRF token 발급 구현·검증 완료 |
+| `GET /api/auth/session` | 현재 `MemberPrincipal` 조회 구현·검증 완료 |
+| `POST /api/auth/login` | `local` Profile 환경변수 Credential 로그인 구현·검증 완료 |
+| `POST /api/auth/logout` | session 무효화 구현·검증 완료 |
 
-아래 플랜 Metadata와 초대 Endpoint는 후속 구현 방향이며 Request·Response 계약은 아직 확정되지 않았다.
+플랜 Metadata와 초대 Endpoint 계약은 구현과 자동 Test 기준으로 확정했다.
 
 ```text
 PATCH  /api/plans/{planId}
@@ -372,16 +385,15 @@ backend/src/main/java/com/noblesi/travelplanner/
 9. 공용 카카오맵과 검색 결과·저장 일정 장소 Marker 연결 (구현·자동 Test 완료, 실제 SDK Browser 렌더링은 localhost 보안 정책으로 미검증)
 10. 일정 추가·수정·삭제·순서 변경 구현 (Backend·Frontend·계약·H2 Test·Oracle 통합 검증 완료)
 11. 작업별 자동 저장과 버전 충돌 처리 (Backend 멱등·작업 이력·Version 충돌, Frontend Queue·재시도·Snapshot 복구, Oracle 요청 Hash 검증 완료)
-12. 플랜 제목과 공개 범위 수정
-13. 초대 링크 생성 및 조회 구현
-14. 실제 인증 구현 완료 후 소유자·참여자·초대 수락 연결
-15. Oracle 및 외부 API 통합 검증 (Oracle 일정·TourAPI·Kakao API 완료, 실제 인증과 Kakao Browser 렌더링 남음)
+12. 플랜 제목과 공개 범위 수정 (완료)
+13. 초대 링크 생성·조회·수락 및 참여자 일정 편집 권한 (완료)
+14. Spring Security session·CSRF·local 개발 로그인·`CurrentMemberProvider` 연결 (부분 완료, Oracle Credential·Google OIDC 남음)
+15. Oracle 및 외부 API 통합 검증 (Oracle 일정·TourAPI·Kakao API 완료, 실제 Oracle 인증과 Kakao Browser 렌더링 남음)
 
 ## 아직 미정인 항목
 
-- 로컬 로그인·Google OIDC 계정 연결 Table과 정책
+- 실제 `MEMBER`, `LOCAL_CREDENTIAL`, `SOCIAL_IDENTITY` 물리 Schema
 - 초대 전달 방식
-- 초대 참여자의 편집 권한 범위
 - 삭제한 일정의 복구 지원 여부
 
 ## 다음 작업 시작점
@@ -389,8 +401,9 @@ backend/src/main/java/com/noblesi/travelplanner/
 다음 세션에서는 이 문서를 먼저 읽고 아래 순서로 시작한다.
 
 1. `KMS` 브랜치와 작업 트리 상태를 확인하고 이 문서 및 README의 `.env.local` 실행 절차를 검토한다.
-2. `dev` 전용 Commit은 반영하지 않고 로그인·회원가입 담당자의 파일은 수정하지 않는다.
-3. Frontend 공통 lint·build 실패는 담당 팀원의 작업 완료 후 통합 검증한다.
-4. localhost 접근이 허용된 브라우저 환경에서 실제 Kakao JavaScript SDK의 Marker·정보창 렌더링을 최종 확인한다.
-5. 플랜 제목·공개 범위 수정과 초대 기능을 순서대로 구현한다.
-6. 실제 인증 Provider가 준비되면 Oracle에서 실제 회원 기준 플랜 생성·조회·날짜 변경·장소 검색 전체 흐름을 통합 검증한다.
+2. `dev` 전용 Commit은 반영하지 않고 회원가입 담당자의 파일은 수정하지 않는다.
+3. 인증 담당자와 실제 `MEMBER`, `LOCAL_CREDENTIAL`, `SOCIAL_IDENTITY` Schema를 확정하고 환경변수 local Provider를 DB Provider로 교체한다.
+4. Google OAuth Client ID·Secret·redirect URI를 준비하고 OIDC `sub` 기반 Identity를 `MemberPrincipal`로 변환한다.
+5. 실제 Oracle 회원 session으로 플랜 생성·Metadata·날짜·일정·초대 수락 전체 흐름을 통합 검증한다.
+6. 빈 `JoinCompleteView.vue`와 `sass-embedded` 설치 문제를 회원가입 담당 변경과 함께 해결한 뒤 Production Build를 재검증한다.
+7. localhost 접근이 허용된 브라우저 환경에서 실제 Kakao JavaScript SDK의 Marker·정보창 렌더링을 최종 확인한다.

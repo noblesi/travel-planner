@@ -5,7 +5,7 @@
 - [UI 설계서](design/UI설계.pdf): 사용자 및 관리자 화면 62페이지
 - [ERD 설계](database/travelplanner_v2.exerd): eXERD 원본 파일
 - [여행 플랜 Oracle DDL](database/ddl/README.md): 핵심 Schema, 지역 초기 데이터, 검증 Script
-- [API 계약](api/README.md): 공통 규칙, 여행 플랜·일정 자동 저장 API, 오류 코드
+- [API 계약](api/README.md): 공통 규칙, 인증, 여행 플랜·일정 자동 저장 API, 오류 코드
 - [인증 방식 결정](auth/authentication-decision.md): 로컬·Google 로그인과 회원 계정 연결 원칙
 - [KMS 여행 플랜 개발 인수인계](handoff/KMS-travel-plan-handoff.md): 확정 요구사항과 다음 개발 순서
 

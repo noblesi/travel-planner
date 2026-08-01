@@ -33,6 +33,8 @@
 | `400` | `INVALID_PATH_PARAMETER` | Path Parameter 형식 또는 범위 오류 |
 | `400` | `INVALID_REQUEST_PARAMETER` | Query Parameter 형식 또는 범위 오류 |
 | `401` | `CURRENT_MEMBER_NOT_AVAILABLE` | 현재 회원을 확인할 수 없음 |
+| `401` | `INVALID_LOGIN_CREDENTIALS` | local 로그인 이메일 또는 비밀번호 불일치, local Credential 미설정 |
+| `403` | `ACCESS_DENIED` | CSRF token 누락·불일치 또는 Spring Security 접근 거부 |
 | `500` | `INTERNAL_SERVER_ERROR` | 처리되지 않은 서버 오류 |
 
 ## 여행 플랜 오류
@@ -57,6 +59,15 @@
 
 Version 및 Operation 오류는 자동 저장 API에서 사용합니다. 동일한 `operationId`와 동일한 Payload 재요청은 오류가 아니라 멱등 성공으로 처리합니다.
 
+## 플랜 초대 오류
+
+| HTTP Status | Code | 사용 조건 |
+| --- | --- | --- |
+| `404` | `INVITATION_NOT_FOUND` | token 형식이 잘못됐거나 초대가 존재하지 않음 |
+| `409` | `INVITATION_NOT_AVAILABLE` | 초대가 취소·거절됐거나 다른 회원이 처리해 사용할 수 없음 |
+| `409` | `INVITATION_SELF_ACCEPTANCE_NOT_ALLOWED` | 초대한 회원이 자기 초대를 수락함 |
+| `410` | `INVITATION_EXPIRED` | 초대 유효시간 24시간 경과 |
+
 ## 장소 검색 오류
 
 | HTTP Status | Code | 사용 조건 |
@@ -76,8 +87,6 @@ Version 및 Operation 오류는 자동 저장 API에서 사용합니다. 동일�
 - `BusinessException` → 기능별 안정적인 오류 코드
 - 그 외 처리되지 않은 예외 → `INTERNAL_SERVER_ERROR`
 
-다음 항목은 인증 구현 시 추가해야 합니다.
-
-- 인증 확정 후 현재 회원 조회 실패 → `CURRENT_MEMBER_NOT_AVAILABLE`
+Spring Security Filter 단계의 인증·인가 오류도 같은 `ErrorResponse` 형식으로 반환합니다.
 
 Business Error는 `BusinessException(HttpStatus, code, message)`로 전달하고 Field Error가 필요한 경우에만 별도 Validation 처리로 확장합니다.
