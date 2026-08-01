@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.PlanInvitationMapper">
+
+	<resultMap id="invitationDetailsResultMap" type="com.noblesi.travelplanner.domain.plan.PlanInvitationDetails">
+		<constructor>
+			<idArg column="INVITATION_ID" javaType="_long" />
+			<arg column="PLAN_ID" javaType="_long" />
+			<arg column="INVITER_MEMBER_ID" javaType="_long" />
+			<arg column="INVITEE_MEMBER_ID" javaType="java.lang.Long" jdbcType="NUMERIC" />
+			<arg column="INVITEE_EMAIL" javaType="string" />
+			<arg column="INVITATION_STATUS" javaType="com.noblesi.travelplanner.domain.plan.InvitationStatus" />
+			<arg column="EXPIRES_AT" javaType="java.time.OffsetDateTime" />
+			<arg column="PLAN_TITLE" javaType="string" />
+			<arg column="REGION_NAME" javaType="string" />
+			<arg column="START_DATE" javaType="java.time.LocalDate" />
+			<arg column="END_DATE" javaType="java.time.LocalDate" />
+		</constructor>
+	</resultMap>
+
+	<sql id="invitationDetailsSelect">
+		SELECT I.INVITATION_ID,
+		       I.PLAN_ID,
+		       I.INVITER_MEMBER_ID,
+		       I.INVITEE_MEMBER_ID,
+		       I.INVITEE_EMAIL,
+		       I.INVITATION_STATUS,
+		       I.EXPIRES_AT,
+		       P.TITLE AS PLAN_TITLE,
+		       R.REGION_NAME,
+		       P.START_DATE,
+		       P.END_DATE
+		  FROM PLAN_INVITATION I
+		  JOIN TRAVEL_PLAN P
+		    ON P.PLAN_ID = I.PLAN_ID
+		  JOIN REGION_MASTER R
+		    ON R.REGION_CODE = P.REGION_CODE
+		 WHERE I.INVITATION_TOKEN = #{tokenHash}
+		   AND P.PLAN_STATUS = 'ACTIVE'
+	</sql>
+
+	<select id="nextPlanInvitationId" resultType="long">
+		SELECT SEQ_PLAN_INVITATION.NEXTVAL
+		  FROM DUAL
+	</select>
+
+	<update id="cancelPendingInvitations">
+		UPDATE PLAN_INVITATION
+		   SET INVITATION_STATUS = 'CANCELED',
+		       RESPONDED_AT = CURRENT_TIMESTAMP
+		 WHERE PLAN_ID = #{planId}
+		   AND INVITEE_EMAIL = #{inviteeEmail}
+		   AND INVITATION_STATUS = 'PENDING'
+	</update>
+
+	<insert id="insertPlanInvitation" parameterType="com.noblesi.travelplanner.domain.plan.PlanInvitation">
+		INSERT INTO PLAN_INVITATION (
+			INVITATION_ID,
+			PLAN_ID,
+			INVITER_MEMBER_ID,
+			INVITEE_MEMBER_ID,
+			INVITEE_EMAIL,
+			INVITATION_STATUS,
+			INVITATION_TOKEN,
+			EXPIRES_AT
+		) VALUES (
+			#{invitationId},
+			#{planId},
+			#{inviterMemberId},
+			#{inviteeMemberId, jdbcType=NUMERIC},
+			#{inviteeEmail},
+			#{status},
+			#{tokenHash},
+			#{expiresAt}
+		)
+	</insert>
+
+	<select id="findByTokenHash" resultMap="invitationDetailsResultMap">
+		<include refid="invitationDetailsSelect" />
+	</select>
+
+	<select id="findByTokenHashForUpdate" resultMap="invitationDetailsResultMap">
+		<include refid="invitationDetailsSelect" />
+		 FOR UPDATE
+	</select>
+
+	<update id="acceptInvitation">
+		UPDATE PLAN_INVITATION
+		   SET INVITATION_STATUS = 'ACCEPTED',
+		       INVITEE_MEMBER_ID = #{memberId},
+		       RESPONDED_AT = CURRENT_TIMESTAMP
+		 WHERE INVITATION_ID = #{invitationId}
+		   AND INVITATION_STATUS = 'PENDING'
+		   AND EXPIRES_AT &gt; CURRENT_TIMESTAMP
+	</update>
+
+	<select id="countPlanMember" resultType="int">
+		SELECT COUNT(*)
+		  FROM PLAN_MEMBER
+		 WHERE PLAN_ID = #{planId}
+		   AND MEMBER_ID = #{memberId}
+	</select>
+
+</mapper>

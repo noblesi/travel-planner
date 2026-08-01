@@ -28,6 +28,11 @@ public interface TravelPlanMapper {
 			@Param("memberId") long memberId
 	);
 
+	PlanEditorPlan findActiveAccessiblePlanForEditor(
+			@Param("planId") long planId,
+			@Param("memberId") long memberId
+	);
+
 	int updateTravelDates(
 			@Param("planId") long planId,
 			@Param("memberId") long memberId,

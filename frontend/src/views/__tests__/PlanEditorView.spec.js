@@ -107,6 +107,7 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('서울특별시 여행')
     expect(wrapper.text()).toContain('여행 일정')
     expect(wrapper.text()).toContain('2일')
+    expect(wrapper.get('.invite-panel-link').text()).toContain('동행자 초대')
     expect(wrapper.findAll('.day-tab')).toHaveLength(2)
     expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
     expect(wrapper.text()).toContain('서울특별시의 관광정보를 TourAPI에서 검색합니다.')

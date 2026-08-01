@@ -47,9 +47,10 @@ const router = createRouter({
       props: true,
     },
     {
-      path: '/invite',
+      path: '/plans/:id/invite',
       name: 'invite',
       component: () => import('@/views/Invite/InviteView.vue'),
+      props: true,
     },
     {
       path: '/invite/accept',

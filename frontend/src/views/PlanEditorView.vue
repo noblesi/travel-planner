@@ -408,6 +408,13 @@ onBeforeUnmount(editorStore.resetEditor)
             </div>
           </div>
 
+          <RouterLink
+            class="invite-panel-link"
+            :to="{ name: 'invite', params: { id: plan.planId } }"
+          >
+            동행자 초대 링크 만들기
+          </RouterLink>
+
           <section
             class="metadata-editor"
             :aria-label="editingMetadata ? undefined : '플랜 정보 변경'"
@@ -727,6 +734,21 @@ onBeforeUnmount(editorStore.resetEditor)
   border-radius: 12px;
   background: #fff;
   font-weight: 750;
+}
+
+.invite-panel-link {
+  display: grid;
+  min-height: 42px;
+  margin-top: 14px;
+  padding: 0 16px;
+  place-items: center;
+  color: #e8443a;
+  border: 1px solid #ffc2bd;
+  border-radius: 12px;
+  background: #fff8f7;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
 }
 
 .back-button {

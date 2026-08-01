@@ -94,7 +94,7 @@ public class TravelPlanService {
 	public PlanEditorResponse getPlanEditor(String planIdValue) {
 		long planId = parsePlanId(planIdValue);
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		PlanEditorPlan plan = findOwnedPlanForEditor(planId, memberId);
+		PlanEditorPlan plan = findAccessiblePlanForEditor(planId, memberId);
 
 		return buildPlanEditorResponse(planId, plan);
 	}
@@ -203,6 +203,18 @@ public class TravelPlanService {
 
 	private PlanEditorPlan findOwnedPlanForEditor(long planId, long memberId) {
 		PlanEditorPlan plan = travelPlanMapper.findActiveOwnedPlanForEditor(planId, memberId);
+		if (plan == null) {
+			throw new BusinessException(
+					HttpStatus.NOT_FOUND,
+					"PLAN_NOT_FOUND",
+					"여행 플랜을 찾을 수 없습니다."
+			);
+		}
+		return plan;
+	}
+
+	private PlanEditorPlan findAccessiblePlanForEditor(long planId, long memberId) {
+		PlanEditorPlan plan = travelPlanMapper.findActiveAccessiblePlanForEditor(planId, memberId);
 		if (plan == null) {
 			throw new BusinessException(
 					HttpStatus.NOT_FOUND,

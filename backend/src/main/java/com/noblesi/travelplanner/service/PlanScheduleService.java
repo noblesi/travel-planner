@@ -389,7 +389,7 @@ public class PlanScheduleService {
 
 	private long requireOwnedPlan(long planId) {
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		if (travelPlanMapper.findActiveOwnedPlanForEditor(planId, memberId) == null) {
+		if (travelPlanMapper.findActiveAccessiblePlanForEditor(planId, memberId) == null) {
 			throw new BusinessException(
 					HttpStatus.NOT_FOUND,
 					"PLAN_NOT_FOUND",
