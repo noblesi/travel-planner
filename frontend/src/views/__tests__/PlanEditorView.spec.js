@@ -12,6 +12,7 @@ const {
   searchPlacesMock,
   updateScheduleItemMock,
   updateTravelPlanDatesMock,
+  updateTravelPlanMetadataMock,
 } = vi.hoisted(() => ({
   addScheduleItemMock: vi.fn(),
   deleteScheduleItemMock: vi.fn(),
@@ -20,6 +21,7 @@ const {
   searchPlacesMock: vi.fn(),
   updateScheduleItemMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
+  updateTravelPlanMetadataMock: vi.fn(),
 }))
 
 vi.mock('@/api/plans', () => ({
@@ -29,6 +31,7 @@ vi.mock('@/api/plans', () => ({
   reorderScheduleItems: reorderScheduleItemsMock,
   updateScheduleItem: updateScheduleItemMock,
   updateTravelPlanDates: updateTravelPlanDatesMock,
+  updateTravelPlanMetadata: updateTravelPlanMetadataMock,
 }))
 
 vi.mock('@/api/places', () => ({
@@ -88,6 +91,7 @@ beforeEach(() => {
   getTravelPlanEditorMock.mockReset().mockResolvedValue(editor)
   searchPlacesMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
+  updateTravelPlanMetadataMock.mockReset()
   addScheduleItemMock.mockReset()
   updateScheduleItemMock.mockReset()
   deleteScheduleItemMock.mockReset()
@@ -171,6 +175,48 @@ describe('PlanEditorView', () => {
 
     expect(getTravelPlanEditorMock).toHaveBeenNthCalledWith(1, '101')
     expect(getTravelPlanEditorMock).toHaveBeenNthCalledWith(2, '102')
+  })
+
+  it('플랜 제목과 공개 범위를 수정하고 최신 Version을 화면에 반영한다', async () => {
+    const updatedEditor = {
+      ...editor,
+      plan: {
+        ...editor.plan,
+        title: '서울 맛집 여행',
+        visibility: 'PUBLIC',
+        versionNo: 1,
+      },
+    }
+    updateTravelPlanMetadataMock.mockResolvedValueOnce(updatedEditor)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.metadata-editor__open').trigger('click')
+    await wrapper.get('[name="editTitle"]').setValue('  서울 맛집 여행  ')
+    await wrapper.get('[name="editVisibility"]').setValue('PUBLIC')
+    await wrapper.get('.metadata-editor__form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTravelPlanMetadataMock).toHaveBeenCalledWith('101', {
+      title: '서울 맛집 여행',
+      visibility: 'PUBLIC',
+      versionNo: 0,
+    })
+    expect(wrapper.text()).toContain('서울 맛집 여행')
+    expect(wrapper.text()).toContain('공개')
+    expect(wrapper.find('.metadata-editor__form').exists()).toBe(false)
+  })
+
+  it('빈 플랜 제목은 API를 호출하지 않고 Validation 오류를 표시한다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.metadata-editor__open').trigger('click')
+    await wrapper.get('[name="editTitle"]').setValue('   ')
+    await wrapper.get('.metadata-editor__form').trigger('submit')
+
+    expect(updateTravelPlanMetadataMock).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('플랜 제목을 입력해 주세요.')
   })
 
   it('장소 검색 결과와 선택 장소를 지도에 전달한다', async () => {

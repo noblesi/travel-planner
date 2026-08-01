@@ -16,6 +16,7 @@ import com.noblesi.travelplanner.dto.plan.CreateTravelPlanRequest;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorResponse;
 import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanDatesRequest;
+import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanMetadataRequest;
 import com.noblesi.travelplanner.service.TravelPlanService;
 
 import jakarta.validation.Valid;
@@ -42,6 +43,14 @@ public class TravelPlanController {
 	@GetMapping("/{planId}/editor")
 	public ApiResponse<PlanEditorResponse> getPlanEditor(@PathVariable String planId) {
 		return ApiResponse.success(travelPlanService.getPlanEditor(planId));
+	}
+
+	@PatchMapping("/{planId}")
+	public ApiResponse<PlanEditorResponse> updatePlanMetadata(
+			@PathVariable String planId,
+			@Valid @RequestBody UpdateTravelPlanMetadataRequest request
+	) {
+		return ApiResponse.success(travelPlanService.updateTravelPlanMetadata(planId, request));
 	}
 
 	@PatchMapping("/{planId}/dates")

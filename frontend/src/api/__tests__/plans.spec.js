@@ -6,6 +6,7 @@ import {
   getTravelPlanEditor,
   reorderScheduleItems,
   updateScheduleItem,
+  updateTravelPlanMetadata,
 } from '@/api/plans'
 import http from '@/api/http'
 
@@ -74,5 +75,16 @@ describe('getTravelPlanEditor', () => {
 
     await expect(getTravelPlanEditor('101')).resolves.toEqual(editor)
     expect(http.get).toHaveBeenCalledWith('/plans/101/editor')
+  })
+})
+
+describe('updateTravelPlanMetadata', () => {
+  it('플랜 ID와 현재 Version을 포함해 Metadata 수정 요청을 전송한다', async () => {
+    const payload = { title: '서울 맛집 여행', visibility: 'PUBLIC', versionNo: 3 }
+    const editor = { plan: { planId: '101', ...payload, versionNo: 4 }, days: [] }
+    http.patch.mockResolvedValue({ data: { data: editor } })
+
+    await expect(updateTravelPlanMetadata('101', payload)).resolves.toEqual(editor)
+    expect(http.patch).toHaveBeenCalledWith('/plans/101', payload)
   })
 })

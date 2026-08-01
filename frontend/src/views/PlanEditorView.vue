@@ -45,6 +45,11 @@ const editStartDate = ref('')
 const editEndDate = ref('')
 const removalConfirmationOpen = ref(false)
 const pendingDatePayload = ref(null)
+const editingMetadata = ref(false)
+const metadataSubmitting = ref(false)
+const metadataError = ref('')
+const editTitle = ref('')
+const editVisibility = ref('PRIVATE')
 const searchResults = ref([])
 const selectedSearchPlace = ref(null)
 
@@ -162,7 +167,80 @@ function syncDateForm(planValue = plan.value) {
   editEndDate.value = planValue?.endDate ?? ''
 }
 
+function syncMetadataForm(planValue = plan.value) {
+  editTitle.value = planValue?.title ?? ''
+  editVisibility.value = planValue?.visibility ?? 'PRIVATE'
+}
+
+function openMetadataEditor() {
+  closeDateEditor()
+  syncMetadataForm()
+  metadataError.value = ''
+  editingMetadata.value = true
+}
+
+function closeMetadataEditor() {
+  editingMetadata.value = false
+  metadataError.value = ''
+  syncMetadataForm()
+}
+
+function validateMetadata() {
+  const normalizedTitle = editTitle.value.trim()
+  if (!normalizedTitle) return '플랜 제목을 입력해 주세요.'
+  if (normalizedTitle.length > 200) return '플랜 제목은 200자 이하로 입력해 주세요.'
+  if (!['PUBLIC', 'PRIVATE'].includes(editVisibility.value)) {
+    return '공개 범위를 다시 선택해 주세요.'
+  }
+  return ''
+}
+
+function metadataApiErrorMessage(error) {
+  if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
+    return '다른 변경이 먼저 저장되어 최신 플랜 정보를 불러왔습니다. 입력 내용을 확인한 뒤 다시 저장해 주세요.'
+  }
+
+  const message = error?.response?.data?.message
+  return typeof message === 'string' && message
+    ? message
+    : '플랜 정보를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+}
+
+async function submitMetadataChange() {
+  if (metadataSubmitting.value) return
+
+  const validationMessage = validateMetadata()
+  if (validationMessage) {
+    metadataError.value = validationMessage
+    return
+  }
+
+  const normalizedTitle = editTitle.value.trim()
+  if (normalizedTitle === plan.value.title && editVisibility.value === plan.value.visibility) {
+    closeMetadataEditor()
+    return
+  }
+
+  metadataSubmitting.value = true
+  metadataError.value = ''
+
+  try {
+    const data = await editorStore.savePlanMetadata({
+      title: normalizedTitle,
+      visibility: editVisibility.value,
+      versionNo: plan.value.versionNo,
+    })
+    syncMetadataForm(data.plan)
+    editingMetadata.value = false
+  } catch (error) {
+    metadataError.value = metadataApiErrorMessage(error)
+  } finally {
+    metadataSubmitting.value = false
+  }
+}
+
 function openDateEditor() {
+  closeMetadataEditor()
   syncDateForm()
   dateError.value = ''
   editingDates.value = true
@@ -246,6 +324,7 @@ watch(
   plan,
   (planValue) => {
     if (!editingDates.value) syncDateForm(planValue)
+    if (!editingMetadata.value) syncMetadataForm(planValue)
   },
   { immediate: true },
 )
@@ -330,6 +409,80 @@ onBeforeUnmount(editorStore.resetEditor)
           </div>
 
           <section
+            class="metadata-editor"
+            :aria-label="editingMetadata ? undefined : '플랜 정보 변경'"
+            :aria-labelledby="editingMetadata ? 'metadata-editor-heading' : undefined"
+          >
+            <button
+              v-if="!editingMetadata"
+              class="metadata-editor__open"
+              type="button"
+              :disabled="isSaving || dateSubmitting"
+              @click="openMetadataEditor"
+            >
+              플랜 제목·공개 범위 변경
+            </button>
+
+            <form v-else class="metadata-editor__form" @submit.prevent="submitMetadataChange">
+              <div class="metadata-editor__heading">
+                <div>
+                  <span>PLAN SETTINGS</span>
+                  <h3 id="metadata-editor-heading">플랜 정보 변경</h3>
+                </div>
+                <button
+                  type="button"
+                  aria-label="플랜 정보 변경 닫기"
+                  :disabled="metadataSubmitting"
+                  @click="closeMetadataEditor"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div class="metadata-editor__fields">
+                <label>
+                  <span>플랜 제목</span>
+                  <input
+                    v-model="editTitle"
+                    name="editTitle"
+                    type="text"
+                    maxlength="200"
+                    autocomplete="off"
+                    :disabled="metadataSubmitting"
+                  />
+                </label>
+                <label>
+                  <span>공개 범위</span>
+                  <select
+                    v-model="editVisibility"
+                    name="editVisibility"
+                    :disabled="metadataSubmitting"
+                  >
+                    <option value="PRIVATE">비공개</option>
+                    <option value="PUBLIC">공개</option>
+                  </select>
+                </label>
+              </div>
+
+              <p class="metadata-editor__notice">
+                공개 플랜은 다른 사용자가 탐색할 수 있습니다.
+              </p>
+              <p v-if="metadataError" class="metadata-editor__error" role="alert">
+                {{ metadataError }}
+              </p>
+
+              <div class="metadata-editor__actions">
+                <button type="button" :disabled="metadataSubmitting" @click="closeMetadataEditor">
+                  취소
+                </button>
+                <button type="submit" :disabled="metadataSubmitting" :aria-busy="metadataSubmitting">
+                  {{ metadataSubmitting ? '저장 중...' : '플랜 정보 저장' }}
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section
             class="date-editor"
             :aria-label="editingDates ? undefined : '여행 날짜 변경'"
             :aria-labelledby="editingDates ? 'date-editor-heading' : undefined"
@@ -338,7 +491,7 @@ onBeforeUnmount(editorStore.resetEditor)
               v-if="!editingDates"
               class="date-editor__open"
               type="button"
-              :disabled="isSaving"
+              :disabled="isSaving || metadataSubmitting"
               @click="openDateEditor"
             >
               여행 날짜 변경
@@ -448,7 +601,7 @@ onBeforeUnmount(editorStore.resetEditor)
                   v-if="morningItems.length"
                   :items="morningItems"
                   time-slot="MORNING"
-                  :disabled="dateSubmitting"
+                  :disabled="dateSubmitting || metadataSubmitting"
                   @move-up="moveScheduleItemPosition($event, -1)"
                   @move-down="moveScheduleItemPosition($event, 1)"
                   @move-time-slot="moveScheduleItem($event, 'AFTERNOON')"
@@ -467,7 +620,7 @@ onBeforeUnmount(editorStore.resetEditor)
                   v-if="afternoonItems.length"
                   :items="afternoonItems"
                   time-slot="AFTERNOON"
-                  :disabled="dateSubmitting"
+                  :disabled="dateSubmitting || metadataSubmitting"
                   @move-up="moveScheduleItemPosition($event, -1)"
                   @move-down="moveScheduleItemPosition($event, 1)"
                   @move-time-slot="moveScheduleItem($event, 'MORNING')"
@@ -498,7 +651,7 @@ onBeforeUnmount(editorStore.resetEditor)
               :region-code="plan.regionCode"
               :region-name="plan.regionName"
               :selected-place-id="selectedSearchPlaceId"
-              :schedule-disabled="dateSubmitting || !selectedDay"
+              :schedule-disabled="dateSubmitting || metadataSubmitting || !selectedDay"
               @results-change="updateSearchResults"
               @select="selectSearchPlace"
               @add="addSearchPlace"
@@ -803,10 +956,12 @@ onBeforeUnmount(editorStore.resetEditor)
   white-space: nowrap;
 }
 
+.metadata-editor,
 .date-editor {
   margin-top: 14px;
 }
 
+.metadata-editor__open,
 .date-editor__open {
   width: 100%;
   min-height: 42px;
@@ -819,9 +974,125 @@ onBeforeUnmount(editorStore.resetEditor)
   cursor: pointer;
 }
 
+.metadata-editor__open:disabled,
 .date-editor__open:disabled {
   cursor: not-allowed;
   opacity: 0.48;
+}
+
+.metadata-editor__form {
+  padding: 16px;
+  border: 1px solid #ffd0cc;
+  border-radius: 16px;
+  background: #fffafa;
+}
+
+.metadata-editor__heading,
+.metadata-editor__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.metadata-editor__heading span {
+  color: #ff5a4e;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.metadata-editor__heading h3 {
+  margin: 3px 0 0;
+  color: #334155;
+  font-size: 16px;
+}
+
+.metadata-editor__heading > button {
+  width: 32px;
+  height: 32px;
+  color: #64748b;
+  border: 0;
+  border-radius: 9px;
+  background: #f1f5f9;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.metadata-editor__fields {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.metadata-editor__fields label {
+  display: grid;
+  gap: 6px;
+}
+
+.metadata-editor__fields label > span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.metadata-editor__fields input,
+.metadata-editor__fields select {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
+  color: #334155;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+}
+
+.metadata-editor__notice,
+.metadata-editor__error {
+  margin: 11px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.metadata-editor__notice {
+  color: #64748b;
+}
+
+.metadata-editor__error {
+  color: #b91c1c;
+}
+
+.metadata-editor__actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.metadata-editor__actions button {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.metadata-editor__actions button:last-child {
+  color: #fff;
+  border-color: #ff5a4e;
+  background: #ff5a4e;
+}
+
+.metadata-editor__actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.date-editor {
+  margin-top: 10px;
 }
 
 .save-error {
