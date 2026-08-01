@@ -2,16 +2,26 @@
 import { RouterLink, useRouter } from 'vue-router'
 
 import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.png'
+import { useAuthStore } from '@/stores/auth'
 
-const haederRouter = useRouter()
-const loginCheck = false;
+const router = useRouter()
+const authStore = useAuthStore()
 
 const moveLoginPage = () => {
-  haederRouter.push('/loginView')
+  router.push('/loginView')
 }
 
 const moveJoinPage = () => {
-  haederRouter.push('/joinView')
+  router.push('/joinView')
+}
+
+const handleLogout = async () => {
+  try {
+    await authStore.logout()
+    await router.push('/')
+  } catch {
+    // Store에 사용자에게 표시할 오류를 유지하고 현재 화면에 머뭅니다.
+  }
 }
 </script>
 
@@ -30,13 +40,20 @@ const moveJoinPage = () => {
       </nav>
 
       <div class="header__actions">
-        <div v-if="!loginCheck">
+        <div v-if="!authStore.isAuthenticated">
           <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage">로그인</button>
           <button class="primary-button" type="button" v-on:click="moveJoinPage">회원가입</button>
         </div>
-        <div v-if="loginCheck">
-          <!-- 알람 이미지 버튼 만들어야 함 -->
-          <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage"></button>
+        <div v-else class="authenticated-actions">
+          <span class="member-name">{{ authStore.currentUser.displayName }}</span>
+          <button
+            class="text-button"
+            type="button"
+            :disabled="authStore.pending"
+            v-on:click="handleLogout"
+          >
+            로그아웃
+          </button>
         </div>
       </div>
     </div>
@@ -94,6 +111,18 @@ const moveJoinPage = () => {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.authenticated-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.member-name {
+  color: #374151;
+  font-size: 14px;
+  font-weight: 650;
 }
 
 .text-button,
