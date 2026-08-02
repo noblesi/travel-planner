@@ -1,24 +1,30 @@
 <script setup>
-import { RouterLink, useRouter } from 'vue-router'
+import { ref, watch } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.png'
 import { useAuthStore } from '@/stores/auth'
 
+const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+const isMenuOpen = ref(false)
 
-const moveLoginPage = () => {
-  router.push('/loginView')
+const closeMenu = () => {
+  isMenuOpen.value = false
 }
 
-const moveJoinPage = () => {
-  router.push('/joinView')
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
 }
+
+watch(() => route.fullPath, closeMenu)
 
 const handleLogout = async () => {
   try {
     await authStore.logout()
-    await router.push('/')
+    closeMenu()
+    await router.push({ name: 'home' })
   } catch {
     // Store에 사용자에게 표시할 오류를 유지하고 현재 화면에 머뭅니다.
   }
@@ -26,35 +32,79 @@ const handleLogout = async () => {
 </script>
 
 <template>
-  <header class="header">
-    <div class="header__inner">
-      <RouterLink class="brand" to="/" aria-label="WithTrip 홈">
+  <header class="header" @keydown.esc="closeMenu">
+    <div class="app-container header__inner">
+      <RouterLink class="brand" :to="{ name: 'home' }" aria-label="WithTrip 홈" @click="closeMenu">
         <img class="brand__mark" :src="headerLogoUrl" alt="" width="40" height="40" />
         <span>WithTrip</span>
       </RouterLink>
 
-      <nav class="navigation" aria-label="주요 메뉴">
-        <RouterLink to="/">홈</RouterLink>
-        <a href="/plans">일정 탐색</a>
-        <a href="/announcements">공지사항</a>
+      <nav
+        id="primary-navigation"
+        :class="['navigation', { 'navigation--open': isMenuOpen }]"
+        aria-label="주요 메뉴"
+      >
+        <RouterLink class="navigation__link" :to="{ name: 'home' }" @click="closeMenu">홈</RouterLink>
+        <RouterLink class="navigation__link" :to="{ name: 'plan-search' }" @click="closeMenu">
+          일정 탐색
+        </RouterLink>
+        <RouterLink
+          class="navigation__link"
+          :to="{ name: 'announcements-list' }"
+          @click="closeMenu"
+        >
+          공지사항
+        </RouterLink>
+
+        <div class="navigation__account">
+          <template v-if="!authStore.isAuthenticated">
+            <RouterLink class="navigation__account-link" :to="{ name: 'login' }" @click="closeMenu">
+              로그인
+            </RouterLink>
+            <RouterLink
+              class="navigation__account-link navigation__account-link--primary"
+              :to="{ name: 'join' }"
+              @click="closeMenu"
+            >
+              회원가입
+            </RouterLink>
+          </template>
+          <template v-else>
+            <span class="member-name">{{ authStore.currentUser.displayName }}</span>
+            <button type="button" :disabled="authStore.pending" @click="handleLogout">로그아웃</button>
+          </template>
+        </div>
       </nav>
 
       <div class="header__actions">
-        <div v-if="!authStore.isAuthenticated">
-          <button class="text-button" type="button" id="loginBtn" v-on:click="moveLoginPage">로그인</button>
-          <button class="primary-button" type="button" v-on:click="moveJoinPage">회원가입</button>
+        <div v-if="!authStore.isAuthenticated" class="desktop-actions">
+          <RouterLink id="loginBtn" class="text-button" :to="{ name: 'login' }">로그인</RouterLink>
+          <RouterLink class="primary-button" :to="{ name: 'join' }">회원가입</RouterLink>
         </div>
-        <div v-else class="authenticated-actions">
+        <div v-else class="desktop-actions authenticated-actions">
           <span class="member-name">{{ authStore.currentUser.displayName }}</span>
           <button
             class="text-button"
             type="button"
             :disabled="authStore.pending"
-            v-on:click="handleLogout"
+            @click="handleLogout"
           >
             로그아웃
           </button>
         </div>
+
+        <button
+          :class="['menu-button', { 'menu-button--open': isMenuOpen }]"
+          type="button"
+          aria-controls="primary-navigation"
+          :aria-expanded="isMenuOpen"
+          :aria-label="isMenuOpen ? '주요 메뉴 닫기' : '주요 메뉴 열기'"
+          @click="toggleMenu"
+        >
+          <span aria-hidden="true" />
+          <span aria-hidden="true" />
+          <span aria-hidden="true" />
+        </button>
       </div>
     </div>
   </header>
@@ -65,18 +115,17 @@ const handleLogout = async () => {
   position: sticky;
   top: 0;
   z-index: 11;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid rgb(226 232 240 / 90%);
   background: rgb(255 255 255 / 92%);
   backdrop-filter: blur(12px);
 }
 
 .header__inner {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  width: min(1180px, calc(100% - 40px));
-  min-height: 72px;
-  margin: 0 auto;
+  min-height: var(--layout-header-height);
 }
 
 .brand {
@@ -84,7 +133,7 @@ const handleLogout = async () => {
   gap: 10px;
   align-items: center;
   width: fit-content;
-  color: #0f766e;
+  color: var(--color-brand);
   font-size: 21px;
   font-weight: 800;
 }
@@ -103,8 +152,40 @@ const handleLogout = async () => {
   font-weight: 650;
 }
 
-.navigation a:hover {
-  color: #0f766e;
+.navigation__link {
+  position: relative;
+  display: inline-flex;
+  min-height: var(--layout-header-height);
+  align-items: center;
+  transition: color 150ms ease;
+}
+
+.navigation__link::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--color-brand-accent);
+  content: '';
+  opacity: 0;
+  transform: scaleX(0.6);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.navigation__link:hover,
+.navigation__link.router-link-active {
+  color: var(--color-brand);
+}
+
+.navigation__link.router-link-active::after {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.navigation__account {
+  display: none;
 }
 
 .header__actions {
@@ -113,10 +194,15 @@ const handleLogout = async () => {
   gap: 10px;
 }
 
+.desktop-actions,
 .authenticated-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.authenticated-actions {
+  justify-content: flex-end;
 }
 
 .member-name {
@@ -127,7 +213,10 @@ const handleLogout = async () => {
 
 .text-button,
 .primary-button {
+  display: inline-flex;
   min-height: 40px;
+  align-items: center;
+  justify-content: center;
   padding: 0 16px;
   border-radius: 10px;
   cursor: pointer;
@@ -139,22 +228,138 @@ const handleLogout = async () => {
 }
 
 .primary-button {
-  color: white;
-  border: 1px solid #0f766e;
-  background: #0f766e;
+  color: var(--color-brand-on);
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.primary-button:hover {
+  border-color: var(--color-brand-hover);
+  background: var(--color-brand-hover);
+}
+
+.menu-button {
+  display: none;
+  width: 42px;
+  height: 42px;
+  padding: 9px;
+  border: 1px solid var(--color-brand-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.menu-button span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-text);
+  transition: transform 150ms ease, opacity 150ms ease;
+}
+
+.menu-button--open span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.menu-button--open span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-button--open span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+@media (max-width: 900px) {
+  .navigation {
+    gap: 24px;
+  }
 }
 
 @media (max-width: 760px) {
   .header__inner {
     grid-template-columns: 1fr auto;
+    min-height: 64px;
   }
 
   .navigation {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    flex-direction: column;
+    gap: 4px;
+    display: none;
+    padding: 12px var(--layout-gutter) 18px;
+    border: 1px solid var(--color-brand-border);
+    border-top: 0;
+    border-radius: 0 0 16px 16px;
+    background: rgb(255 255 255 / 98%);
+    box-shadow: 0 18px 40px rgb(15 23 42 / 12%);
+    backdrop-filter: blur(12px);
+  }
+
+  .navigation--open {
+    display: flex;
+  }
+
+  .navigation__link {
+    min-height: 44px;
+    justify-content: flex-start;
+    padding: 0 12px;
+    border-radius: 9px;
+  }
+
+  .navigation__link::after {
     display: none;
   }
 
-  .text-button {
+  .navigation__link.router-link-active {
+    background: var(--color-brand-soft);
+  }
+
+  .navigation__account {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 14px;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .navigation__account-link,
+  .navigation__account button {
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-brand-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-brand);
+    font-weight: 700;
+  }
+
+  .navigation__account-link--primary {
+    border-color: var(--color-brand);
+    background: var(--color-brand);
+    color: var(--color-brand-on);
+  }
+
+  .navigation__account .member-name {
+    padding-left: 12px;
+  }
+
+  .desktop-actions {
     display: none;
+  }
+
+  .menu-button {
+    display: grid;
+    align-content: center;
+    gap: 4px;
   }
 }
 </style>

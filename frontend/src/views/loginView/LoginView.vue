@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import { getSafeAuthenticationRedirect } from '@/utils/authRedirect'
@@ -99,9 +99,9 @@ const handleContinue = async () => {
 
       <!-- 하단 네비게이션 가이드 -->
       <div class="footer-links">
-        <p class="signup-prompt">신규 사용자이신가요? <a href="/joinView">가입하기</a></p>
-        <p class="signup-prompt">이메일를 잊으셨나요? <a href="/emailFind">이메일 찿기</a></p>
-        <p class="signup-prompt">비밀번호를 잊으셨나요? <a href="/passwordFind">비밀번호 찿기</a></p>
+        <p class="signup-prompt">신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink></p>
+        <p class="signup-prompt">이메일을 잊으셨나요? <RouterLink :to="{ name: 'emailFind' }">이메일 찾기</RouterLink></p>
+        <p class="signup-prompt">비밀번호를 잊으셨나요? <RouterLink :to="{ name: 'passwordFind' }">비밀번호 찾기</RouterLink></p>
       </div>
      
 

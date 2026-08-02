@@ -108,7 +108,7 @@ function goBackToPlan() {
 
 <template>
   <DefaultLayout>
-    <main class="invite-page">
+    <div class="invite-page">
       <section class="invite-card" aria-labelledby="invite-title">
         <template v-if="!hasCreatedInvitations">
           <p class="eyebrow">INVITE TRAVELERS</p>
@@ -196,7 +196,7 @@ function goBackToPlan() {
           </div>
         </template>
       </section>
-    </main>
+    </div>
   </DefaultLayout>
 </template>
 

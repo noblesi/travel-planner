@@ -165,7 +165,7 @@ onMounted(verifyToken)
 .logo {
   font-size: 16px;
   font-weight: 700;
-  color: #0f766e;
+  color: var(--color-brand);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -194,7 +194,7 @@ onMounted(verifyToken)
   width: 36px;
   height: 36px;
   border: 3px solid #f0e0de;
-  border-top-color: #0f766e;
+  border-top-color: var(--color-brand-accent);
   border-radius: 50%;
   margin: 0 auto 1.25rem;
   animation: spin .8s linear infinite;
@@ -294,7 +294,7 @@ onMounted(verifyToken)
 .accept-btn {
   width: 100%;
   padding: 14px;
-  background: #0f766e;
+  background: var(--color-brand);
   color: #fff;
   border: none;
   border-radius: 26px;
@@ -303,7 +303,7 @@ onMounted(verifyToken)
   cursor: pointer;
 }
 .accept-btn:hover {
-  background: #0c5c56;
+  background: var(--color-brand-hover);
 }
 .accept-btn:disabled {
   background: #e0b8b0;
@@ -312,14 +312,14 @@ onMounted(verifyToken)
 
 .error-text {
   font-size: 12.5px;
-  color: #0f766e;
+  color: var(--color-danger);
   margin-top: 10px;
 }
 
 /* 만료/오류 상태 */
 .expired-icon {
   font-size: 40px;
-  color: #0f766e;
+  color: var(--color-brand-accent);
   margin-bottom: 1.25rem;
 }
 .expired-title {
@@ -336,7 +336,7 @@ onMounted(verifyToken)
 .home-btn {
   width: 100%;
   padding: 14px;
-  background: #0f766e;
+  background: var(--color-brand);
   color: #fff;
   border: none;
   border-radius: 26px;
@@ -345,6 +345,6 @@ onMounted(verifyToken)
   cursor: pointer;
 }
 .home-btn:hover {
-  background: #0c5c56;
+  background: var(--color-brand-hover);
 }
 </style>

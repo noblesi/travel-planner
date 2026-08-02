@@ -1,6 +1,6 @@
 <template>
   <DefaultLayout>
-    <div class="search-page">
+    <div class="app-container search-page">
 
       <div class="pg-head">
         <div class="eyebrow">DISCOVER ITINERARIES</div>
@@ -63,7 +63,7 @@
         <div class="divider"></div>
         <div class="empty-illus" aria-hidden="true">
           <svg width="200" height="200" viewBox="0 0 148 148" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="74" cy="74" r="62" fill="#eef8f6" stroke="#f0e0de" stroke-width="1" />
+            <circle cx="74" cy="74" r="62" fill="var(--color-brand-soft)" stroke="var(--color-brand-border)" stroke-width="1" />
             <circle cx="74" cy="74" r="40" fill="none" stroke="#e8d5d2" stroke-width="1.5" />
             <line x1="74" y1="34" x2="74" y2="114" stroke="#e0d0ce" stroke-width="1" stroke-dasharray="3 3" />
             <line x1="34" y1="74" x2="114" y2="74" stroke="#e0d0ce" stroke-width="1" stroke-dasharray="3 3" />
@@ -71,12 +71,12 @@
             <text x="74" y="124" text-anchor="middle" font-size="9" fill="#bbb">S</text>
             <text x="122" y="78" text-anchor="middle" font-size="9" fill="#bbb">E</text>
             <text x="26" y="78" text-anchor="middle" font-size="9" fill="#bbb">W</text>
-            <polygon points="74,48 78,74 74,70 70,74" fill="#0f766e" />
+            <polygon points="74,48 78,74 74,70 70,74" fill="var(--color-brand-accent)" />
             <polygon points="74,100 78,74 74,78 70,74" fill="#ccc" />
             <circle cx="74" cy="74" r="4" fill="#fff" stroke="#ddd" stroke-width="1.5" />
             <circle cx="104" cy="44" r="13" fill="#fff" stroke="#f0e0de" stroke-width="1" />
-            <line x1="98.5" y1="38.5" x2="109.5" y2="49.5" stroke="#0f766e" stroke-width="2.2" stroke-linecap="round" />
-            <line x1="109.5" y1="38.5" x2="98.5" y2="49.5" stroke="#0f766e" stroke-width="2.2" stroke-linecap="round" />
+            <line x1="98.5" y1="38.5" x2="109.5" y2="49.5" stroke="var(--color-brand-accent)" stroke-width="2.2" stroke-linecap="round" />
+            <line x1="109.5" y1="38.5" x2="98.5" y2="49.5" stroke="var(--color-brand-accent)" stroke-width="2.2" stroke-linecap="round" />
           </svg>
         </div>
 
@@ -324,11 +324,9 @@ function regionColorKey(region) {
   font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   background: #ffffff;
   color: #1a1a1a;
-  max-width: 1280px;
-  margin: 0 auto;
   /* 헤더/푸터가 레이아웃으로 감싸는 구조이므로,
      페이지 자체는 아래쪽에 큰 여백을 두지 않고 다음 요소(푸터)에 맡긴다. */
-  padding: 0 3rem 1.5rem;
+  padding-block: 0 1.5rem;
 }
 
 .pg-head {
@@ -339,7 +337,7 @@ function regionColorKey(region) {
 .eyebrow {
   font-size: 13px;
   letter-spacing: .14em;
-  color: #0f766e;
+  color: var(--color-brand);
   margin-bottom: .6rem;
   text-transform: uppercase;
 }
@@ -383,7 +381,8 @@ function regionColorKey(region) {
 }
 
 .search-input:focus {
-  border-color: #0f766e;
+  border-color: var(--color-brand-accent);
+  box-shadow: 0 0 0 3px var(--color-brand-focus);
 }
 
 .suggested-tags {
@@ -413,9 +412,9 @@ function regionColorKey(region) {
 }
 
 .suggested-tag:hover {
-  border-color: #0f766e;
-  background: #eef8f6;
-  color: #0f766e;
+  border-color: var(--color-brand-accent);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
 }
 
 .result-meta {
@@ -428,7 +427,7 @@ function regionColorKey(region) {
 }
 
 .result-count em {
-  color: #0f766e;
+  color: var(--color-brand);
   font-style: normal;
   font-weight: 600;
 }
@@ -572,11 +571,11 @@ function regionColorKey(region) {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background-color: #d9f0ed;
+  background-color: var(--color-brand-soft);
   background-size: cover;
   background-position: center;
   font-size: 11px;
-  color: #0f766e;
+  color: var(--color-brand);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -612,7 +611,7 @@ function regionColorKey(region) {
 
 /* 좋아요 수치는 카드 hover 시 브랜드 컬러로 살짝 강조해서 "인터랙션 대상"이라는 신호를 준다. */
 .card:hover .stat-like {
-  color: #0f766e;
+  color: var(--color-brand);
 }
 
 
@@ -671,7 +670,7 @@ function regionColorKey(region) {
 }
 
 .empty-sub em {
-  color: #0f766e;
+  color: var(--color-brand);
   font-style: normal;
 }
 
@@ -700,14 +699,14 @@ function regionColorKey(region) {
 }
 
 .suggest-chip:hover {
-  border-color: #0f766e;
-  color: #0f766e;
+  border-color: var(--color-brand-accent);
+  color: var(--color-brand);
 }
 
 .browse-btn {
   padding: 14px 36px;
-  background: #0f766e;
-  color: #fff;
+  background: var(--color-brand);
+  color: var(--color-brand-on);
   border-radius: 26px;
   font-size: 16px;
   border: none;
@@ -715,6 +714,6 @@ function regionColorKey(region) {
 }
 
 .browse-btn:hover {
-  background: #0c5c56;
+  background: var(--color-brand-hover);
 }
 </style>
