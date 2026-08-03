@@ -20,9 +20,7 @@
     <!-- 오른쪽 로그인 영역 -->
     <section class="login-section">
       <div class="service-logo">
-        <!-- 로고 이미지가 없어도 테스트 가능 -->
-        <!-- <img src="/images/withtrip-logo.png" alt="WithTrip 로고" /> -->
-
+        <img :src="mainLogo" alt="WithTrip" />
         <p>친구들과 함께 여행을 계획하다</p>
       </div>
 
@@ -71,6 +69,8 @@
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
+
+import mainLogo from '@/assets/branding/travel-planner-logo-header.png'
 
 interface AdminLoginForm {
   adminId: string
@@ -183,9 +183,9 @@ const handleLogin = () => {
 
 .service-logo img {
   display: block;
-  width: 86px;
-  height: 32px;
-  margin: 0 auto 7px;
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 9px;
   object-fit: contain;
 }
 

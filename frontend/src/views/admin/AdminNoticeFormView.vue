@@ -2,8 +2,11 @@
 import { computed, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { useToastStore } from '@/stores/toast'
+
 const route = useRoute()
 const router = useRouter()
+const toast = useToastStore()
 const isEditMode = computed(() => route.name === 'admin-notice-edit')
 
 const form = reactive({
@@ -13,6 +16,7 @@ const form = reactive({
 })
 
 const submitNotice = () => {
+  toast.success(`공지사항이 ${isEditMode.value ? '수정' : '등록'}되었습니다.`)
   router.push({ name: 'admin-notices' })
 }
 </script>
