@@ -1,5 +1,16 @@
 import http from './http'
 
+export async function searchPublicPlans({ keyword = '', limit = 100 } = {}) {
+  const response = await http.get('/plans', { params: { keyword, limit } })
+  return response.data.data
+}
+
+export async function getPublicTravelPlan(planId) {
+  const encodedPlanId = encodeURIComponent(String(planId))
+  const response = await http.get(`/plans/${encodedPlanId}`)
+  return response.data.data
+}
+
 export async function createTravelPlan(payload) {
   const response = await http.post('/plans', payload)
   return response.data.data

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.MemberMapper">
+
+	<resultMap id="authenticatedMemberResultMap" type="com.noblesi.travelplanner.domain.member.AuthenticatedMember">
+		<constructor>
+			<idArg column="MEMBER_ID" javaType="_long" />
+			<arg column="EMAIL" javaType="string" />
+			<arg column="DISPLAY_NAME" javaType="string" />
+			<arg column="PASSWORD_HASH" javaType="string" />
+			<arg column="MEMBER_STATUS" javaType="string" />
+		</constructor>
+	</resultMap>
+
+	<select id="findForEmailAuthentication" resultMap="authenticatedMemberResultMap">
+		SELECT MEMBER_ID,
+		       EMAIL,
+		       NICKNAME AS DISPLAY_NAME,
+		       PASSWORD_HASH,
+		       MEMBER_STATUS
+		  FROM MEMBER
+		 WHERE LOWER(EMAIL) = #{email}
+	</select>
+
+</mapper>

@@ -20,7 +20,13 @@
         }}</button>
       </div>
 
-      <div v-if="hasSearched" class="result-meta">
+      <div v-if="loading" class="status-wrap" role="status">공개 일정을 불러오는 중이에요.</div>
+      <div v-else-if="errorMessage" class="status-wrap status-wrap--error" role="alert">
+        <span>{{ errorMessage }}</span>
+        <button type="button" @click="loadPlans(searchedKeyword)">다시 시도</button>
+      </div>
+
+      <div v-if="hasSearched && !loading" class="result-meta">
         <div class="result-count">
           "{{ searchedKeyword }}" 검색 결과
           <em v-if="filteredPlans.length > 0">{{ filteredPlans.length }}개</em>
@@ -28,8 +34,8 @@
         </div>
       </div>
 
-      <div v-if="!hasSearched || filteredPlans.length > 0" class="grid">
-        <div v-for="plan in displayedPlans" :key="plan.id" class="card" @click="goToDetail(plan.id)">
+      <div v-if="!loading && !errorMessage && (!hasSearched || filteredPlans.length > 0)" class="grid">
+        <button v-for="plan in displayedPlans" :key="plan.id" type="button" class="card" @click="goToDetail(plan.id)">
           <div class="card-img-wrap">
             <div class="card-img" :style="{ backgroundImage: `url(${plan.thumbImage})` }"></div>
             <div class="badge-days">{{ plan.days }}일</div>
@@ -52,14 +58,14 @@
               </div>
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       <div v-if="hasMore" class="more">
         <button class="more-btn" @click="loadMore">일정 더 보기</button>
       </div>
 
-      <div v-if="hasSearched && filteredPlans.length === 0" class="empty-wrap">
+      <div v-if="!loading && !errorMessage && hasSearched && filteredPlans.length === 0" class="empty-wrap">
         <div class="divider"></div>
         <div class="empty-illus" aria-hidden="true">
           <svg width="200" height="200" viewBox="0 0 148 148" xmlns="http://www.w3.org/2000/svg">
@@ -102,8 +108,9 @@
 
 <script setup>
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import { ref, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { searchPublicPlans } from '@/api/plans'
 
 const router = useRouter()
 const route = useRoute()
@@ -113,133 +120,12 @@ function goToDetail(planId) {
   router.push({ name: 'plan-detail', params: { id: planId } })
 }
 
-// ── mock 데이터: 백엔드 연동 시 이 부분을 API 호출로 교체 ──
-// 예: const plans = ref([]); onMounted(async () => { plans.value = await api.get('/plans') })
-const plans = ref([
-  {
-    id: 1, title: '남산에서 한강까지 서울 야경 코스', region: '서울',
-    description: 'N서울타워부터 반포 달빛무지개분수까지, 서울의 밤을 완성하는 루트',
-    days: 3, likeCount: 318, viewCount: 2100, authorInitials: 'YK', authorName: '여행하는광인', authorAvatar: 'https://i.pravatar.cc/80?u=YK1',
-    thumbImage: 'https://picsum.photos/seed/seoul-namsan/640/440',
-  },
-  {
-    id: 2, title: '경복궁 & 북촌 한옥마을 당일 코스', region: '서울',
-    description: '한복 입고 경복궁 거닐고 북촌 골목길 산책, 서울 속 조선 시대 여행',
-    days: 2, likeCount: 452, viewCount: 3000, authorInitials: 'HS', authorName: '한스랑산책', authorAvatar: 'https://i.pravatar.cc/80?u=HS2',
-    thumbImage: 'https://picsum.photos/seed/seoul-hanok/640/440',
-  },
-  {
-    id: 3, title: '성수동 카페 & 팝업 투어', region: '서울',
-    description: '서울에서 가장 힙한 동네, 성수동 핫플레이스를 반나절에 다 돌기',
-    days: 1, likeCount: 267, viewCount: 1700, authorInitials: 'MJ', authorName: '민지의하루', authorAvatar: 'https://i.pravatar.cc/80?u=MJ3',
-    thumbImage: 'https://picsum.photos/seed/seoul-cafe/640/440',
-  },
-  {
-    id: 4, title: '뚝섬 한강공원 피크닉 & 자전거', region: '서울',
-    description: '돗자리, 치맥, 자전거까지 한강을 200% 즐기는 도심 힐링 하루',
-    days: 1, likeCount: 389, viewCount: 2400, authorInitials: 'PL', authorName: '플랜러', authorAvatar: 'https://i.pravatar.cc/80?u=PL4',
-    thumbImage: 'https://picsum.photos/seed/seoul-han-river/640/440',
-  },
-  {
-    id: 5, title: '해운대 & 광안리 부산 바다 여행', region: '부산',
-    description: '해운대 해수욕장부터 광안대교 야경까지, 부산 바다의 정수만 담은 일정',
-    days: 2, likeCount: 521, viewCount: 3800, authorInitials: 'KW', authorName: '강원도사람', authorAvatar: 'https://i.pravatar.cc/80?u=KW5',
-    thumbImage: 'https://picsum.photos/seed/busan-beach/640/440',
-  },
-  {
-    id: 6, title: '한라산 등반 & 제주 동쪽 드라이브', region: '제주',
-    description: '한라산 정상부터 성산일출봉까지, 제주 자연을 깊게 경험하는 4일 코스',
-    days: 4, likeCount: 476, viewCount: 3200, authorInitials: 'SR', authorName: '설레는여행', authorAvatar: 'https://i.pravatar.cc/80?u=SR6',
-    thumbImage: 'https://picsum.photos/seed/jeju-mountain/640/440',
-  },
-  {
-    id: 7, title: '전주 한옥마을 & 비빔밥 미식 여행', region: '전주',
-    description: '700채 한옥이 모인 전주 한옥마을에서 먹고 걷고 쉬는 느린 여행',
-    days: 2, likeCount: 334, viewCount: 2000, authorInitials: 'JH', authorName: '진하게한잔', authorAvatar: 'https://i.pravatar.cc/80?u=JH7',
-    thumbImage: 'https://picsum.photos/seed/jeonju-hanok/640/440',
-  },
-  {
-    id: 8, title: '경주 천년 고도 역사 탐방 3일', region: '경주',
-    description: '불국사, 석굴암, 대릉원까지 신라 천년의 숨결을 따라가는 역사 여행',
-    days: 3, likeCount: 298, viewCount: 1900, authorInitials: 'TK', authorName: '탐구생활', authorAvatar: 'https://i.pravatar.cc/80?u=TK8',
-    thumbImage: 'https://picsum.photos/seed/gyeongju-history/640/440',
-  },
-  {
-    id: 9, title: '속초 산과 바다 힐링 여행', region: '속초',
-    description: '설악산과 바다를 하루씩 나눠 즐기는 2박3일 속초 투어',
-    days: 3, likeCount: 241, viewCount: 1500, authorInitials: 'WJ', authorName: '원정대장', authorAvatar: 'https://i.pravatar.cc/80?u=WJ9',
-    thumbImage: 'https://picsum.photos/seed/sokcho-nature/640/440',
-  },
-  {
-    id: 10, title: '강릉 바다와 커피 여행', region: '강릉',
-    description: '2025-2026년 베케이션으로 여름 붐빔을 위한 카페 투어',
-    days: 2, likeCount: 356, viewCount: 2400, authorInitials: 'DH', authorName: '동해바다', authorAvatar: 'https://i.pravatar.cc/80?u=DH10',
-    thumbImage: 'https://picsum.photos/seed/gangneung-coffee/640/440',
-  },
-  {
-    id: 11, title: '여수 밤바다 완벽 코스', region: '여수',
-    description: '4박5일 여수를 제대로 보러 낮과 밤 여행 코스로 오다',
-    days: 3, likeCount: 289, viewCount: 1700, authorInitials: 'YT', authorName: '여수밤바다', authorAvatar: 'https://i.pravatar.cc/80?u=YT11',
-    thumbImage: 'https://picsum.photos/seed/yeosu-night/640/440',
-  },
-  {
-    id: 12, title: '인천 차이나타운 & 송도 야경 투어', region: '인천',
-    description: '짜장면의 원조 차이나타운부터 송도 센트럴파크 야경까지',
-    days: 1, likeCount: 178, viewCount: 1100, authorInitials: 'IC', authorName: '인천사는사람', authorAvatar: 'https://i.pravatar.cc/80?u=IC12',
-    thumbImage: 'https://picsum.photos/seed/incheon-town/640/440',
-  },
-  {
-    id: 13, title: '통영 바다케이블카 & 동피랑 벽화마을', region: '통영',
-    description: '한려수도 절경을 케이블카로, 알록달록 벽화마을 산책까지',
-    days: 2, likeCount: 312, viewCount: 2000, authorInitials: 'TY', authorName: '통영투어러', authorAvatar: 'https://i.pravatar.cc/80?u=TY13',
-    thumbImage: 'https://picsum.photos/seed/tongyeong-cable/640/440',
-  },
-  {
-    id: 14, title: '춘천 닭갈비 & 남이섬 당일치기', region: '춘천',
-    description: '숯불 닭갈비 맛집 투어와 남이섬 메타세쿼이아 길 산책',
-    days: 1, likeCount: 203, viewCount: 1400, authorInitials: 'CC', authorName: '춘천치즈', authorAvatar: 'https://i.pravatar.cc/80?u=CC14',
-    thumbImage: 'https://picsum.photos/seed/chuncheon-food/640/440',
-  },
-  {
-    id: 15, title: '거제도 바람의 언덕 드라이브', region: '거제',
-    description: '해안도로를 따라 바람의 언덕, 외도 보타니아까지 이어지는 코스',
-    days: 2, likeCount: 267, viewCount: 1800, authorInitials: 'GJ', authorName: '거제도민', authorAvatar: 'https://i.pravatar.cc/80?u=GJ15',
-    thumbImage: 'https://picsum.photos/seed/geoje-drive/640/440',
-  },
-  {
-    id: 16, title: '안동 하회마을 전통문화 체험', region: '안동',
-    description: '유네스코 세계유산 하회마을에서 즐기는 조선시대 전통 문화 체험',
-    days: 2, likeCount: 156, viewCount: 980, authorInitials: 'AD', authorName: '안동선비', authorAvatar: 'https://i.pravatar.cc/80?u=AD16',
-    thumbImage: 'https://picsum.photos/seed/andong-culture/640/440',
-  },
-  {
-    id: 17, title: '목포 근대문화유산 골목 여행', region: '목포',
-    description: '일제강점기 건축물이 남아있는 근대문화거리를 걷는 느린 여행',
-    days: 1, likeCount: 134, viewCount: 890, authorInitials: 'MP', authorName: '목포항구', authorAvatar: 'https://i.pravatar.cc/80?u=MP17',
-    thumbImage: 'https://picsum.photos/seed/mokpo-history/640/440',
-  },
-  {
-    id: 18, title: '보성 녹차밭 힐링 산책', region: '보성',
-    description: '초록빛 녹차밭 사이를 걷는 초여름 힐링 코스',
-    days: 1, likeCount: 198, viewCount: 1200, authorInitials: 'BS', authorName: '보성녹차', authorAvatar: 'https://i.pravatar.cc/80?u=BS18',
-    thumbImage: 'https://picsum.photos/seed/boseong-tea/640/440',
-  },
-  {
-    id: 19, title: '군산 근대역사 & 이성당 빵지순례', region: '군산',
-    description: '일제강점기 건축물 탐방과 전국구 유명 빵집 투어까지',
-    days: 1, likeCount: 223, viewCount: 1500, authorInitials: 'GS', authorName: '군산빵순이', authorAvatar: 'https://i.pravatar.cc/80?u=GS19',
-    thumbImage: 'https://picsum.photos/seed/gunsan-bakery/640/440',
-  },
-  {
-    id: 20, title: '단양 패러글라이딩 & 도담삼봉', region: '단양',
-    description: '하늘에서 내려다보는 단양팔경과 도담삼봉 트레킹 코스',
-    days: 2, likeCount: 287, viewCount: 1900, authorInitials: 'DY', authorName: '단양패러', authorAvatar: 'https://i.pravatar.cc/80?u=DY20',
-    thumbImage: 'https://picsum.photos/seed/danyang-activity/640/440',
-  },
-])
-
 const suggestedCities = ['서울', '제주', '부산', '경주', '전주']
 const pageSize = 8
+const plans = ref([])
+const loading = ref(false)
+const errorMessage = ref('')
+let loadSequence = 0
 
 // ── URL 쿼리에서 검색 상태 복원 (뒤로가기로 돌아왔을 때 검색어/더보기 개수 유지) ──
 const keyword = ref(route.query.keyword || '') // 입력받은 키워드 (사용자가 이미 검색했을 시 검색한 키워드 할당)
@@ -247,15 +133,7 @@ const searchedKeyword = ref(route.query.keyword || '') // 사용자가 실제로
 const hasSearched = ref(!!route.query.keyword) // 사용자가 검색했는지 여부
 const visibleCount = ref(Number(route.query.count) || pageSize) // 화면에 보여줄 플랜 수
 
-// API에서 데이터를 얻어오는 방식으로 변경
-const filteredPlans = computed(() => {
-  if (!hasSearched.value) return plans.value
-  const kw = searchedKeyword.value.trim()
-  if (!kw) return plans.value
-  return plans.value.filter(
-    (p) => p.title.includes(kw) || p.region.includes(kw)
-  )
-})
+const filteredPlans = computed(() => plans.value)
 
 const displayedPlans = computed(() => filteredPlans.value.slice(0, visibleCount.value))
 const hasMore = computed(() => visibleCount.value < filteredPlans.value.length)
@@ -271,11 +149,40 @@ function syncUrl() {
   router.replace({ query })
 }
 
-function handleSearch() {
+async function loadPlans(searchKeyword = '') {
+  const sequence = ++loadSequence
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const result = await searchPublicPlans({ keyword: searchKeyword, limit: 100 })
+    if (sequence !== loadSequence) return
+    plans.value = result.plans.map((plan) => ({
+      id: plan.planId,
+      title: plan.title,
+      region: plan.regionName,
+      days: plan.dayCount,
+      likeCount: plan.likeCount,
+      viewCount: plan.viewCount,
+      authorInitials: Array.from(plan.authorName || '여행자').slice(0, 2).join(''),
+      authorName: plan.authorName,
+      authorAvatar: plan.authorProfileImageUrl,
+      thumbImage: plan.thumbnailImageUrl || `https://picsum.photos/seed/withtrip-${plan.planId}/640/440`,
+    }))
+  } catch {
+    if (sequence !== loadSequence) return
+    plans.value = []
+    errorMessage.value = '공개 일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    if (sequence === loadSequence) loading.value = false
+  }
+}
+
+async function handleSearch() {
   searchedKeyword.value = keyword.value.trim()
   hasSearched.value = true
   visibleCount.value = pageSize
   syncUrl()
+  await loadPlans(searchedKeyword.value)
 }
 
 function searchSuggested(city) {
@@ -283,11 +190,13 @@ function searchSuggested(city) {
   handleSearch()
 }
 
-function resetSearch() {
+async function resetSearch() {
   keyword.value = ''
+  searchedKeyword.value = ''
   hasSearched.value = false
   visibleCount.value = pageSize
   syncUrl()
+  await loadPlans()
 }
 
 function loadMore() {
@@ -313,6 +222,8 @@ function regionColorKey(region) {
   }
   return REGION_COLOR_KEYS[hash]
 }
+
+onMounted(() => loadPlans(searchedKeyword.value))
 </script>
 
 <style scoped>
@@ -421,6 +332,30 @@ function regionColorKey(region) {
   margin-bottom: 1.25rem;
 }
 
+.status-wrap {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #777;
+  text-align: center;
+}
+
+.status-wrap--error {
+  flex-direction: column;
+  color: #8a4c45;
+}
+
+.status-wrap button {
+  border: 1px solid var(--color-brand-border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: #fff;
+  color: var(--color-brand);
+  cursor: pointer;
+}
+
 .result-count {
   font-size: 15px;
   color: #666;
@@ -448,6 +383,10 @@ function regionColorKey(region) {
   border-radius: 16px;
   border: 1px solid #ebebeb;
   overflow: hidden;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
   transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 }

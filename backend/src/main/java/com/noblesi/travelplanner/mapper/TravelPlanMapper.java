@@ -1,6 +1,7 @@
 package com.noblesi.travelplanner.mapper;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -8,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import com.noblesi.travelplanner.domain.plan.ParticipantType;
 import com.noblesi.travelplanner.domain.plan.PlanEditorPlan;
 import com.noblesi.travelplanner.domain.plan.PlanVisibility;
+import com.noblesi.travelplanner.domain.plan.PublicTravelPlan;
 import com.noblesi.travelplanner.domain.plan.TravelPlan;
 
 @Mapper
@@ -32,6 +34,17 @@ public interface TravelPlanMapper {
 			@Param("planId") long planId,
 			@Param("memberId") long memberId
 	);
+
+	List<PublicTravelPlan> findPublicPlans(
+			@Param("keyword") String keyword,
+			@Param("limit") int limit
+	);
+
+	int countPublicPlans(@Param("keyword") String keyword);
+
+	PublicTravelPlan findPublicPlanById(@Param("planId") long planId);
+
+	int incrementPublicPlanViewCount(@Param("planId") long planId);
 
 	int updateTravelDates(
 			@Param("planId") long planId,
