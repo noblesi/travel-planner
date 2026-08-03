@@ -152,18 +152,18 @@ const statusLabel = (status) => (status === 'success' ? '성공' : '부분 성�
         <table>
           <thead>
             <tr>
-              <th>작업번호</th>
+              <th class="text-column">작업번호</th>
               <th>시작 일시</th>
               <th>종료 일시</th>
               <th>변경</th>
               <th>실패</th>
               <th>상태</th>
-              <th>실행자</th>
+              <th class="text-column">실행자</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="history in paginatedHistory" :key="history.id">
-              <td>{{ history.id }}</td>
+              <td class="text-column history-id">{{ history.id }}</td>
               <td>{{ history.startedAt }}</td>
               <td>{{ history.endedAt }}</td>
               <td>{{ history.changedCount.toLocaleString() }}</td>
@@ -173,7 +173,7 @@ const statusLabel = (status) => (status === 'success' ? '성공' : '부분 성�
                   {{ statusLabel(history.status) }}
                 </AdminStatusBadge>
               </td>
-              <td>{{ history.manager }}</td>
+              <td class="text-column history-manager">{{ history.manager }}</td>
             </tr>
           </tbody>
         </table>
@@ -390,6 +390,21 @@ td {
   color: #565c65;
   font-size: 12px;
   text-align: center;
+  vertical-align: middle;
+}
+
+th.text-column,
+td.text-column {
+  text-align: left;
+}
+
+th.text-column {
+  padding: 9px 12px;
+}
+
+.history-id,
+.history-manager {
+  font-weight: 700;
 }
 
 th {

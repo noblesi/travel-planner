@@ -172,10 +172,10 @@ const confirmStatusChange = () => {
         <table>
           <thead>
             <tr>
-              <th>아이디</th>
-              <th>이름</th>
-              <th>닉네임</th>
-              <th>이메일</th>
+              <th class="text-column">아이디</th>
+              <th class="text-column">이름</th>
+              <th class="text-column">닉네임</th>
+              <th class="text-column">이메일</th>
               <th>가입일</th>
               <th>여행 플랜</th>
               <th>신고 누적</th>
@@ -193,10 +193,10 @@ const confirmStatusChange = () => {
               @click="router.push({ name: 'admin-member-detail', params: { memberId: member.id } })"
               @keydown.enter="router.push({ name: 'admin-member-detail', params: { memberId: member.id } })"
             >
-              <td>{{ member.id }}</td>
-              <td>{{ member.name }}</td>
-              <td>{{ member.nickname }}</td>
-              <td class="member-email">{{ member.email }}</td>
+              <td class="text-column member-id">{{ member.id }}</td>
+              <td class="text-column member-name">{{ member.name }}</td>
+              <td class="text-column member-nickname">{{ member.nickname }}</td>
+              <td class="text-column member-email">{{ member.email }}</td>
 
               <td>{{ member.joinDate }}</td>
               <td>{{ member.trips }}건</td>
@@ -389,7 +389,7 @@ const confirmStatusChange = () => {
 .table-wrapper {
   min-height: 340px;
   overflow-x: auto;
-  border: 1px solid #d8dce2;
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
 }
 
@@ -401,7 +401,7 @@ table {
 }
 
 thead {
-  background: #e2e5e9;
+  background: #f4eee9;
 }
 
 th {
@@ -414,10 +414,20 @@ th {
 td {
   height: 52px;
   padding: 8px 14px;
-  border-bottom: 1px solid #d8dce2;
+  border-bottom: 1px solid var(--admin-border);
   color: #464b52;
   font-size: 13px;
   text-align: center;
+  vertical-align: middle;
+}
+
+th.text-column,
+td.text-column {
+  text-align: left;
+}
+
+th.text-column {
+  padding: 0 14px;
 }
 
 th:nth-child(1) {
@@ -456,8 +466,12 @@ th:nth-child(9) {
 }
 
 .member-email {
-  text-align: left;
   word-break: break-all;
+}
+
+.member-id,
+.member-name {
+  font-weight: 700;
 }
 
 .status-badge {
@@ -490,27 +504,25 @@ th:nth-child(9) {
 .management-buttons {
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .management-buttons button {
-  min-width: 42px;
-  height: 25px;
+  height: 26px;
   padding: 0 8px;
   border-radius: 5px;
   background: #ffffff;
   font-size: 11px;
-  font-weight: 700;
   cursor: pointer;
 }
 
-.detail-button,
-.activate-button {
+.detail-button {
   border: 1px solid #aeb5be;
   color: #6c737c;
 }
 
-.suspend-button {
+.suspend-button,
+.activate-button {
   border: 1px solid #ff8a80;
   color: #f06860;
 }
