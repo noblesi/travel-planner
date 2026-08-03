@@ -254,6 +254,7 @@ function formatCount(n) {
   padding: 2rem 3rem;
   display: flex;
   align-items: flex-start;
+  min-width: 0;
 }
 
 .detail-card {
@@ -266,6 +267,7 @@ function formatCount(n) {
   padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .detail-head {
@@ -274,6 +276,7 @@ function formatCount(n) {
   gap: 14px;
   margin-bottom: 1.5rem;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 /* 뒤로가기는 텍스트 없이 아이콘만 보여주는 원형 버튼으로 컴팩트하게 */
@@ -304,6 +307,7 @@ function formatCount(n) {
   color: #1a1a1a;
   flex-shrink: 0;
   white-space: nowrap;
+  min-width: 0;
 }
 
 /* 작성자/날짜 정보를 제목 옆에 나란히 배치. margin-left는 주지 않고 gap으로만 간격을 준다. */
@@ -396,13 +400,14 @@ function formatCount(n) {
 
 .detail-body {
   display: grid;
-  grid-template-columns: 180px 1fr 320px;
+  grid-template-columns: 180px minmax(0, 1fr) 320px;
   gap: 20px;
   /* detail-card가 이제 고정 height를 가지므로, 헤더(detail-head)를 제외한
      나머지 공간을 정확히 차지한다. min-height: 0은 grid 자식이 내용 크기만큼
      늘어나 버리는(overflow가 무시되는) 문제를 막기 위해 필요하다. */
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 .day-sidebar {
@@ -653,5 +658,121 @@ function formatCount(n) {
   font-size: 12.5px;
   color: #1a1a1a;
   font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .detail-page {
+    padding: 16px 12px 24px;
+  }
+
+  .detail-card {
+    height: auto;
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .detail-head {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 6px 12px;
+    margin-bottom: 20px;
+  }
+
+  .back-link {
+    grid-row: 1 / span 2;
+  }
+
+  .plan-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .plan-author {
+    grid-column: 2;
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .head-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-left: 0;
+    padding-top: 6px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .import-btn {
+    margin-left: auto;
+    padding: 8px 14px;
+  }
+
+  .detail-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .day-sidebar {
+    min-height: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 0 8px;
+    scroll-snap-type: x proximity;
+  }
+
+  .day-sidebar::-webkit-scrollbar {
+    width: auto;
+    height: 6px;
+  }
+
+  .day-item {
+    flex: 0 0 104px;
+    padding: 12px 14px;
+    scroll-snap-align: start;
+  }
+
+  .day-content {
+    min-height: auto;
+    padding: 18px 16px;
+    overflow: visible;
+  }
+
+  .day-content-head {
+    position: static;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+
+  .day-content-num {
+    font-size: 18px;
+  }
+
+  .place-card {
+    padding: 14px;
+  }
+
+  .place-name,
+  .place-desc {
+    overflow-wrap: anywhere;
+  }
+
+  .day-map {
+    min-height: auto;
+    padding: 16px;
+    overflow: visible;
+  }
+
+  .map-canvas {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-width: 360px) {
+  .import-btn {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 </style>

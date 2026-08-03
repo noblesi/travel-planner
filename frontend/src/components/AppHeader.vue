@@ -50,7 +50,7 @@ const handleLogout = async () => {
         </RouterLink>
         <RouterLink
           class="navigation__link"
-          :to="{ name: 'announcements-list' }"
+          :to="{ name: 'notice-list' }"
           @click="closeMenu"
         >
           공지사항
