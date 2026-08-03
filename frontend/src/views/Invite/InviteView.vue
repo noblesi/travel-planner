@@ -11,33 +11,6 @@ const props = defineProps({
 
 const router = useRouter()
 
-const PLAN_EDIT_ROUTE_NAME = 'plan-editor'
-
-function goBackToPlan() {
-  // 1순위: 브라우저 히스토리로 돌아가기.
-  // "편집 화면 → 동행자 초대 버튼 → 이 페이지"로 들어온 일반적인 경우,
-  // 이전 화면(스크롤 위치 포함)으로 정확히 되돌아간다.
-  //
-  // 2순위(폴백): 히스토리가 없는 경우 — 예를 들어 초대 이메일 안의 링크를 통해
-  // 이 페이지로 "새로 진입"한 경우(뒤로 갈 히스토리 자체가 없음) — 에는
-  // planId를 이용해 편집 화면으로 직접 이동한다.
-  // window.history.state.back이 null이면 이 탭에서 뒤로 갈 히스토리가 없다는 뜻이다.
-  const hasHistory = window.history.state && window.history.state.back !== null
-
-  if (hasHistory) {
-    router.back()
-    return
-  }
-
-  if (PLAN_EDIT_ROUTE_NAME && props.id) {
-    // plan-editor 라우트는 파라미터명이 planId이다 (/plans/:planId/edit).
-    router.push({ name: PLAN_EDIT_ROUTE_NAME, params: { planId: props.id } })
-  } else {
-    // 편집 화면 라우트가 아직 없으므로 임시로 탐색 페이지로 보낸다.
-    router.push({ name: 'plan-search' })
-  }
-}
-
 const emailInput = ref('')
 const invitedEmails = ref([])
 const createdInvitations = ref([])
@@ -237,7 +210,6 @@ function createMore() {
   justify-content: center;
   padding: 4rem 2rem;
   background: #fafafa;
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
 }
 
 .invite-card {
@@ -247,6 +219,7 @@ function createMore() {
   border: 1px solid #eee;
   border-radius: 16px;
   background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
 }
 
 .eyebrow {
@@ -278,6 +251,10 @@ function createMore() {
   gap: 10px;
 }
 
+.input-row {
+  gap: 16px;
+}
+
 .email-input,
 .link-row input {
   min-width: 0;
@@ -290,8 +267,8 @@ function createMore() {
 
 .email-input:focus,
 .link-row input:focus {
-  border-color: #ff5a4e;
-  outline: 3px solid rgb(255 90 78 / 12%);
+  border-color: var(--color-brand-accent);
+  outline: none;
 }
 
 .add-btn,
@@ -309,9 +286,16 @@ function createMore() {
 .add-btn,
 .send-btn,
 .link-row button {
-  color: #fff;
-  border: 1px solid #ff5a4e;
-  background: #ff5a4e;
+  color: var(--color-brand-on);
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand);
+}
+
+.add-btn:hover,
+.send-btn:hover,
+.link-row button:hover {
+  border-color: var(--color-brand-hover);
+  background: var(--color-brand-hover);
 }
 
 .back-btn {
@@ -357,9 +341,9 @@ button:disabled {
   height: 32px;
   flex-shrink: 0;
   place-items: center;
-  color: #e8443a;
+  color: var(--color-brand);
   border-radius: 50%;
-  background: #fff0ee;
+  background: var(--color-brand-soft);
   font-weight: 700;
 }
 
@@ -382,6 +366,7 @@ button:disabled {
 
 .send-btn {
   width: 100%;
+  margin-top: 1.5rem;
 }
 
 .success-icon {
@@ -390,9 +375,9 @@ button:disabled {
   height: 72px;
   margin: 0 auto 1.5rem;
   place-items: center;
-  color: #e8443a;
+  color: var(--color-brand);
   border-radius: 50%;
-  background: #fff0ee;
+  background: var(--color-brand-soft);
   font-size: 32px;
 }
 

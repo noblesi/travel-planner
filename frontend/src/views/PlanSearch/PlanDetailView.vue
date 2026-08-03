@@ -21,13 +21,13 @@
           </div>
 
           <div class="head-actions">
-            <button class="like-stat" :class="{ liked: plan.liked }" @click="toggleLike">
-              <i class="ti ti-heart" aria-hidden="true"></i> {{ plan.likeCount }}
+            <button class="report-btn" title="신고하기" @click="showReportModal = true">
+              <i class="ti ti-flag" aria-hidden="true"></i>
             </button>
             <span class="view-stat"><i class="ti ti-eye" aria-hidden="true"></i> {{ formatCount(plan.viewCount)
             }}</span>
-            <button class="report-btn" title="신고하기" @click="showReportModal = true">
-              <i class="ti ti-flag" aria-hidden="true"></i>
+            <button class="like-stat" :class="{ liked: plan.liked }" @click="toggleLike">
+              <i class="ti ti-heart" aria-hidden="true"></i> {{ plan.likeCount }}
             </button>
             <button class="import-btn" @click="showImportModal = true">전체 일정 가져오기</button>
           </div>
@@ -37,8 +37,11 @@
           <div class="day-sidebar">
             <button v-for="day in plan.days" :key="day.dayNumber" class="day-item"
               :class="{ active: selectedDay === day.dayNumber }" @click="selectDay(day.dayNumber)">
-              <div class="day-num">DAY {{ day.dayNumber }}</div>
-              <div class="day-date">{{ day.dateLabel }}</div>
+              <div class="day-item-bar"></div>
+              <div class="day-item-body">
+                <div class="day-num">DAY {{ day.dayNumber }}</div>
+                <div class="day-date">{{ day.dateLabel }}</div>
+              </div>
             </button>
           </div>
 
@@ -48,18 +51,22 @@
               <span class="day-content-date">{{ currentDay.fullDateLabel }}</span>
             </div>
 
-            <div v-for="section in groupedPlaces" :key="section.timeSlot" class="time-section"
-              :class="section.timeSlot === '오전' ? 'time-section--morning' : 'time-section--afternoon'">
-              <div class="time-section-head">
-                <span class="time-section-label">{{ section.timeSlot }}</span>
-                <span class="time-section-count">{{ section.places.length }}곳</span>
-              </div>
-              <div class="place-list">
-                <div v-for="place in section.places" :key="place.id" class="place-row">
-                  <div class="place-bar"></div>
-                  <div class="place-card">
-                    <div class="place-name">{{ place.name }}</div>
-                    <div class="place-desc">{{ place.description }}</div>
+            <div class="day-content-body">
+              <div v-for="section in groupedPlaces" :key="section.timeSlot" class="time-section"
+                :class="section.timeSlot === '오전' ? 'time-section--morning' : 'time-section--afternoon'">
+                <div class="time-section-head">
+                  <span class="time-section-label">{{ section.timeSlot }}</span>
+                  <span class="time-section-count">{{ section.places.length }}곳</span>
+                </div>
+                <div class="place-list">
+                  <!-- TODO: 일정(place-row) 클릭 시 KakaoMap.vue의 해당 마커를 클릭한 것처럼
+                       활성화(포커스/인포윈도우 오픈 등)하는 이벤트 연동 추가 예정 -->
+                  <div v-for="place in section.places" :key="place.id" class="place-row">
+                    <div class="place-bar"></div>
+                    <div class="place-card">
+                      <div class="place-name">{{ place.name }}</div>
+                      <div class="place-desc">{{ place.description }}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -68,7 +75,7 @@
 
           <div class="day-map">
             <div class="map-head">
-              <span>DAY {{ currentDay.dayNumber }} 동선</span>
+              <span>DAY {{ currentDay.dayNumber }} 일정 위치</span>
               <span class="map-count">장소 {{ currentDay.places.length }}곳</span>
             </div>
             <div class="map-canvas">
@@ -79,10 +86,6 @@
               <div class="summary-row">
                 <span class="summary-label">오늘 방문 장소</span>
                 <span class="summary-value">{{ currentDay.places.length }}곳</span>
-              </div>
-              <div class="summary-row">
-                <span class="summary-label">오전 · 오후</span>
-                <span class="summary-value">{{ morningCount }}곳 · {{ afternoonCount }}곳</span>
               </div>
               <div class="summary-row">
                 <span class="summary-label">여행 진행</span>
@@ -207,10 +210,6 @@ function selectDay(dayNumber) {
   router.replace({ query: { ...route.query, day: dayNumber } })
 }
 
-// DAY 요약 패널용 계산: 오전/오후 개수
-const morningCount = computed(() => currentDay.value.places.filter((p) => p.timeSlot === '오전').length)
-const afternoonCount = computed(() => currentDay.value.places.filter((p) => p.timeSlot === '오후').length)
-
 // 장소를 시간대(오전/오후)별로 묶어서 섹션 단위로 보여주기 위한 계산.
 // 카드마다 라벨을 반복해서 붙이는 대신, 같은 시간대는 헤더 하나 아래로 묶는다.
 // 순서는 항상 오전 → 오후로 고정하고, 해당 시간대에 장소가 없으면 섹션 자체를 표시하지 않는다.
@@ -252,9 +251,16 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
   box-sizing: border-box;
 }
 
+/* 홈 화면과 같은 브랜드 글로우를 좌우 여백 곳곳에 비정형적으로 흩뿌린다. 카드(.detail-card)가
+   불투명한 흰 배경이라 카드에 안 가려지는 여백에서만 은은하게 드러난다. */
 .detail-page {
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-  background: #f7f6f4;
+  background:
+    radial-gradient(circle at 4% 8%, rgb(249 115 22 / 8%) 0%, rgb(249 115 22 / 0%) 38%),
+    radial-gradient(circle at 97% 22%, rgb(249 115 22 / 6.5%) 0%, rgb(249 115 22 / 0%) 32%),
+    radial-gradient(circle at 2% 55%, rgb(249 115 22 / 6%) 0%, rgb(249 115 22 / 0%) 35%),
+    radial-gradient(circle at 96% 68%, rgb(249 115 22 / 7%) 0%, rgb(249 115 22 / 0%) 34%),
+    radial-gradient(circle at 6% 90%, rgb(249 115 22 / 5%) 0%, rgb(249 115 22 / 0%) 28%),
+    #f7f6f4;
   padding: 2rem 3rem;
   display: flex;
   align-items: flex-start;
@@ -317,17 +323,16 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
   height: 36px;
   flex-shrink: 0;
   font-size: 18px;
-  color: #999;
-  background: #fafafa;
+  color: #1a1a1a;
+  background: #f0f0f0;
   border: none;
   border-radius: 50%;
   cursor: pointer;
-  transition: background .15s, color .15s;
+  transition: background .15s;
 }
 
 .back-link:hover {
-  background: #f0f0f0;
-  color: #1a1a1a;
+  background: #e4e4e4;
 }
 
 .plan-title {
@@ -372,33 +377,43 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 14px;
-  color: #999;
-  background: none;
-  border: none;
+  font-size: 16px;
+  color: #666;
+  background: #f0f0f0;
+  border: 1px solid #d8d8d8;
+  border-radius: 20px;
+  padding: 6px 14px;
   cursor: pointer;
-  transition: color .15s;
+  transition: color .15s, background .15s, border-color .15s;
+}
+
+.like-stat:hover {
+  color: var(--color-brand);
+  background: var(--color-brand-soft);
+  border-color: var(--color-brand-border);
 }
 
 .like-stat.liked {
   color: var(--color-brand);
+  background: var(--color-brand-soft);
+  border-color: var(--color-brand-border);
 }
 
 .view-stat {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 14px;
-  color: #bbb;
+  font-size: 16px;
+  color: #888;
 }
 
 .report-btn {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  border: 1px solid #eee;
+  border: 1px solid #d8d8d8;
   background: #fff;
-  color: #999;
+  color: #666;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -416,7 +431,7 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
   background: var(--color-brand);
   color: var(--color-brand-on);
   border-radius: 20px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   border: none;
   cursor: pointer;
@@ -442,10 +457,13 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 .day-sidebar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 14px;
+  background: #f0f0f0;
+  border-radius: 14px;
+  padding: 14px 10px 14px 14px;
   overflow-y: auto;
-  padding-right: 4px;
   min-height: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
 }
 
 /* DAY가 많아져 사이드바가 넘칠 때를 위한 스크롤바 스타일 */
@@ -463,25 +481,56 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 }
 
 .day-item {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
   text-align: left;
-  padding: 14px 16px;
+  padding: 0;
   border-radius: 10px;
   border: none;
-  background: #fafafa;
+  background: #fff;
   cursor: pointer;
   transition: all .15s;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+}
+
+.day-item:not(.active):hover {
+  background: #f7f7f7;
 }
 
 .day-item.active {
-  background: var(--color-brand-soft);
+  background: #fce3ce;
+}
+
+/* 며칠짜리 일정이든(1일이든 8일이든) 박스 하나하나가 완결된 카드처럼 보이도록,
+   각 day-item 왼쪽에 진행 인디케이터 역할의 컬러바를 둔다. */
+.day-item-bar {
+  width: 6px;
+  align-self: stretch;
+  border-radius: 10px 0 0 10px;
+  background: #aaaaaa;
+  flex-shrink: 0;
+}
+
+.day-item.active .day-item-bar {
+  background: var(--color-brand-accent);
+}
+
+.day-item-body {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  padding: 20px 16px 20px 0;
 }
 
 .day-num {
   font-size: 15px;
   font-weight: 700;
   color: #888;
-  margin-bottom: 3px;
 }
 
 .day-item.active .day-num {
@@ -490,41 +539,52 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 
 .day-date {
   font-size: 12px;
-  color: #bbb;
+  color: #888;
+}
+
+.day-item.active .day-date {
+  color: var(--color-brand);
 }
 
 .day-content {
-  background: #fafafa;
+  background: #f0f0f0;
   border-radius: 14px;
   padding: 24px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
-}
-
-/* 장소가 많아져 DAY 콘텐츠가 넘칠 때를 위한 스크롤바 스타일 */
-.day-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.day-content::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 3px;
-}
-
-.day-content::-webkit-scrollbar-thumb:hover {
-  background: #c5c5c5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
 }
 
 .day-content-head {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  position: sticky;
-  top: -24px;
-  margin: -24px -24px 20px;
-  padding: 24px 24px 14px;
-  background: #fafafa;
-  z-index: 10;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #d8d8d8;
+  flex-shrink: 0;
+}
+
+/* 헤더는 스크롤 영역 밖에 고정 배치하고, 실제 장소 목록만 이 안에서 스크롤되게 분리한다.
+   이렇게 해야 스크롤바가 헤더 뒤까지 이어지지 않고 목록이 시작되는 지점(헤더 아래)부터 나타난다. */
+.day-content-body {
+  padding-top: 20px;
+  padding-right: 4px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.day-content-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.day-content-body::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 3px;
+}
+
+.day-content-body::-webkit-scrollbar-thumb:hover {
+  background: #c5c5c5;
 }
 
 .day-content-num {
@@ -535,7 +595,7 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 
 .day-content-date {
   font-size: 14px;
-  color: #bbb;
+  color: #888;
 }
 
 .time-section {
@@ -546,16 +606,15 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
   margin-bottom: 0;
 }
 
-/* 오전은 레드, 오후는 블루 계열로 구분. 라벨 텍스트 색과 카드 왼쪽 컬러바에 같은 색을 사용한다.
-   두 색 모두 헤더 로고(연필의 주황, 핀의 파랑)에서 뽑은 톤이라 사이트 전체 톤과 어울린다. */
+/* 오전은 레드, 오후는 블루 계열로 구분. 라벨 텍스트 색과 카드 왼쪽 컬러바에 같은 색을 사용한다. */
 .time-section--morning {
-  --slot-color: #FB633C;
-  --slot-color-dark: #AB4329;
+  --slot-color: #ef4444;
+  --slot-color-dark: var(--color-danger);
 }
 
 .time-section--afternoon {
-  --slot-color: var(--color-brand-accent);
-  --slot-color-dark: var(--color-brand);
+  --slot-color: #3b82f6;
+  --slot-color-dark: var(--color-secondary);
 }
 
 .time-section-head {
@@ -573,7 +632,7 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 
 .time-section-count {
   font-size: 12px;
-  color: #bbb;
+  color: #888;
 }
 
 .place-list {
@@ -596,10 +655,12 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 
 .place-card {
   flex: 1;
+  margin-right: 16px;
   background: #fff;
   border-radius: 10px;
   padding: 16px 18px;
   min-width: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
 }
 
 .place-name {
@@ -610,19 +671,20 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 }
 
 .place-desc {
-  font-size: 13.5px;
-  color: #999;
+  font-size: 14px;
+  color: #666;
   line-height: 1.5;
 }
 
 .day-map {
-  background: #fafafa;
+  background: #f0f0f0;
   border-radius: 14px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
 }
 
 .day-map::-webkit-scrollbar {
@@ -645,13 +707,13 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
   font-size: 14px;
   font-weight: 600;
   color: #1a1a1a;
-  margin-bottom: 14px;
+  margin-bottom: 28px;
   flex-shrink: 0;
 }
 
 .map-count {
   font-size: 12px;
-  color: #bbb;
+  color: #888;
   font-weight: 400;
 }
 
@@ -662,14 +724,19 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
   aspect-ratio: 200 / 220;
   border-radius: 10px;
   overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .15);
 }
 
 .day-summary {
-  margin-top: 18px;
+  flex: 1;
+  min-height: 0;
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 1px solid #d8d8d8;
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 10px;
-  flex-shrink: 0;
 }
 
 .summary-row {
@@ -679,12 +746,12 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 }
 
 .summary-label {
-  font-size: 12.5px;
-  color: #999;
+  font-size: 12px;
+  color: #888;
 }
 
 .summary-value {
-  font-size: 12.5px;
+  font-size: 12px;
   color: #1a1a1a;
   font-weight: 600;
 }
