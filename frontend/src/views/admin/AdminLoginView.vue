@@ -67,17 +67,12 @@
   </main>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { reactive, ref } from 'vue'
 
 import mainLogo from '@/assets/branding/travel-planner-logo-header.png'
 
-interface AdminLoginForm {
-  adminId: string
-  password: string
-}
-
-const loginForm = reactive<AdminLoginForm>({
+const loginForm = reactive({
   adminId: '',
   password: '',
 })
@@ -96,12 +91,6 @@ const handleLogin = () => {
     errorMessage.value = '비밀번호를 입력해 주세요.'
     return
   }
-
-  // 백엔드 연결 전 테스트
-  console.log('관리자 로그인 요청', {
-    adminId: loginForm.adminId,
-    password: loginForm.password,
-  })
 
   alert('로그인 테스트 성공')
 }

@@ -40,7 +40,13 @@
       <div v-if="!hasSearched || filteredPlans.length > 0" class="divider"></div>
 
       <div v-if="!hasSearched || filteredPlans.length > 0" class="grid">
-        <div v-for="plan in displayedPlans" :key="plan.id" class="card" @click="goToDetail(plan.id)">
+        <button
+          v-for="plan in displayedPlans"
+          :key="plan.id"
+          type="button"
+          class="card"
+          @click="goToDetail(plan.id)"
+        >
           <div class="card-img-wrap">
             <div class="card-img" :style="{ backgroundImage: `url(${plan.thumbImage})` }"></div>
             <div class="badge-days">{{ plan.days }}일</div>
@@ -155,7 +161,38 @@ function syncUrl() {
   router.replace({ query })
 }
 
-function handleSearch() {
+async function loadPlans(searchKeyword = '') {
+  const sequence = ++loadSequence
+  loading.value = true
+  errorMessage.value = ''
+
+  try {
+    const result = await searchPublicPlans({ keyword: searchKeyword, limit: 100 })
+    if (sequence !== loadSequence) return
+
+    plans.value = result.plans.map((plan) => ({
+      id: plan.planId,
+      title: plan.title,
+      region: plan.regionName,
+      days: plan.dayCount,
+      likeCount: plan.likeCount,
+      viewCount: plan.viewCount,
+      authorInitials: Array.from(plan.authorName || '여행자').slice(0, 2).join(''),
+      authorName: plan.authorName,
+      authorAvatar: plan.authorProfileImageUrl,
+      thumbImage:
+        plan.thumbnailImageUrl || `https://picsum.photos/seed/withtrip-${plan.planId}/640/440`,
+    }))
+  } catch {
+    if (sequence !== loadSequence) return
+    plans.value = []
+    errorMessage.value = '공개 일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    if (sequence === loadSequence) loading.value = false
+  }
+}
+
+async function handleSearch() {
   const trimmed = keyword.value.trim()
   if (!trimmed) return
   searchedKeyword.value = trimmed

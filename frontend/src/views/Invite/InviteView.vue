@@ -102,6 +102,13 @@ function createMore() {
   errorMessage.value = ''
 }
 
+function goBackToPlan() {
+  router.push({
+    name: 'plan-editor',
+    params: { planId: props.id },
+  })
+}
+
 </script>
 
 <template>
