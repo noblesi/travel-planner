@@ -1,6 +1,6 @@
 # 여행 플랜 API 계약
 
-- 계약 버전: `2026-07-31`
+- 계약 버전: `2026-08-01`
 - 상태: 일정 자동 저장 Backend 구현 기준
 - 대상 화면: 여행 플랜 설정, 여행 플랜 제작·날짜 편집·일정 편집
 - 관련 Schema: `docs/database/ddl/001_create_travel_plan_schema.sql`
@@ -20,7 +20,7 @@
 | `DELETE` | `/api/plans/{planId}/days/{dayId}/items/{itemId}` | 일정 항목 삭제 |
 | `PUT` | `/api/plans/{planId}/days/{dayId}/items/order` | 시간대별 일정 순서 변경 |
 
-장소 검색은 `place-search-api.md`를 따릅니다. 제목·공개 범위 수정과 초대 API는 후속 계약에서 추가합니다.
+장소 검색은 `place-search-api.md`, session·CSRF는 `authentication-api.md`를 따릅니다.
 
 ## Domain Enum
 
@@ -223,9 +223,9 @@ GET /api/plans/{planId}/editor
 ### 접근 규칙
 
 - `PLAN_STATUS = 'ACTIVE'`인 플랜만 조회합니다.
-- 1차 구현에서는 `OWNER_MEMBER_ID`가 현재 회원 ID인 경우에만 접근할 수 있습니다.
+- 생성자와 수락 완료한 `PLAN_MEMBER.INVITEE`가 Editor를 조회할 수 있습니다.
 - 공개 플랜의 읽기 전용 조회는 별도 API로 구현하며 Editor 접근 권한으로 사용하지 않습니다.
-- `INVITEE` 편집 권한은 인증 및 초대 권한 범위 확정 후 계약을 확장합니다.
+- `INVITEE`는 일정 항목을 편집할 수 있지만 플랜 Metadata와 날짜는 변경할 수 없습니다.
 - 삭제되었거나 존재하지 않는 플랜은 모두 `PLAN_NOT_FOUND`로 반환합니다.
 - 타인 소유 플랜도 존재 여부를 노출하지 않도록 `PLAN_NOT_FOUND`로 반환합니다.
 
@@ -547,6 +547,86 @@ Content-Type: application/json
 | `409` | `SCHEDULE_ITEM_ALREADY_EXISTS` | 같은 DAY·시간대에 동일 장소가 존재 |
 | `409` | `SCHEDULE_ITEM_LIMIT_EXCEEDED` | 시간대별 100개 제한 초과 |
 
+## 10. 플랜 Metadata 수정
+
+```http
+PATCH /api/plans/{planId}
+Content-Type: application/json
+X-CSRF-TOKEN: server-generated-token
+```
+
+```json
+{
+  "title": "서울 맛집 여행",
+  "visibility": "PUBLIC",
+  "versionNo": 3
+}
+```
+
+- 생성자만 제목과 공개 범위를 변경할 수 있습니다.
+- 제목은 공백 제거 후 1~200자이고 공개 범위는 `PUBLIC` 또는 `PRIVATE`입니다.
+- 실제 값이 변경되면 `VERSION_NO`가 1 증가하고 전체 Editor Snapshot을 반환합니다.
+- 같은 값이면 무변경 성공하며 Version을 증가시키지 않습니다.
+- 현재 Version과 다르면 `409 PLAN_VERSION_CONFLICT`입니다.
+
+## 11. 플랜 초대
+
+### 초대 생성
+
+```http
+POST /api/plans/{planId}/invitations
+Content-Type: application/json
+X-CSRF-TOKEN: server-generated-token
+```
+
+```json
+{
+  "inviteeEmails": ["friend@example.com"]
+}
+```
+
+성공 Status는 `201 Created`입니다. 이메일은 앞뒤 공백 제거와 소문자 변환 후 중복을 제거하며 한 번에 최대 20개까지 처리합니다. 같은 플랜·이메일의 기존 `PENDING` 초대는 `CANCELED`로 바꾸고 새 링크를 발급합니다.
+
+```json
+{
+  "success": true,
+  "data": {
+    "planId": "101",
+    "invitations": [
+      {
+        "invitationId": "501",
+        "inviteeEmail": "friend@example.com",
+        "token": "raw-token-returned-once",
+        "expiresAt": "2026-08-02T09:00:00Z"
+      }
+    ]
+  }
+}
+```
+
+Token 원문은 생성 응답에만 반환하고 DB에는 SHA-256 Hash만 저장합니다. 유효시간은 생성 시점부터 24시간입니다.
+
+### 초대 조회와 수락
+
+```http
+GET  /api/plan-invitations/{token}
+POST /api/plan-invitations/{token}/accept
+```
+
+- 조회는 로그인하지 않아도 가능하며 플랜 제목·지역·기간·초대 이메일·상태·만료 시각을 반환합니다.
+- 수락은 로그인 session과 CSRF token이 필요합니다.
+- 수락 회원을 `PLAN_MEMBER.INVITEE`로 등록하고 이후 일정 조회·편집을 허용합니다.
+- 초대 참여자는 플랜 Metadata와 날짜를 변경할 수 없습니다.
+- 같은 회원의 같은 token 재수락은 멱등 성공합니다.
+- 초대한 본인은 자기 초대를 수락할 수 없습니다.
+
+| Status | Code | 조건 |
+| --- | --- | --- |
+| `404` | `INVITATION_NOT_FOUND` | token 형식이 잘못됐거나 존재하지 않음 |
+| `409` | `INVITATION_NOT_AVAILABLE` | 취소·거절 등 사용할 수 없는 상태 |
+| `409` | `INVITATION_SELF_ACCEPTANCE_NOT_ALLOWED` | 초대한 본인이 수락 시도 |
+| `410` | `INVITATION_EXPIRED` | 24시간 만료 |
+
 ## Version 의미
 
 | 변경 범위 | 기준 Version | 충돌 오류 |
@@ -573,7 +653,12 @@ dto/plan/
 ├── PlanEditorSummaryResponse
 ├── PlanEditorDayResponse
 ├── PlanEditorItemResponse
+├── UpdateTravelPlanMetadataRequest
 ├── UpdateTravelPlanDatesRequest
+├── CreatePlanInvitationsRequest
+├── CreatePlanInvitationsResponse
+├── PlanInvitationResponse
+├── AcceptPlanInvitationResponse
 ├── AddScheduleItemRequest
 ├── UpdateScheduleItemRequest
 ├── DeleteScheduleItemRequest

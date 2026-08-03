@@ -24,7 +24,7 @@ flowchart LR
     D --> E[(Oracle)]
 ```
 
-UI 및 데이터 모델 원본은 [설계 자료](docs/README.md)에서 확인합니다.
+UI 및 데이터 모델 원본은 [설계 자료](docs/README.md)에서 확인합니다. 현재 적용된 사용자·관리자 공통 레이아웃, orange design token과 공통 UI Component 사용법은 [공통 레이아웃·UI Component 가이드](docs/frontend/common-layout-ui.md)를 기준으로 합니다.
 
 세부 코딩 규칙과 PR 체크리스트는 [CONTRIBUTING.md](CONTRIBUTING.md)를 확인합니다.
 
@@ -209,6 +209,7 @@ travel-planner/
 │   ├── src/api/                       # Axios 인스턴스와 API 모듈
 │   ├── src/assets/                    # 전역 스타일과 정적 자원
 │   ├── src/components/                # 재사용 컴포넌트
+│   │   └── ui/                        # Button·Input·Modal·상태·Toast 공통 UI
 │   ├── src/layouts/                   # 공통 화면 레이아웃
 │   ├── src/router/                    # Vue Router 설정
 │   ├── src/stores/                    # Pinia 전역 상태
@@ -444,6 +445,9 @@ chore: 프론트엔드 의존성 설정 수정
 ### 프론트엔드
 
 - `views`는 라우트 단위 화면, `components`는 재사용 UI로 구분합니다.
+- 사용자 화면은 `DefaultLayout`, 관리자 화면은 `AdminLayout`을 기본 레이아웃으로 사용합니다.
+- 공통 버튼·입력·Modal·비동기 상태 UI는 `src/components/ui`의 Component를 우선 사용합니다.
+- 색상과 layout 수치는 `src/assets/main.css`의 design token을 사용하고 화면별로 brand 색상을 다시 정의하지 않습니다.
 - Axios 호출은 컴포넌트에서 직접 작성하지 않고 `src/api` 모듈에 둡니다.
 - 둘 이상의 화면에서 공유하는 상태만 Pinia에 둡니다.
 - 공통 Header와 Footer는 레이아웃 컴포넌트로 관리합니다.

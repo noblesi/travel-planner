@@ -1,45 +1,32 @@
 <script setup>
 import { ref } from 'vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+
+import { useAuthStore } from '@/stores/auth'
+import { getSafeAuthenticationRedirect } from '@/utils/authRedirect'
 
 const email = ref('')
 const password = ref('')
+const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 
-const testIdTrue = "test@test.com";
-const testPassTrue = "123123123123";
-var passwordCheck = false;
-
-
-
-const handleContinue = () => {
-  
+const handleContinue = async () => {
   if (!email.value) {
-    alert('이메일 주소를 입력해주세요.')
     return
   }
 
-  if (!password.value){
-    alert('비밀번호를 입력해주세요.')
+  if (!password.value) {
     return
   }
 
-  if (password.value.length < 10){
-    alert('비밀번호는 10자 이상 입력해주셔야 합니다.')
-    return
+  try {
+    await authStore.login({ email: email.value.trim(), password: password.value })
+    await router.replace(getSafeAuthenticationRedirect(route.query.redirect))
+  } catch {
+    password.value = ''
   }
-  if(email.value != testIdTrue){
-    alert("등록된 아이디가 존재하지 않습니다.")
-    return
-  }
-  if(password.value != testPassTrue){
-    alert("비밀번호가 일치하지 않습니다.")
-    if(!passwordCheck){
-      passwordCheck=true
-    }
-    return
-  }
-
 }
-
 </script>
 
 <template>
@@ -71,17 +58,17 @@ const handleContinue = () => {
             required
           />
           <br/>
-            <!-- 비밀번호 확인란에 입력이 시작되었을 때만 메시지 노출 -->
-          <div class="passwordMatchedDiv">
-            <!-- 일치하지 않을 때 -->
-            <span v-show="passwordCheck" style="color: #ff4d4d; font-size: 14px;">
-              ❌ 비밀번호가 맞지 않습니다.
+          <div class="passwordMatchedDiv" aria-live="polite">
+            <span v-if="authStore.errorMessage" class="error-message">
+              {{ authStore.errorMessage }}
             </span>
           </div>
         </div>
 
 
-        <button type="submit" class="btn-submit">로그인</button>
+        <button type="submit" class="btn-submit" :disabled="authStore.pending">
+          {{ authStore.pending ? '로그인 중...' : '로그인' }}
+        </button>
       </form>
 
       <!-- 중앙 구분선 -->
@@ -91,7 +78,7 @@ const handleContinue = () => {
 
       <!-- 소셜 및 인증 버튼 그리드 (상단 3열) -->
       <div class="social-grid-triple">
-        <div class="gsi-material-button">
+        <button class="gsi-material-button" type="button" disabled title="Google 로그인은 준비 중입니다.">
             <div class="gsi-material-button-state"></div>
             <div class="gsi-material-button-content-wrapper">
                 <div class="gsi-material-button-icon">
@@ -103,18 +90,18 @@ const handleContinue = () => {
                     <path fill="none" d="M0 0h48v48H0z"></path>
                 </svg>
                 </div>
-                <span class="gsi-material-button-contents">Sign in with Google</span>
+                <span class="gsi-material-button-contents">Google 로그인 준비 중</span>
                 <span style="display: none;">Sign in with Google</span>
             </div>
-        </div>
+        </button>
         
       </div>
 
       <!-- 하단 네비게이션 가이드 -->
       <div class="footer-links">
-        <p class="signup-prompt">신규 사용자이신가요? <a href="/joinView">가입하기</a></p>
-        <p class="signup-prompt">이메일를 잊으셨나요? <a href="/emailFind">이메일 찿기</a></p>
-        <p class="signup-prompt">비밀번호를 잊으셨나요? <a href="/passwordFind">비밀번호 찿기</a></p>
+        <p class="signup-prompt">신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink></p>
+        <p class="signup-prompt">이메일을 잊으셨나요? <RouterLink :to="{ name: 'emailFind' }">이메일 찾기</RouterLink></p>
+        <p class="signup-prompt">비밀번호를 잊으셨나요? <RouterLink :to="{ name: 'passwordFind' }">비밀번호 찾기</RouterLink></p>
       </div>
      
 
@@ -124,8 +111,13 @@ const handleContinue = () => {
 
 <style lang="scss" scoped>
 .passwordMatchedDiv{
-  height: 14px;
+  min-height: 20px;
   text-align: center;
+}
+
+.error-message {
+  color: #b42318;
+  font-size: 13px;
 }
 // 전체 배경 배치
 .login-container {
@@ -225,6 +217,11 @@ const handleContinue = () => {
 
   &:hover {
     background-color: #1a6cb9;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.7;
   }
 }
 

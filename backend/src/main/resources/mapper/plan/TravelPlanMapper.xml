@@ -71,10 +71,48 @@
 		   AND P.PLAN_STATUS = 'ACTIVE'
 	</select>
 
+	<select id="findActiveAccessiblePlanForEditor" resultMap="planEditorResultMap">
+		SELECT P.PLAN_ID,
+		       P.TITLE,
+		       P.REGION_CODE,
+		       R.REGION_NAME,
+		       P.START_DATE,
+		       P.END_DATE,
+		       P.VISIBILITY,
+		       P.VERSION_NO
+		  FROM TRAVEL_PLAN P
+		  JOIN REGION_MASTER R
+		    ON R.REGION_CODE = P.REGION_CODE
+		 WHERE P.PLAN_ID = #{planId}
+		   AND P.PLAN_STATUS = 'ACTIVE'
+		   AND (
+		       P.OWNER_MEMBER_ID = #{memberId}
+		       OR EXISTS (
+		           SELECT 1
+		             FROM PLAN_MEMBER PM
+		            WHERE PM.PLAN_ID = P.PLAN_ID
+		              AND PM.MEMBER_ID = #{memberId}
+		              AND PM.PARTICIPANT_TYPE = 'INVITEE'
+		       )
+		   )
+	</select>
+
 	<update id="updateTravelDates">
 		UPDATE TRAVEL_PLAN
 		   SET START_DATE = #{startDate},
 		       END_DATE = #{endDate},
+		       VERSION_NO = VERSION_NO + 1,
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE PLAN_ID = #{planId}
+		   AND OWNER_MEMBER_ID = #{memberId}
+		   AND PLAN_STATUS = 'ACTIVE'
+		   AND VERSION_NO = #{versionNo}
+	</update>
+
+	<update id="updateTravelPlanMetadata">
+		UPDATE TRAVEL_PLAN
+		   SET TITLE = #{title},
+		       VISIBILITY = #{visibility},
 		       VERSION_NO = VERSION_NO + 1,
 		       UPDATED_AT = CURRENT_TIMESTAMP
 		 WHERE PLAN_ID = #{planId}

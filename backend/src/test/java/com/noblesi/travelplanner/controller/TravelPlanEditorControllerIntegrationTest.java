@@ -112,6 +112,116 @@ class TravelPlanEditorControllerIntegrationTest {
 	}
 
 	@Test
+	void updatesPlanMetadataAndKeepsExistingDays() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+		insertPlanDay(FIRST_DAY_ID, PLAN_ID, 1, "2026-08-10", 0);
+		insertPlanDay(SECOND_DAY_ID, PLAN_ID, 2, "2026-08-11", 0);
+
+		mockMvc.perform(patch("/api/plans/{planId}", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{
+							  "title": "  서울 맛집 여행  ",
+							  "visibility": "PUBLIC",
+							  "versionNo": 3
+							}
+							"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.title").value("서울 맛집 여행"))
+				.andExpect(jsonPath("$.data.plan.visibility").value("PUBLIC"))
+				.andExpect(jsonPath("$.data.plan.versionNo").value(4))
+				.andExpect(jsonPath("$.data.days", hasSize(2)))
+				.andExpect(jsonPath("$.data.days[0].planDayId").value(Long.toString(FIRST_DAY_ID)));
+	}
+
+	@Test
+	void keepsVersionWhenPlanMetadataDoesNotChange() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+
+		mockMvc.perform(patch("/api/plans/{planId}", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{
+							  "title": "서울특별시 여행",
+							  "visibility": "PRIVATE",
+							  "versionNo": 3
+							}
+							"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.versionNo").value(3));
+	}
+
+	@Test
+	void rejectsMetadataUpdateWhenPlanVersionIsStale() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+
+		mockMvc.perform(patch("/api/plans/{planId}", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{
+							  "title": "서울 맛집 여행",
+							  "visibility": "PUBLIC",
+							  "versionNo": 2
+							}
+							"""))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("PLAN_VERSION_CONFLICT"));
+	}
+
+	@Test
+	void rejectsInvalidPlanMetadata() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+
+		mockMvc.perform(patch("/api/plans/{planId}", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{
+							  "title": "   ",
+							  "visibility": null,
+							  "versionNo": -1
+							}
+							"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+				.andExpect(jsonPath("$.errors", hasSize(3)));
+	}
+
+	@Test
+	void rejectsPlanTitleLongerThanDatabaseLimit() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+		String requestBody = """
+				{
+				  "title": "%s",
+				  "visibility": "PRIVATE",
+				  "versionNo": 3
+				}
+				""".formatted("가".repeat(201));
+
+		mockMvc.perform(patch("/api/plans/{planId}", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(requestBody))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+	}
+
+	@Test
+	void hidesAnotherMembersPlanDuringMetadataUpdate() throws Exception {
+		insertPlan(PLAN_ID, 2L, "ACTIVE");
+
+		mockMvc.perform(patch("/api/plans/{planId}", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{
+							  "title": "서울 맛집 여행",
+							  "visibility": "PUBLIC",
+							  "versionNo": 3
+							}
+							"""))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"));
+	}
+
+	@Test
 	void expandsDateRangeAndKeepsSchedulesOnTheirTravelDates() throws Exception {
 		insertPlan(PLAN_ID, 1L, "ACTIVE");
 		insertPlanDay(FIRST_DAY_ID, PLAN_ID, 1, "2026-08-10", 2);

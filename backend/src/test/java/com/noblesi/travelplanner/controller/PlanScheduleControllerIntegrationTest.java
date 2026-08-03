@@ -314,6 +314,19 @@ class PlanScheduleControllerIntegrationTest {
 	}
 
 	@Test
+	void allowsInvitedPlanMemberToEditSchedule() throws Exception {
+		insertPlan(2L);
+		insertPlanMember(1L, "INVITEE");
+		insertPlanDay(0);
+
+		mockMvc.perform(post(itemsPath())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(addRequest(ADD_OPERATION_ID, 0, "100", "경복궁")))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.data.editor.days[0].items[0].placeName").value("경복궁"));
+	}
+
+	@Test
 	void hidesAnotherMembersPlan() throws Exception {
 		insertPlan(2L);
 		insertPlanDay(0);
@@ -387,6 +400,13 @@ class PlanScheduleControllerIntegrationTest {
 				    PLAN_DAY_ID, PLAN_ID, DAY_NO, TRAVEL_DATE, SCHEDULE_VERSION
 				) VALUES (?, ?, 1, DATE '2026-08-10', ?)
 				""", DAY_ID, PLAN_ID, scheduleVersion);
+	}
+
+	private void insertPlanMember(long memberId, String participantType) {
+		jdbcTemplate.update("""
+				INSERT INTO PLAN_MEMBER (PLAN_ID, MEMBER_ID, PARTICIPANT_TYPE)
+				VALUES (?, ?, ?)
+				""", PLAN_ID, memberId, participantType);
 	}
 
 	private void insertScheduleItem(

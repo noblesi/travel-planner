@@ -1,6 +1,6 @@
 <template>
   <DefaultLayout>
-    <div class="detail-page">
+    <div class="app-container detail-page">
     <div class="detail-head">
       <span class="cat-badge" :class="'badge-' + (notice.category ?? 'guide')">{{ notice.categoryLabel }}</span>
       <h1 class="detail-title">{{ notice.title }}</h1>
@@ -98,16 +98,14 @@ function goToList() {
 .detail-page {
   font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   background: #fff;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 3rem;
+  padding-block: 3rem;
 }
 
 .cat-badge {
   display: inline-block; font-size: 12px; font-weight: 600;
   padding: 4px 12px; border-radius: 12px; margin-bottom: 1rem;
 }
-.badge-guide { background: #d9f0ed; color: #0d5750; }
+.badge-guide { background: var(--color-secondary-soft); color: var(--color-secondary); }
 .badge-maintenance { background: #fdeee0; color: #96601a; }
 
 .detail-title { font-size: 26px; font-weight: 700; color: #1a1a1a; line-height: 1.4; margin-bottom: .9rem; }

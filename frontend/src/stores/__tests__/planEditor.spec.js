@@ -10,6 +10,7 @@ const {
   reorderScheduleItemsMock,
   updateScheduleItemMock,
   updateTravelPlanDatesMock,
+  updateTravelPlanMetadataMock,
 } = vi.hoisted(() => ({
   addScheduleItemMock: vi.fn(),
   deleteScheduleItemMock: vi.fn(),
@@ -17,6 +18,7 @@ const {
   reorderScheduleItemsMock: vi.fn(),
   updateScheduleItemMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
+  updateTravelPlanMetadataMock: vi.fn(),
 }))
 
 vi.mock('@/api/plans', () => ({
@@ -26,6 +28,7 @@ vi.mock('@/api/plans', () => ({
   reorderScheduleItems: reorderScheduleItemsMock,
   updateScheduleItem: updateScheduleItemMock,
   updateTravelPlanDates: updateTravelPlanDatesMock,
+  updateTravelPlanMetadata: updateTravelPlanMetadataMock,
 }))
 
 const plan = {
@@ -43,6 +46,7 @@ beforeEach(() => {
   setActivePinia(createPinia())
   getTravelPlanEditorMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
+  updateTravelPlanMetadataMock.mockReset()
   addScheduleItemMock.mockReset()
   updateScheduleItemMock.mockReset()
   deleteScheduleItemMock.mockReset()
@@ -116,6 +120,48 @@ describe('planEditor store', () => {
     expect(store.selectedDay).toEqual(days[0])
     expect(store.scheduleItems).toEqual([])
     expect(store.isSelectedDayEmpty).toBe(true)
+  })
+
+  it('플랜 Metadata 수정 응답을 반영하고 선택 DAY를 유지한다', async () => {
+    const days = [
+      { planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] },
+      { planDayId: '202', dayNo: 2, travelDate: '2026-08-11', items: [] },
+    ]
+    const updated = {
+      plan: { ...plan, title: '서울 맛집 여행', visibility: 'PUBLIC', versionNo: 1 },
+      days,
+    }
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    updateTravelPlanMetadataMock.mockResolvedValue(updated)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+    store.selectDay('202')
+
+    const payload = { title: '서울 맛집 여행', visibility: 'PUBLIC', versionNo: 0 }
+    await expect(store.savePlanMetadata(payload)).resolves.toEqual(updated)
+
+    expect(updateTravelPlanMetadataMock).toHaveBeenCalledWith('101', payload)
+    expect(store.plan).toEqual(updated.plan)
+    expect(store.selectedDayId).toBe('202')
+  })
+
+  it('플랜 Version 충돌 시 최신 Editor Snapshot을 복구하고 오류를 유지한다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const latest = { plan: { ...plan, title: '동료가 변경한 제목', versionNo: 1 }, days }
+    const conflict = {
+      response: { status: 409, data: { code: 'PLAN_VERSION_CONFLICT', message: '버전 충돌' } },
+    }
+    getTravelPlanEditorMock.mockResolvedValueOnce({ plan, days }).mockResolvedValueOnce(latest)
+    updateTravelPlanMetadataMock.mockRejectedValue(conflict)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await expect(
+      store.savePlanMetadata({ title: '서울 맛집 여행', visibility: 'PUBLIC', versionNo: 0 }),
+    ).rejects.toBe(conflict)
+
+    expect(getTravelPlanEditorMock).toHaveBeenCalledTimes(2)
+    expect(store.plan).toEqual(latest.plan)
   })
 
   it('조회 실패 메시지를 저장하고 기존 편집 데이터를 비운다', async () => {

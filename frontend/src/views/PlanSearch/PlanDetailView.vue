@@ -1,7 +1,7 @@
 <template>
   <DefaultLayout>
     <div class="detail-page">
-      <div class="detail-card">
+      <div class="app-container detail-card">
         <div class="detail-head">
           <button class="back-link" title="여행플랜 상세페이지로 돌아가기" @click="goBack">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>
@@ -257,13 +257,10 @@ function formatCount(n) {
 }
 
 .detail-card {
-  max-width: 1280px;
-  width: 100%;
   /* 100vh를 그대로 쓰면 DefaultLayout의 헤더/푸터까지 더해져 전체 페이지가
      뷰포트보다 길어진다. 고정 픽셀 높이로 바꿔 "한눈에 보이는" 크기로 줄이고,
      DAY 목록이나 장소가 넘칠 때는 이 안에서만 스크롤되게 한다. */
   height: 640px;
-  margin: 0 auto;
   background: #fff;
   border-radius: 20px;
   padding: 2rem 2.5rem;
@@ -312,7 +309,7 @@ function formatCount(n) {
 /* 작성자/날짜 정보를 제목 옆에 나란히 배치. margin-left는 주지 않고 gap으로만 간격을 준다. */
 .plan-author {
   font-size: 13px;
-  color: #0f766e;
+  color: var(--color-brand);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -325,7 +322,7 @@ function formatCount(n) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #0f766e;
+  background: var(--color-brand-accent);
   flex-shrink: 0;
 }
 
@@ -351,7 +348,7 @@ function formatCount(n) {
 }
 
 .like-stat.liked {
-  color: #0f766e;
+  color: var(--color-brand);
 }
 
 .view-stat {
@@ -377,14 +374,14 @@ function formatCount(n) {
 }
 
 .report-btn:hover {
-  border-color: #0f766e;
-  color: #0f766e;
+  border-color: var(--color-brand-accent);
+  color: var(--color-brand);
 }
 
 .import-btn {
   padding: 9px 18px;
-  background: #0f766e;
-  color: #fff;
+  background: var(--color-brand);
+  color: var(--color-brand-on);
   border-radius: 20px;
   font-size: 13.5px;
   font-weight: 600;
@@ -394,7 +391,7 @@ function formatCount(n) {
 }
 
 .import-btn:hover {
-  background: #0c5c56;
+  background: var(--color-brand-hover);
 }
 
 .detail-body {
@@ -443,7 +440,7 @@ function formatCount(n) {
 }
 
 .day-item.active {
-  background: #d9f0ed;
+  background: var(--color-brand-soft);
 }
 
 .day-num {
@@ -454,7 +451,7 @@ function formatCount(n) {
 }
 
 .day-item.active .day-num {
-  color: #0f766e;
+  color: var(--color-brand);
 }
 
 .day-date {
@@ -523,8 +520,8 @@ function formatCount(n) {
 }
 
 .time-section--afternoon {
-  --slot-color: #0082FC;
-  --slot-color-dark: #0058AB;
+  --slot-color: var(--color-brand-accent);
+  --slot-color-dark: var(--color-brand);
 }
 
 .time-section-head {

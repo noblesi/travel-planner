@@ -29,6 +29,13 @@ $backendVariableNames = @(
     'ORACLE_USERNAME',
     'ORACLE_PASSWORD',
     'SERVER_PORT',
+    'SESSION_COOKIE_SECURE',
+    'AUTH_ENFORCE_SECURITY',
+    'LOCAL_MEMBER_ID',
+    'LOCAL_AUTH_MEMBER_ID',
+    'LOCAL_AUTH_EMAIL',
+    'LOCAL_AUTH_PASSWORD',
+    'LOCAL_AUTH_DISPLAY_NAME',
     'TOUR_API_BASE_URL',
     'TOUR_API_SERVICE_KEY',
     'TOUR_API_MOBILE_APP',
@@ -37,8 +44,7 @@ $backendVariableNames = @(
     'KAKAO_REST_BASE_URL',
     'KAKAO_REST_API_KEY',
     'KAKAO_REST_CONNECT_TIMEOUT',
-    'KAKAO_REST_READ_TIMEOUT',
-    'LOCAL_MEMBER_ID'
+    'KAKAO_REST_READ_TIMEOUT'
 )
 
 $loadedVariableNames = [System.Collections.Generic.HashSet[string]]::new(

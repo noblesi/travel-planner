@@ -5,9 +5,12 @@ import { useRouter } from 'vue-router'
 import { createTravelPlan } from '@/api/plans'
 import { getRegions } from '@/api/regions'
 import PlanSetupForm from '@/components/plan/PlanSetupForm.vue'
+import AsyncState from '@/components/ui/AsyncState.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import { useToastStore } from '@/stores/toast'
 
 const router = useRouter()
+const toastStore = useToastStore()
 const regions = ref([])
 const regionStatus = ref('loading')
 const regionError = ref('')
@@ -96,6 +99,7 @@ async function createPlan(payload) {
       throw new Error('Travel plan response does not include planId')
     }
     await router.push({ name: 'plan-editor', params: { planId: plan.planId } })
+    toastStore.success('여행 계획이 만들어졌습니다.')
   } catch (error) {
     createFieldErrors.value = apiFieldErrors(error)
     if (Object.keys(createFieldErrors.value).length === 0) {
@@ -122,20 +126,28 @@ onMounted(loadRegions)
           <span>여행지역과 날짜를 선택하면 일차별 계획을 바로 시작할 수 있어요.</span>
         </header>
 
-        <div v-if="regionStatus === 'loading'" class="state-card" aria-live="polite">
-          <span class="state-card__spinner" aria-hidden="true" />
-          <strong>여행지역을 불러오고 있어요.</strong>
-        </div>
+        <AsyncState
+          v-if="regionStatus === 'loading'"
+          variant="loading"
+          title="여행지역을 불러오고 있어요."
+        />
 
-        <div v-else-if="regionStatus === 'error'" class="state-card" role="alert">
-          <strong>{{ regionError }}</strong>
-          <button type="button" @click="loadRegions">다시 시도</button>
-        </div>
+        <AsyncState
+          v-else-if="regionStatus === 'error'"
+          variant="error"
+          :title="regionError"
+          action-label="다시 시도"
+          @action="loadRegions"
+        />
 
-        <div v-else-if="regionStatus === 'empty'" class="state-card" role="status">
-          <strong>선택할 수 있는 여행지역이 없습니다.</strong>
-          <button type="button" @click="loadRegions">새로고침</button>
-        </div>
+        <AsyncState
+          v-else-if="regionStatus === 'empty'"
+          variant="empty"
+          title="선택할 수 있는 여행지역이 없습니다."
+          message="잠시 후 여행지역 목록을 새로고침해 주세요."
+          action-label="새로고침"
+          @action="loadRegions"
+        />
 
         <PlanSetupForm
           v-else
@@ -157,7 +169,7 @@ onMounted(loadRegions)
   min-height: 680px;
   place-items: start center;
   padding: 72px 20px 96px;
-  background: radial-gradient(circle at 50% 0%, rgb(255 90 78 / 10%), transparent 38%), #f8fafc;
+  background: radial-gradient(circle at 50% 0%, rgb(249 115 22 / 12%), transparent 38%), var(--color-surface-muted);
 }
 
 .setup-card {
@@ -176,7 +188,7 @@ onMounted(loadRegions)
 
 .setup-card__header p {
   margin: 0 0 10px;
-  color: #ff5a4e;
+  color: var(--color-brand);
   font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.15em;
@@ -197,43 +209,6 @@ onMounted(loadRegions)
   word-break: keep-all;
 }
 
-.state-card {
-  display: grid;
-  min-height: 220px;
-  gap: 16px;
-  place-items: center;
-  align-content: center;
-  color: #475569;
-  border: 1px dashed #cbd5e1;
-  border-radius: 16px;
-  text-align: center;
-}
-
-.state-card button {
-  padding: 10px 16px;
-  color: #fff;
-  border: 0;
-  border-radius: 10px;
-  background: #ff5a4e;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.state-card__spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #fee2e2;
-  border-top-color: #ff5a4e;
-  border-radius: 50%;
-  animation: spin 800ms linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 @media (max-width: 620px) {
   .setup-page {
     padding: 32px 14px 64px;
@@ -245,9 +220,4 @@ onMounted(loadRegions)
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .state-card__spinner {
-    animation: none;
-  }
-}
 </style>

@@ -29,6 +29,7 @@ import com.noblesi.travelplanner.dto.plan.PlanEditorItemResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorSummaryResponse;
 import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanDatesRequest;
+import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanMetadataRequest;
 import com.noblesi.travelplanner.mapper.PlanDayMapper;
 import com.noblesi.travelplanner.mapper.PlanScheduleItemMapper;
 import com.noblesi.travelplanner.mapper.RegionMapper;
@@ -93,9 +94,41 @@ public class TravelPlanService {
 	public PlanEditorResponse getPlanEditor(String planIdValue) {
 		long planId = parsePlanId(planIdValue);
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		PlanEditorPlan plan = findOwnedPlanForEditor(planId, memberId);
+		PlanEditorPlan plan = findAccessiblePlanForEditor(planId, memberId);
 
 		return buildPlanEditorResponse(planId, plan);
+	}
+
+	@Transactional
+	public PlanEditorResponse updateTravelPlanMetadata(
+			String planIdValue,
+			UpdateTravelPlanMetadataRequest request
+	) {
+		long planId = parsePlanId(planIdValue);
+		long memberId = currentMemberProvider.getCurrentMemberId();
+		PlanEditorPlan plan = findOwnedPlanForEditor(planId, memberId);
+
+		if (request.versionNo() != plan.versionNo()) {
+			throw planVersionConflict();
+		}
+
+		if (plan.title().equals(request.title())
+				&& plan.visibility() == request.visibility()) {
+			return buildPlanEditorResponse(planId, plan);
+		}
+
+		int updatedRows = travelPlanMapper.updateTravelPlanMetadata(
+				planId,
+				memberId,
+				request.title(),
+				request.visibility(),
+				request.versionNo()
+		);
+		if (updatedRows != 1) {
+			throw planVersionConflict();
+		}
+
+		return buildPlanEditorResponse(planId, findOwnedPlanForEditor(planId, memberId));
 	}
 
 	@Transactional
@@ -170,6 +203,18 @@ public class TravelPlanService {
 
 	private PlanEditorPlan findOwnedPlanForEditor(long planId, long memberId) {
 		PlanEditorPlan plan = travelPlanMapper.findActiveOwnedPlanForEditor(planId, memberId);
+		if (plan == null) {
+			throw new BusinessException(
+					HttpStatus.NOT_FOUND,
+					"PLAN_NOT_FOUND",
+					"여행 플랜을 찾을 수 없습니다."
+			);
+		}
+		return plan;
+	}
+
+	private PlanEditorPlan findAccessiblePlanForEditor(long planId, long memberId) {
+		PlanEditorPlan plan = travelPlanMapper.findActiveAccessiblePlanForEditor(planId, memberId);
 		if (plan == null) {
 			throw new BusinessException(
 					HttpStatus.NOT_FOUND,

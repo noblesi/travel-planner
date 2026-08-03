@@ -1,45 +1,51 @@
 <template>
-    <div class="overlay" @click.self="handleOverlayClick">
-      <div class="modal">
-
-        <template v-if="step === 'form'">
-          <div class="modal-title">이 여행 플랜을 신고할게요</div>
-          <div class="modal-sub">신고 사유를 선택해주세요</div>
-
-          <div class="reason-list">
-            <label v-for="option in reasons" :key="option.value" class="reason-item">
-              <input type="radio" name="reason" :value="option.value" v-model="selectedReason" />
-              <span>{{ option.label }}</span>
-            </label>
-          </div>
-
-          <textarea v-model="detail" class="detail-input" placeholder="자세한 내용을 입력해주세요 (선택)" rows="3"></textarea>
-
-          <div class="modal-footer">
-            <button class="btn-cancel" @click="$emit('close')">취소</button>
-            <button class="btn-submit" :disabled="!selectedReason" @click="submit">신고하기</button>
-          </div>
-        </template>
-
-        <template v-else-if="step === 'done'">
-          <div class="success-wrap">
-            <div class="success-icon">✅</div>
-            <div class="success-title">신고가 접수됐어요</div>
-            <div class="success-sub">
-              신고해주셔서 감사해요. 운영팀이 검토 후<br />필요한 조치를 진행할게요.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn-submit" style="flex: 1;" @click="$emit('close')">확인</button>
-          </div>
-        </template>
-
+  <BaseModal
+    :title="step === 'form' ? '이 여행 플랜을 신고할게요' : '신고 접수 완료'"
+    :description="step === 'form' ? '신고 사유를 선택해 주세요.' : ''"
+    width="440px"
+    @close="emit('close')"
+  >
+    <template v-if="step === 'form'">
+      <div class="reason-list">
+        <label v-for="option in reasons" :key="option.value" class="reason-item">
+          <input v-model="selectedReason" type="radio" name="reason" :value="option.value" />
+          <span>{{ option.label }}</span>
+        </label>
       </div>
+
+      <label class="detail-label" for="report-detail">상세 내용 <span>(선택)</span></label>
+      <textarea
+        id="report-detail"
+        v-model="detail"
+        class="detail-input"
+        placeholder="자세한 내용을 입력해 주세요."
+        rows="3"
+      />
+    </template>
+
+    <div v-else class="success-wrap">
+      <div class="success-icon" aria-hidden="true">✓</div>
+      <strong>신고가 접수됐어요.</strong>
+      <p>운영팀이 내용을 검토한 후 필요한 조치를 진행할게요.</p>
     </div>
+
+    <template #footer>
+      <template v-if="step === 'form'">
+        <BaseButton class="footer-button" variant="secondary" @click="emit('close')">취소</BaseButton>
+        <BaseButton class="footer-button footer-button--primary" :disabled="!selectedReason" @click="submit">
+          신고하기
+        </BaseButton>
+      </template>
+      <BaseButton v-else class="footer-button" @click="emit('close')">확인</BaseButton>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseModal from '@/components/ui/BaseModal.vue'
 
 const emit = defineEmits(['close', 'submit'])
 
@@ -61,51 +67,9 @@ function submit() {
   step.value = 'done'
 }
 
-function handleOverlayClick() {
-  // 완료 화면에서는 바깥 클릭으로 바로 닫혀도 무방하지만,
-  // 작성 중인 폼에서 실수로 닫히는 걸 막고 싶다면 이 부분에서 분기 처리 가능
-  emit('close')
-}
 </script>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, .32);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-}
-
-.modal {
-  background: #fff;
-  border-radius: 16px;
-  width: 440px;
-  max-width: 90%;
-  padding: 1.75rem 2rem 1.5rem;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .18);
-}
-
-.modal-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 5px;
-}
-
-.modal-sub {
-  font-size: 13px;
-  color: #999;
-  margin-bottom: 1.25rem;
-}
-
 .reason-list {
   display: flex;
   flex-direction: column;
@@ -123,88 +87,77 @@ function handleOverlayClick() {
 }
 
 .reason-item input {
-  accent-color: #0f766e;
   width: 16px;
   height: 16px;
+  accent-color: var(--color-brand-accent);
+}
+
+.detail-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.detail-label span {
+  color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 .detail-input {
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   font-size: 13px;
   font-family: inherit;
   resize: none;
   outline: none;
-  margin-bottom: 1.25rem;
 }
 
 .detail-input:focus {
-  border-color: #0f766e;
-}
-
-.modal-footer {
-  display: flex;
-  gap: 8px;
-}
-
-.btn-cancel {
-  flex: 1;
-  padding: 11px;
-  border-radius: 22px;
-  border: 1px solid #e0e0e0;
-  background: #fff;
-  color: #888;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.btn-submit {
-  flex: 1.4;
-  padding: 11px;
-  border-radius: 22px;
-  border: none;
-  background: #0f766e;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-submit:disabled {
-  background: #e0e0e0;
-  color: #bbb;
-  cursor: not-allowed;
+  border-color: var(--color-brand-accent);
+  box-shadow: 0 0 0 3px var(--color-brand-focus);
 }
 
 .success-wrap {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
   text-align: center;
-  padding: 1rem 0 1.5rem;
+  padding: 12px 0 4px;
 }
 
 .success-icon {
+  display: grid;
   width: 52px;
   height: 52px;
+  margin-bottom: 8px;
   border-radius: 50%;
-  background: #e8f7f2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
+  place-items: center;
+  background: var(--color-success-soft);
+  color: #047857;
   font-size: 22px;
+  font-weight: 800;
 }
 
-.success-title {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 6px;
+.success-wrap strong {
+  color: var(--color-text);
 }
 
-.success-sub {
+.success-wrap p {
+  margin: 0;
+  color: var(--color-text-muted);
   font-size: 13px;
-  color: #999;
   line-height: 1.6;
+}
+
+.footer-button {
+  flex: 1;
+}
+
+.footer-button--primary {
+  flex: 1.4;
 }
 </style>

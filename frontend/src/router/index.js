@@ -99,6 +99,11 @@ const router = createRouter({
       name: 'testView',
       component: () => import('@/views/myPage/testView.vue'),
     },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('@/views/NotFoundView.vue'),
+    },
   ],
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {

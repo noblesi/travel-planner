@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlanSetupForm from '@/components/plan/PlanSetupForm.vue'
@@ -34,6 +35,7 @@ function dateFromToday(dayOffset) {
 function mountView() {
   return mount(PlanSetupView, {
     global: {
+      plugins: [createPinia()],
       stubs: {
         DefaultLayout: { template: '<div><slot /></div>' },
       },

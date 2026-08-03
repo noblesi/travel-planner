@@ -28,11 +28,11 @@ const pageTitle = computed(() => route.meta.title || '관리자')
 
 <style scoped>
 .admin-layout {
-  --admin-page-bg: #fff5ed;
+  --admin-page-bg: var(--color-page);
   --admin-surface: #ffffff;
-  --admin-orange: #f3883b;
-  --admin-orange-hover: #e8792f;
-  --admin-orange-soft: #fff0e5;
+  --admin-orange: var(--color-brand);
+  --admin-orange-hover: var(--color-brand-hover);
+  --admin-orange-soft: var(--color-brand-soft);
   --admin-text: #252a31;
   --admin-muted: #858c96;
   --admin-border: #eee3db;

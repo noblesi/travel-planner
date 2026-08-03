@@ -61,6 +61,18 @@ views/       라우트 단위 화면
 - 비동기 데이터는 로딩·성공·빈 결과·실패 상태를 모두 처리합니다.
 - 버튼과 링크는 키보드 접근과 의미에 맞는 HTML 요소를 사용합니다.
 
+### 공통 레이아웃과 UI Component
+
+- 사용자 route는 특별한 이유가 없으면 `DefaultLayout`, 관리자 route는 `AdminLayout`을 사용합니다.
+- 새 버튼·입력·Modal·비동기 상태 UI를 만들기 전에 `src/components/ui`의 기존 Component로 조합할 수 있는지 확인합니다.
+- brand 색상, surface, border, text, layout 너비는 `src/assets/main.css`의 CSS variable을 사용합니다.
+- `BaseModal`을 사용하는 화면은 `close` event로 open state를 소유하며 dialog 내부에 별도 overlay나 document keydown listener를 추가하지 않습니다.
+- 비동기 성공·실패 알림이 route 밖에서도 보여야 하면 `useToastStore()`를 사용합니다. 화면별 Toast container는 만들지 않습니다.
+- 공통 UI를 변경하면 해당 Component test와 실제 적용 화면의 회귀 test를 함께 수정합니다.
+- 반응형 확인 기준은 Desktop 1280px와 Mobile 390px이며 keyboard focus와 `prefers-reduced-motion`도 확인합니다.
+
+전체 API와 사용 예시는 [`docs/frontend/common-layout-ui.md`](docs/frontend/common-layout-ui.md)를 확인합니다.
+
 ## API 응답 규칙
 
 성공 응답:

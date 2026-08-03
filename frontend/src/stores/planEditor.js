@@ -8,6 +8,7 @@ import {
   reorderScheduleItems,
   updateScheduleItem,
   updateTravelPlanDates,
+  updateTravelPlanMetadata,
 } from '@/api/plans'
 
 const CONFLICT_CODES = new Set([
@@ -184,6 +185,25 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     const data = await updateTravelPlanDates(plan.value.planId, payload)
     applyEditorData(data, preferredDayId)
     return data
+  }
+
+  async function savePlanMetadata(payload) {
+    const preferredDayId = selectedDayId.value
+
+    try {
+      const data = await updateTravelPlanMetadata(plan.value.planId, payload)
+      applyEditorData(data, preferredDayId)
+      return data
+    } catch (error) {
+      if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
+        try {
+          await refreshPlanEditor(preferredDayId)
+        } catch {
+          // 원래 충돌 응답을 유지해 호출자가 정확한 원인을 표시하게 합니다.
+        }
+      }
+      throw error
+    }
   }
 
   function currentDay(planDayId) {
@@ -415,6 +435,7 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     loadPlanEditor,
     refreshPlanEditor,
     savePlanDates,
+    savePlanMetadata,
     addPlaceToSchedule,
     moveScheduleItemTimeSlot,
     removeScheduleItem,

@@ -21,7 +21,7 @@ onMounted(async () => {
 
 <template>
   <DefaultLayout>
-    <section class="hero">
+    <section class="app-container hero">
       <div class="hero__content">
         <p class="eyebrow">PLAN TOGETHER, TRAVEL BETTER</p>
         <h1>여행의 모든 순간을<br />함께 계획하세요.</h1>
@@ -43,7 +43,7 @@ onMounted(async () => {
       </div>
     </section>
 
-    <section id="explore" class="feature-section">
+    <section id="explore" class="app-container feature-section">
       <article>
         <span>01</span>
         <h2>일정 구성</h2>
@@ -65,19 +65,32 @@ onMounted(async () => {
 
 <style scoped>
 .hero {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
   gap: 64px;
   align-items: center;
-  width: min(1180px, calc(100% - 40px));
   min-height: 560px;
-  margin: 0 auto;
-  padding: 80px 0;
+  padding-block: 80px;
+}
+
+.hero::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: min(620px, 70vw);
+  height: min(620px, 70vw);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(249 115 22 / 14%) 0%, rgb(255 247 237 / 0%) 70%);
+  content: '';
+  transform: translate(-24%, -18%);
 }
 
 .eyebrow {
   margin: 0 0 18px;
-  color: #0f766e;
+  color: var(--color-brand);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.15em;
@@ -117,10 +130,17 @@ h1 {
 }
 
 .primary-action {
-  color: white;
-  border: 1px solid #0f766e;
-  background: #0f766e;
+  color: var(--color-brand-on);
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand);
   cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease;
+}
+
+.primary-action:hover {
+  border-color: var(--color-brand-hover);
+  background: var(--color-brand-hover);
+  transform: translateY(-1px);
 }
 
 .secondary-action {
@@ -133,7 +153,7 @@ h1 {
   gap: 14px;
   align-items: flex-start;
   padding: 24px;
-  border: 1px solid #dbeafe;
+  border: 1px solid var(--color-brand-border);
   border-radius: 18px;
   background: white;
   box-shadow: 0 24px 70px rgb(15 23 42 / 10%);
@@ -160,8 +180,7 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  width: min(1180px, calc(100% - 40px));
-  margin: 0 auto 96px;
+  margin-bottom: var(--layout-section-space);
 }
 
 .feature-section article {
@@ -172,7 +191,7 @@ h1 {
 }
 
 .feature-section span {
-  color: #0f766e;
+  color: var(--color-brand);
   font-size: 13px;
   font-weight: 800;
 }

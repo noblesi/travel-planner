@@ -11,6 +11,12 @@ export async function getTravelPlanEditor(planId) {
   return response.data.data
 }
 
+export async function updateTravelPlanMetadata(planId, payload) {
+  const encodedPlanId = encodeURIComponent(String(planId))
+  const response = await http.patch(`/plans/${encodedPlanId}`, payload)
+  return response.data.data
+}
+
 export async function updateTravelPlanDates(planId, payload) {
   const encodedPlanId = encodeURIComponent(String(planId))
   const response = await http.patch(`/plans/${encodedPlanId}/dates`, payload)

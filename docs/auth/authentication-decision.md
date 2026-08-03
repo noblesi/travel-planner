@@ -1,7 +1,7 @@
 # 인증 방식 결정
 
 - 결정일: `2026-07-24`
-- 상태: 구현 기준 확정
+- 상태: session 기반과 local 개발 로그인 구현, DB Credential·Google OIDC 연동 대기
 - 대상: Vue SPA, Spring Boot REST API
 
 ## 결정 사항
@@ -87,7 +87,19 @@ TravelPlanService
 
 ## 후속 작업
 
-1. 인증 담당자가 `MEMBER`, 로컬 Credential, Social Identity의 실제 Schema를 확정합니다.
-2. Spring Security 로컬 로그인과 `oauth2Login()`을 같은 `MemberPrincipal`로 통합합니다.
-3. `CurrentMemberProvider`의 Spring Security 구현을 제공합니다.
-4. 회원 Table 생성 후 `docs/database/ddl/003_add_identity_foreign_keys.sql`을 적용합니다.
+### 2026-08-01 구현 완료
+
+- Spring Security 서버 session과 CSRF 보호를 추가했습니다.
+- `MemberPrincipal`과 `SecurityCurrentMemberProvider`를 구현했습니다.
+- session 조회·로그아웃과 `local` Profile 환경변수 Credential 로그인을 구현했습니다.
+- local 로그인 성공 시 session fixation 방어와 CSRF token rotation을 적용했습니다.
+- Vue 인증 API·Pinia Store·로그인 redirect·Header 로그아웃을 연결했습니다.
+- DB Schema가 확정되지 않은 상태에서 Oracle 회원 Table을 추측해 변경하지 않았습니다.
+
+### 남은 작업
+
+1. 인증 담당자가 `MEMBER`, `LOCAL_CREDENTIAL`, `SOCIAL_IDENTITY`의 실제 Schema를 확정합니다.
+2. 환경변수 기반 local 개발 Provider를 DB 기반 local Credential Provider로 교체합니다.
+3. `oauth2Login()`에서 Google `sub`를 조회해 같은 `MemberPrincipal`을 생성합니다.
+4. 회원가입과 안전한 계정 연결·재인증 흐름을 구현합니다.
+5. 실제 Oracle 회원으로 플랜과 초대 기능을 통합 검증합니다.

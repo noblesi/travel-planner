@@ -582,7 +582,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
 
 .date-summary {
   margin: 0;
-  color: #0f766e;
+  color: var(--color-brand);
   font-size: 13px;
   font-weight: 700;
 }
