@@ -9,8 +9,8 @@ const routes = [
   { path: '/', name: 'home', component: { template: '<div />' } },
   { path: '/plans', name: 'plan-search', component: { template: '<div />' } },
   {
-    path: '/announcements',
-    name: 'announcements-list',
+    path: '/notice',
+    name: 'notice-list',
     component: { template: '<div />' },
   },
   { path: '/loginView', name: 'login', component: { template: '<div />' } },
@@ -37,7 +37,7 @@ describe('AppHeader', () => {
 
     expect(wrapper.get('a[href="/"]').exists()).toBe(true)
     expect(wrapper.get('a[href="/plans"]').classes()).toContain('router-link-active')
-    expect(wrapper.get('a[href="/announcements"]').exists()).toBe(true)
+    expect(wrapper.get('a[href="/notice"]').exists()).toBe(true)
   })
 
   it('모바일 메뉴의 열림 상태를 접근성 속성과 함께 변경한다', async () => {
