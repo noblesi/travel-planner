@@ -1,6 +1,5 @@
 package com.noblesi.travelplanner.controller;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -19,7 +18,7 @@ import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.dto.auth.AuthenticatedMemberResponse;
 import com.noblesi.travelplanner.dto.auth.AuthenticationSessionResponse;
-import com.noblesi.travelplanner.dto.auth.LocalLoginRequest;
+import com.noblesi.travelplanner.dto.auth.EmailLoginRequest;
 import com.noblesi.travelplanner.security.MemberPrincipal;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,15 +27,14 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
-@Profile("local")
-public class LocalAuthenticationController {
+public class AuthenticationController {
 
 	private final AuthenticationManager authenticationManager;
 	private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
 	private final HttpSessionSecurityContextRepository securityContextRepository =
 			new HttpSessionSecurityContextRepository();
 
-	public LocalAuthenticationController(
+	public AuthenticationController(
 			AuthenticationManager authenticationManager,
 			SessionAuthenticationStrategy sessionAuthenticationStrategy
 	) {
@@ -46,14 +44,14 @@ public class LocalAuthenticationController {
 
 	@PostMapping("/login")
 	public ApiResponse<AuthenticationSessionResponse> login(
-			@Valid @RequestBody LocalLoginRequest request,
+			@Valid @RequestBody EmailLoginRequest request,
 			HttpServletRequest httpRequest,
 			HttpServletResponse httpResponse
 	) {
 		try {
 			Authentication authentication = authenticationManager.authenticate(
 					UsernamePasswordAuthenticationToken.unauthenticated(
-							request.email().trim(),
+							request.email(),
 							request.password()
 					)
 			);

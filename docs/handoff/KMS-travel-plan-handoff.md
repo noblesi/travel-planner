@@ -1,6 +1,6 @@
 # KMS 여행 플랜 개발 인수인계
 
-최종 정리일: 2026-08-01
+최종 정리일: 2026-08-03
 
 ## 저장소 상태
 
@@ -8,11 +8,22 @@
 - 작업 브랜치: `KMS`
 - 현재 통합 기준: `2366508 일정 자동 저장과 Oracle 통합 검증` Commit
 - 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
-- 현재 작업 묶음: 플랜 생성·편집·Metadata 변경, 일정 CRUD·정렬·멱등 자동 저장, TourAPI·Kakao Map, 초대 링크 생성·수락, Spring Security session 기반과 local 개발 로그인·Frontend session 복원까지 구현 완료
+- 현재 작업 묶음: 기존 `MEMBER` 기반 이메일 로그인, Oracle P3 세션·초대·공동편집 검증, 영구 데모 시드, 공개 플랜 검색·상세 API와 Frontend 연동까지 구현 완료
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
 
 현재 `dev`에만 있는 Commit은 `KMS`에 반영하지 않기로 결정했다. 4번 인증 연동 요청에 따라 `LoginView.vue`와 공통 Header의 mock 인증은 실제 local session API로 교체했지만 회원가입 화면은 다른 담당자의 작업 범위로 유지한다.
+
+## 2026-08-03 후속 작업
+
+- 이메일 로그인 Provider를 환경변수 Credential에서 `WITHTRIP_DEV.MEMBER.EMAIL + PASSWORD_HASH` 조회와 BCrypt 검증으로 교체했다.
+- `MEMBER_STATUS = 'ACTIVE'`와 `PASSWORD_HASH IS NOT NULL` 조건을 적용하고 탈퇴·Google 전용 회원을 동일한 인증 실패로 처리했다.
+- 기존 물리 구조를 따라 Google 로그인은 `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT`를 사용하기로 확정했으며 OIDC 구현은 남아 있다.
+- `demo.*@withtrip.example` 회원 3명과 공개 플랜 6건을 영구 시연 데이터로 적용했다. 데모 회원은 `PASSWORD_HASH = NULL`로 로그인할 수 없다.
+- `e2e.*@withtrip.test` 임시 회원으로 Oracle 보안 강제 세션에서 로그인, 플랜 생성·수정, 초대·수락, 공동 일정 편집을 검증하고 관련 데이터를 정리했다.
+- `GET /api/plans`, `GET /api/plans/{planId}` 공개 API와 MyBatis 읽기 모델을 구현하고 탐색·상세 화면의 mock 데이터를 제거했다.
+- Oracle에서 전체 공개 플랜 6건, 서울 검색 1건과 상세 일정 응답을 확인했다. Browser에서 데스크톱·390px 모바일 한글 렌더링과 가로 넘침 없음도 확인했다.
+- Backend 전체 74건, Frontend 전체 85건 Test와 Frontend Production Build가 통과했다.
 
 다른 컴퓨터에서는 다음 명령으로 작업을 시작한다.
 
@@ -122,9 +133,9 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - 플랜 제목·공개 범위 변경을 owner-only optimistic locking으로 구현하고 Frontend 편집 Form에 연결했다.
 - 초대 token 원문을 응답에만 노출하고 SHA-256 Hash만 저장하는 24시간 초대 링크 생성·조회·수락을 구현했다. 재발급 시 이전 pending 링크 취소, 동일 회원의 멱등 수락, 초대 참여자의 일정 편집 권한을 검증했다.
 - Spring Security 서버 session, CSRF, session fixation 방어, `MemberPrincipal`, `SecurityCurrentMemberProvider`를 구현했다.
-- `local` Profile 환경변수 Credential 로그인, session 조회·로그아웃 API와 Vue 인증 API·Pinia Store·redirect·Header 상태를 연결했다.
+- 초기 `local` 환경변수 Credential 로그인을 구현했으며, 2026-08-03에 Oracle `MEMBER` DB 로그인으로 교체했다. Session 조회·로그아웃 API와 Vue 인증 API·Pinia Store·redirect·Header 상태는 그대로 사용한다.
 
-플랜 생성·편집·Metadata·초대 API의 H2 통합 검증과 Oracle Schema·지역 조회·일정 CRUD 검증을 완료했다. Oracle 검증에서는 P4 전용 임시 회원과 `local` Provider를 사용했으며 데이터를 종료 후 정리했다. 기본 Profile은 인증 없는 보호 요청을 차단하며, 실제 Oracle Credential과 Google OIDC 연결은 남아 있다.
+플랜 생성·편집·Metadata·초대 API의 H2 통합 검증과 Oracle Schema·지역 조회·일정 CRUD 검증을 완료했다. 2026-08-03에는 실제 Oracle `MEMBER` 인증으로 로그인·플랜·초대·공동편집 E2E까지 검증하고 임시 데이터를 정리했다. 기본 Profile은 인증 없는 보호 요청을 차단하며 Google OIDC 연결은 남아 있다.
 
 원격 Oracle에는 `MEMBER`, `ADMIN` Table과 `003_add_identity_foreign_keys.sql`의 FK 7개가 이미 적용돼 모두 `ENABLED` 상태다. 재실행하지 않는다.
 
@@ -146,10 +157,10 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 | Node.js·npm | 준비 완료 | 현재 환경 Node.js 24.14.0, npm 11.11.1. `package.json` Engine 범위 충족 |
 | Frontend Build | 타 담당 영역 대기 | 빈 `frontend/src/views/joinView/JoinCompleteView.vue`와 local `node_modules`의 `sass-embedded` 누락으로 Production Build 실패 |
 | Oracle | 일정 범위 검증 완료 | `005` 적용, 시·도 Seed 17건 복구, Schema 검증, 임시 회원 기반 플랜 생성·일정 CRUD·정렬·멱등 재시도 완료 |
-| 실제 인증 | 부분 완료 | Spring Security session·CSRF·`MemberPrincipal`·Provider와 local 개발 로그인 완료. Oracle Credential·회원가입·Google OIDC 필요 |
+| 실제 인증 | 부분 완료 | Spring Security session·CSRF와 Oracle `MEMBER` 이메일 로그인 완료. 회원가입·비밀번호 재설정·Google OIDC 필요 |
 | 외부 API | 부분 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 검증 완료. Kakao Map·Marker 자동 Test 통과, 실제 Browser 렌더링은 localhost 보안 정책으로 미검증 |
-| Backend 자동 Test | 준비 완료 | 7개 Test Class, 전체 67건 통과, `bootJar` 성공 |
-| Frontend Test | 준비 완료 | 14개 Test File, 전체 68건 통과. 인증 변경 대상 ESLint·Oxlint 통과 |
+| Backend 자동 Test | 준비 완료 | 전체 74건 통과, `bootJar` 성공 |
+| Frontend Test | 준비 완료 | 22개 Test File, 전체 85건 통과, Production Build 성공. 변경 대상 ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -226,14 +237,9 @@ CurrentMemberProvider
 
 플랜 서비스는 Session이나 Google Claim을 직접 참조하지 않고 이 계층을 사용한다. 기본 Profile의 `SecurityCurrentMemberProvider`는 Spring Security Context의 `MemberPrincipal`에서 회원 ID를 가져오며, 인증이 없으면 `CURRENT_MEMBER_NOT_AVAILABLE`을 반환한다.
 
-Oracle의 `MEMBER`, `ADMIN`과 여행 플랜 FK는 존재하지만 실제 계정 연동을 보류한 기능:
+이메일 로그인은 기존 `MEMBER.EMAIL`, `MEMBER.PASSWORD_HASH`를 조회하고 BCrypt로 검증한다. Google 로그인은 별도 범용 Identity 테이블을 추가하지 않고 기존 `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT`를 사용할 예정이다. 실제 Oracle 회원 Session으로 플랜 생성·초대 수락·공동편집 E2E를 완료했다.
 
-- 로그인·가입 완료 시 `MEMBER` 생성 및 계정 연결
-- DB 기반 `LOCAL_CREDENTIAL` 조회
-- Google `sub` 기반 `SOCIAL_IDENTITY` 조회와 계정 연결
-- 실제 Oracle 회원 session으로 플랜·초대 수락 E2E 검증
-
-`local` Profile에서는 기존 개발 흐름 호환을 위해 `LOCAL_MEMBER_ID` fallback을 유지한다. `LOCAL_AUTH_EMAIL`, `LOCAL_AUTH_PASSWORD`, `LOCAL_AUTH_MEMBER_ID`를 설정하면 `/api/auth/login`으로 실제 session을 만들 수 있다. `AUTH_ENFORCE_SECURITY=true`로 실행하면 플랜 보호 API가 인증 없이는 `401`을 반환한다. 기본 Profile에는 회원 ID fallback이 없다.
+`local` Profile의 보호 비활성 개발 흐름은 `LOCAL_MEMBER_ID` fallback을 유지하지만 `/api/auth/login`은 H2 `MEMBER` 데이터를 사용한다. `AUTH_ENFORCE_SECURITY=true`이면 플랜 보호 API는 인증 없이는 `401`을 반환한다. 기본 Profile에는 회원 ID fallback이 없다.
 
 ## 데이터 모델
 
@@ -297,6 +303,8 @@ GET    /api/places/search?keyword=&regionCode=&page=&size=
 | Endpoint | 상태 |
 | --- | --- |
 | `GET /api/regions` | Backend 구현, H2 및 실제 Oracle 17건 검증 완료 |
+| `GET /api/plans` | 공개 검색 Backend·Frontend 구현, H2 및 실제 Oracle 데모 6건 검증 완료 |
+| `GET /api/plans/{planId}` | 공개 상세 Backend·Frontend 구현, 조회수·일차·장소 H2 및 Oracle Browser 검증 완료 |
 | `POST /api/plans` | Backend 구현, H2 HTTP·Transaction 통합 검증 및 Oracle 임시 회원 기반 생성 검증 완료 |
 | `GET /api/plans/{planId}/editor` | Backend 구현, H2 소유권·정렬·ID 정밀도 및 Oracle 일정 변경 Snapshot 응답 검증 완료 |
 | `PATCH /api/plans/{planId}/dates` | Backend·Frontend 구현 및 H2 날짜 재구성·일정 삭제 확인 흐름 검증 완료, Oracle 검증 필요 |
@@ -311,7 +319,7 @@ GET    /api/places/search?keyword=&regionCode=&page=&size=
 | `POST /api/plan-invitations/{token}/accept` | session 회원 수락·멱등 처리·일정 편집 권한 H2 검증 완료 |
 | `GET /api/auth/csrf` | CSRF token 발급 구현·검증 완료 |
 | `GET /api/auth/session` | 현재 `MemberPrincipal` 조회 구현·검증 완료 |
-| `POST /api/auth/login` | `local` Profile 환경변수 Credential 로그인 구현·검증 완료 |
+| `POST /api/auth/login` | Oracle/H2 `MEMBER.EMAIL + PASSWORD_HASH` BCrypt 로그인 구현·검증 완료 |
 | `POST /api/auth/logout` | session 무효화 구현·검증 완료 |
 
 플랜 Metadata와 초대 Endpoint 계약은 구현과 자동 Test 기준으로 확정했다.
@@ -387,12 +395,12 @@ backend/src/main/java/com/noblesi/travelplanner/
 11. 작업별 자동 저장과 버전 충돌 처리 (Backend 멱등·작업 이력·Version 충돌, Frontend Queue·재시도·Snapshot 복구, Oracle 요청 Hash 검증 완료)
 12. 플랜 제목과 공개 범위 수정 (완료)
 13. 초대 링크 생성·조회·수락 및 참여자 일정 편집 권한 (완료)
-14. Spring Security session·CSRF·local 개발 로그인·`CurrentMemberProvider` 연결 (부분 완료, Oracle Credential·Google OIDC 남음)
-15. Oracle 및 외부 API 통합 검증 (Oracle 일정·TourAPI·Kakao API 완료, 실제 Oracle 인증과 Kakao Browser 렌더링 남음)
+14. Spring Security session·CSRF·Oracle `MEMBER` 이메일 로그인·`CurrentMemberProvider` 연결 (Google OIDC 제외 완료)
+15. Oracle 및 외부 API 통합 검증 (Oracle 이메일 인증·일정·TourAPI·Kakao API 완료, Google OIDC 남음)
 
 ## 아직 미정인 항목
 
-- 실제 `MEMBER`, `LOCAL_CREDENTIAL`, `SOCIAL_IDENTITY` 물리 Schema
+- Google OIDC 계정 연결 UX와 `GOOGLE_ACCOUNT_LINK` 생성 정책
 - 초대 전달 방식
 - 삭제한 일정의 복구 지원 여부
 
@@ -402,8 +410,7 @@ backend/src/main/java/com/noblesi/travelplanner/
 
 1. `KMS` 브랜치와 작업 트리 상태를 확인하고 이 문서 및 README의 `.env.local` 실행 절차를 검토한다.
 2. `dev` 전용 Commit은 반영하지 않고 회원가입 담당자의 파일은 수정하지 않는다.
-3. 인증 담당자와 실제 `MEMBER`, `LOCAL_CREDENTIAL`, `SOCIAL_IDENTITY` Schema를 확정하고 환경변수 local Provider를 DB Provider로 교체한다.
-4. Google OAuth Client ID·Secret·redirect URI를 준비하고 OIDC `sub` 기반 Identity를 `MemberPrincipal`로 변환한다.
-5. 실제 Oracle 회원 session으로 플랜 생성·Metadata·날짜·일정·초대 수락 전체 흐름을 통합 검증한다.
-6. 빈 `JoinCompleteView.vue`와 `sass-embedded` 설치 문제를 회원가입 담당 변경과 함께 해결한 뒤 Production Build를 재검증한다.
-7. localhost 접근이 허용된 브라우저 환경에서 실제 Kakao JavaScript SDK의 Marker·정보창 렌더링을 최종 확인한다.
+3. Google OAuth Client ID·Secret·redirect URI를 준비하고 `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT` 기반 Identity를 `MemberPrincipal`로 변환한다.
+4. 이메일 회원가입·비밀번호 재설정에서 BCrypt Hash를 저장하는 흐름을 구현한다.
+5. 배포 HTTPS 환경에서 Secure Cookie와 Google Redirect URI를 최종 검증한다.
+6. 실제 Kakao JavaScript SDK의 Marker·정보창 렌더링을 배포 도메인에서 최종 확인한다.

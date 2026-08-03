@@ -1,8 +1,8 @@
 package com.noblesi.travelplanner.security;
 
 import java.util.List;
+import java.util.Locale;
 
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -12,42 +12,40 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import com.noblesi.travelplanner.domain.member.AuthenticatedMember;
+import com.noblesi.travelplanner.mapper.MemberMapper;
+
 @Component
-@Profile("local")
-public class LocalMemberAuthenticationProvider implements AuthenticationProvider {
+public class MemberAuthenticationProvider implements AuthenticationProvider {
 
-	private final LocalLoginProperties properties;
+	private final MemberMapper memberMapper;
 	private final PasswordEncoder passwordEncoder;
-	private final String encodedPassword;
 
-	public LocalMemberAuthenticationProvider(
-			LocalLoginProperties properties,
+	public MemberAuthenticationProvider(
+			MemberMapper memberMapper,
 			PasswordEncoder passwordEncoder
 	) {
-		this.properties = properties;
+		this.memberMapper = memberMapper;
 		this.passwordEncoder = passwordEncoder;
-		this.encodedPassword = properties.isConfigured()
-				? passwordEncoder.encode(properties.password())
-				: null;
 	}
 
 	@Override
 	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-		if (!properties.isConfigured()) {
-			throw new BadCredentialsException("Local authentication is not configured");
-		}
-
-		String email = authentication.getName();
+		String email = normalizeEmail(authentication.getName());
 		String password = String.valueOf(authentication.getCredentials());
-		if (!properties.email().equalsIgnoreCase(email)
-				|| !passwordEncoder.matches(password, encodedPassword)) {
+		AuthenticatedMember member = memberMapper.findForEmailAuthentication(email);
+
+		if (member == null
+				|| !member.isActive()
+				|| !member.hasLocalCredential()
+				|| !passwordEncoder.matches(password, member.passwordHash())) {
 			throw new BadCredentialsException("Invalid email or password");
 		}
 
 		MemberPrincipal principal = new MemberPrincipal(
-				properties.memberId(),
-				properties.email(),
-				properties.displayName()
+				member.memberId(),
+				member.email(),
+				member.displayName()
 		);
 		return UsernamePasswordAuthenticationToken.authenticated(
 				principal,
@@ -59,5 +57,9 @@ public class LocalMemberAuthenticationProvider implements AuthenticationProvider
 	@Override
 	public boolean supports(Class<?> authentication) {
 		return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
+	}
+
+	private String normalizeEmail(String email) {
+		return email == null ? "" : email.strip().toLowerCase(Locale.ROOT);
 	}
 }

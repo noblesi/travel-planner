@@ -2,7 +2,12 @@ let sdkPromise = null
 
 function waitForKakaoMaps(resolve, reject) {
   if (!window.kakao?.maps) {
-    reject(new Error('카카오맵 SDK를 초기화하지 못했습니다.'))
+    document.getElementById('kakao-map-sdk')?.remove()
+    reject(
+      new Error(
+        `카카오맵 SDK를 초기화하지 못했습니다. Kakao Developers 허용 도메인에 ${window.location.origin}을 등록했는지 확인해 주세요.`,
+      ),
+    )
     return
   }
 
@@ -33,13 +38,7 @@ export function loadKakaoMapSdk() {
   sdkPromise = new Promise((resolve, reject) => {
     const existingScript = document.getElementById('kakao-map-sdk')
     if (existingScript) {
-      existingScript.addEventListener('load', () => waitForKakaoMaps(resolve, reject), {
-        once: true,
-      })
-      existingScript.addEventListener('error', () => rejectScriptLoad(existingScript, reject), {
-        once: true,
-      })
-      return
+      existingScript.remove()
     }
 
     const query = new URLSearchParams({

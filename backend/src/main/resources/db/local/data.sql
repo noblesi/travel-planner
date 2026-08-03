@@ -20,3 +20,19 @@ VALUES
     ('35', '경상북도',         NULL, 'SIDO', 15, 'Y'),
     ('36', '경상남도',         NULL, 'SIDO', 16, 'Y'),
     ('39', '제주특별자치도',   NULL, 'SIDO', 17, 'Y');
+
+-- P2/P3 authentication fixtures. Raw test password: WithTrip-E2E-2026!
+INSERT INTO MEMBER (
+    MEMBER_ID,
+    MEMBER_NAME,
+    EMAIL,
+    NICKNAME,
+    PASSWORD_HASH,
+    PRIVACY_CONSENT_YN,
+    MEMBER_STATUS,
+    WITHDRAWN_AT
+) VALUES
+    (SEQ_MEMBER.NEXTVAL, '소유자', 'e2e.owner@withtrip.test', 'E2E 플랜 소유자', '$2a$10$vtQ0WJwy8lT3TsxLq/NZ0ucMHmcSxN5hGQiWw28uIe4ehQTtDs2IW', 'Y', 'ACTIVE', NULL),
+    (SEQ_MEMBER.NEXTVAL, '초대자', 'e2e.invitee@withtrip.test', 'E2E 초대 수락자', '$2a$10$vtQ0WJwy8lT3TsxLq/NZ0ucMHmcSxN5hGQiWw28uIe4ehQTtDs2IW', 'Y', 'ACTIVE', NULL),
+    (SEQ_MEMBER.NEXTVAL, '탈퇴자', 'e2e.withdrawn@withtrip.test', 'E2E 탈퇴 회원', '$2a$10$vtQ0WJwy8lT3TsxLq/NZ0ucMHmcSxN5hGQiWw28uIe4ehQTtDs2IW', 'Y', 'WITHDRAWN', CURRENT_TIMESTAMP),
+    (SEQ_MEMBER.NEXTVAL, '데모인', 'demo.local@withtrip.example', '로그인 불가 데모', NULL, 'Y', 'ACTIVE', NULL);
