@@ -1,6 +1,33 @@
 :root {
-  color: #1f2937;
-  background: #f8fafc;
+  --color-brand: #c2410c;
+  --color-brand-hover: #9a3412;
+  --color-brand-accent: #f97316;
+  --color-brand-soft: #fff7ed;
+  --color-brand-border: #fed7aa;
+  --color-brand-focus: rgb(249 115 22 / 22%);
+  --color-brand-on: #ffffff;
+  --color-secondary: #2563eb;
+  --color-secondary-soft: #eff6ff;
+  --color-page: #fffaf5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-text: #0f172a;
+  --color-text-muted: #64748b;
+  --color-success: #10b981;
+  --color-success-soft: #ecfdf5;
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef2f2;
+  --color-info: #2563eb;
+  --color-info-soft: #eff6ff;
+  --layout-content-width: 1180px;
+  --layout-shell-width: 1220px;
+  --layout-gutter: 20px;
+  --layout-header-height: 72px;
+  --layout-section-space: clamp(48px, 7vw, 96px);
+
+  color: var(--color-text);
+  background: var(--color-page);
   font-family:
     Pretendard,
     -apple-system,
@@ -24,11 +51,17 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background: var(--color-page);
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+:where(a, button, input, textarea, select):focus-visible {
+  outline: 3px solid var(--color-brand-focus);
+  outline-offset: 3px;
 }
 
 button,
@@ -40,4 +73,11 @@ select {
 
 #app {
   min-height: 100vh;
+}
+
+.app-container {
+  width: 100%;
+  max-width: var(--layout-shell-width);
+  margin-inline: auto;
+  padding-inline: var(--layout-gutter);
 }

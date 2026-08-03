@@ -4,13 +4,46 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlanEditorView from '@/views/PlanEditorView.vue'
 
-const { getTravelPlanEditorMock } = vi.hoisted(() => ({
+const {
+  addScheduleItemMock,
+  deleteScheduleItemMock,
+  getTravelPlanEditorMock,
+  reorderScheduleItemsMock,
+  searchPlacesMock,
+  updateScheduleItemMock,
+  updateTravelPlanDatesMock,
+  updateTravelPlanMetadataMock,
+} = vi.hoisted(() => ({
+  addScheduleItemMock: vi.fn(),
+  deleteScheduleItemMock: vi.fn(),
   getTravelPlanEditorMock: vi.fn(),
+  reorderScheduleItemsMock: vi.fn(),
+  searchPlacesMock: vi.fn(),
+  updateScheduleItemMock: vi.fn(),
+  updateTravelPlanDatesMock: vi.fn(),
+  updateTravelPlanMetadataMock: vi.fn(),
 }))
 
 vi.mock('@/api/plans', () => ({
+  addScheduleItem: addScheduleItemMock,
+  deleteScheduleItem: deleteScheduleItemMock,
   getTravelPlanEditor: getTravelPlanEditorMock,
+  reorderScheduleItems: reorderScheduleItemsMock,
+  updateScheduleItem: updateScheduleItemMock,
+  updateTravelPlanDates: updateTravelPlanDatesMock,
+  updateTravelPlanMetadata: updateTravelPlanMetadataMock,
 }))
+
+vi.mock('@/api/places', () => ({
+  searchPlaces: searchPlacesMock,
+}))
+
+const KakaoMapStub = {
+  name: 'KakaoMap',
+  props: ['places', 'selectedPlaceId', 'emptyMessage'],
+  emits: ['select'],
+  template: '<div class="kakao-map-stub" />',
+}
 
 const editor = {
   plan: {
@@ -47,6 +80,7 @@ function mountView(planId = '101') {
     global: {
       plugins: [createPinia()],
       stubs: {
+        KakaoMap: KakaoMapStub,
         RouterLink: { template: '<a><slot /></a>' },
       },
     },
@@ -55,6 +89,13 @@ function mountView(planId = '101') {
 
 beforeEach(() => {
   getTravelPlanEditorMock.mockReset().mockResolvedValue(editor)
+  searchPlacesMock.mockReset()
+  updateTravelPlanDatesMock.mockReset()
+  updateTravelPlanMetadataMock.mockReset()
+  addScheduleItemMock.mockReset()
+  updateScheduleItemMock.mockReset()
+  deleteScheduleItemMock.mockReset()
+  reorderScheduleItemsMock.mockReset()
 })
 
 describe('PlanEditorView', () => {
@@ -66,8 +107,64 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('서울특별시 여행')
     expect(wrapper.text()).toContain('여행 일정')
     expect(wrapper.text()).toContain('2일')
-    expect(wrapper.text()).toContain('아직 등록된 장소가 없습니다.')
-    expect(wrapper.text()).toContain('서울특별시 지도')
+    expect(wrapper.get('.invite-panel-link').text()).toContain('동행자 초대')
+    expect(wrapper.findAll('.day-tab')).toHaveLength(2)
+    expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
+    expect(wrapper.text()).toContain('서울특별시의 관광정보를 TourAPI에서 검색합니다.')
+  })
+
+  it('선택한 DAY의 오전·오후 일정 카드와 해당 DAY의 빈 상태를 표시한다', async () => {
+    getTravelPlanEditorMock.mockResolvedValueOnce({
+      ...editor,
+      days: [
+        {
+          ...editor.days[0],
+          items: [
+            {
+              scheduleItemId: '301',
+              timeSlot: 'MORNING',
+              positionNo: 1,
+              placeName: '경복궁',
+              categoryName: '관광지',
+              address: '서울 종로구 사직로 161',
+              latitude: 37.5796,
+              longitude: 126.977,
+              description: '조선 시대의 법궁',
+            },
+            {
+              scheduleItemId: '302',
+              timeSlot: 'AFTERNOON',
+              positionNo: 1,
+              placeName: '북촌한옥마을',
+              categoryName: '문화마을',
+              address: '서울 종로구 계동길 37',
+              description: '한옥 골목 산책',
+            },
+          ],
+        },
+        editor.days[1],
+      ],
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('오전')
+    expect(wrapper.text()).toContain('경복궁')
+    expect(wrapper.text()).toContain('오후')
+    expect(wrapper.text()).toContain('북촌한옥마을')
+    expect(wrapper.findAll('.schedule-card')).toHaveLength(2)
+    expect(wrapper.getComponent(KakaoMapStub).props('places')[0]).toMatchObject({
+      mapPlaceId: 'schedule:301',
+      markerSource: 'SCHEDULE',
+      placeName: '경복궁',
+    })
+
+    await wrapper.findAll('.day-tab')[1].trigger('click')
+
+    expect(wrapper.findAll('.day-tab')[1].attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('DAY 2에 등록된 장소가 없습니다.')
+    expect(wrapper.text()).not.toContain('경복궁')
+    expect(wrapper.findAll('.schedule-card')).toHaveLength(0)
   })
 
   it('플랜 ID prop이 변경되면 새로운 편집 데이터를 조회한다', async () => {
@@ -79,6 +176,222 @@ describe('PlanEditorView', () => {
 
     expect(getTravelPlanEditorMock).toHaveBeenNthCalledWith(1, '101')
     expect(getTravelPlanEditorMock).toHaveBeenNthCalledWith(2, '102')
+  })
+
+  it('플랜 제목과 공개 범위를 수정하고 최신 Version을 화면에 반영한다', async () => {
+    const updatedEditor = {
+      ...editor,
+      plan: {
+        ...editor.plan,
+        title: '서울 맛집 여행',
+        visibility: 'PUBLIC',
+        versionNo: 1,
+      },
+    }
+    updateTravelPlanMetadataMock.mockResolvedValueOnce(updatedEditor)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.metadata-editor__open').trigger('click')
+    await wrapper.get('[name="editTitle"]').setValue('  서울 맛집 여행  ')
+    await wrapper.get('[name="editVisibility"]').setValue('PUBLIC')
+    await wrapper.get('.metadata-editor__form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTravelPlanMetadataMock).toHaveBeenCalledWith('101', {
+      title: '서울 맛집 여행',
+      visibility: 'PUBLIC',
+      versionNo: 0,
+    })
+    expect(wrapper.text()).toContain('서울 맛집 여행')
+    expect(wrapper.text()).toContain('공개')
+    expect(wrapper.find('.metadata-editor__form').exists()).toBe(false)
+  })
+
+  it('빈 플랜 제목은 API를 호출하지 않고 Validation 오류를 표시한다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.metadata-editor__open').trigger('click')
+    await wrapper.get('[name="editTitle"]').setValue('   ')
+    await wrapper.get('.metadata-editor__form').trigger('submit')
+
+    expect(updateTravelPlanMetadataMock).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('플랜 제목을 입력해 주세요.')
+  })
+
+  it('장소 검색 결과와 선택 장소를 지도에 전달한다', async () => {
+    const place = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '1001',
+      placeName: '여의도 한강공원',
+      categoryName: '관광지',
+      address: '서울 영등포구 여의동로 330',
+      latitude: 37.5284,
+      longitude: 126.934,
+      imageUrl: null,
+    }
+    searchPlacesMock.mockResolvedValueOnce({
+      places: [place],
+      page: 1,
+      size: 10,
+      totalCount: 1,
+      hasNext: false,
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('[name="placeKeyword"]').setValue('한강')
+    await wrapper.get('.place-search-panel__form').trigger('submit')
+    await flushPromises()
+    await wrapper.get('.place-search-panel__results button').trigger('click')
+
+    const map = wrapper.getComponent(KakaoMapStub)
+    expect(searchPlacesMock).toHaveBeenCalledWith({
+      keyword: '한강',
+      regionCode: '1',
+      page: 1,
+      size: 10,
+    })
+    expect(map.props('places')).toEqual([
+      {
+        ...place,
+        mapPlaceId: 'search:TOUR_API:1001',
+        markerSource: 'SEARCH',
+      },
+    ])
+    expect(map.props('selectedPlaceId')).toBe('search:TOUR_API:1001')
+    expect(wrapper.text()).toContain('여의도 한강공원')
+  })
+
+  it('검색한 장소를 오전 일정에 추가하고 자동 저장 상태를 표시한다', async () => {
+    const place = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '1001',
+      placeName: '여의도 한강공원',
+      categoryName: '관광지',
+      address: '서울 영등포구 여의동로 330',
+      latitude: 37.5284,
+      longitude: 126.934,
+      imageUrl: null,
+    }
+    const updated = {
+      ...editor,
+      days: [
+        {
+          ...editor.days[0],
+          scheduleVersion: 1,
+          items: [
+            {
+              ...place,
+              scheduleItemId: '301',
+              timeSlot: 'MORNING',
+              positionNo: 1,
+              itemVersion: 0,
+            },
+          ],
+        },
+        editor.days[1],
+      ],
+    }
+    searchPlacesMock.mockResolvedValue({
+      places: [place],
+      page: 1,
+      size: 10,
+      totalCount: 1,
+      hasNext: false,
+    })
+    addScheduleItemMock.mockResolvedValue({
+      operationId: 'operation-id',
+      scheduleItemId: '301',
+      resultScheduleVersion: 1,
+      editor: updated,
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('[name="placeKeyword"]').setValue('한강')
+    await wrapper.get('.place-search-panel__form').trigger('submit')
+    await flushPromises()
+    await wrapper.get('.place-search-panel__results button').trigger('click')
+    const addButton = wrapper
+      .findAll('.place-detail-card__actions button')
+      .find((button) => button.text().includes('오전에 추가'))
+    await addButton.trigger('click')
+    await flushPromises()
+
+    expect(addScheduleItemMock).toHaveBeenCalledWith(
+      '101',
+      '201',
+      expect.objectContaining({
+        scheduleVersion: 0,
+        timeSlot: 'MORNING',
+        externalPlaceId: '1001',
+      }),
+    )
+    expect(wrapper.text()).toContain('모든 변경사항이 자동 저장되었습니다.')
+    expect(wrapper.text()).toContain('여의도 한강공원')
+    expect(wrapper.findAll('.schedule-card')).toHaveLength(1)
+  })
+
+  it('일정 카드에서 시간대를 이동하고 삭제한다', async () => {
+    const item = {
+      scheduleItemId: '301',
+      timeSlot: 'MORNING',
+      positionNo: 1,
+      itemVersion: 0,
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '100',
+      placeName: '경복궁',
+    }
+    const withItem = {
+      ...editor,
+      days: [{ ...editor.days[0], items: [item] }, editor.days[1]],
+    }
+    const moved = {
+      ...editor,
+      days: [
+        {
+          ...editor.days[0],
+          scheduleVersion: 1,
+          items: [{ ...item, timeSlot: 'AFTERNOON', itemVersion: 1 }],
+        },
+        editor.days[1],
+      ],
+    }
+    const deleted = {
+      ...editor,
+      days: [{ ...editor.days[0], scheduleVersion: 2, items: [] }, editor.days[1]],
+    }
+    getTravelPlanEditorMock.mockResolvedValueOnce(withItem)
+    updateScheduleItemMock.mockResolvedValueOnce({ editor: moved, resultScheduleVersion: 1 })
+    deleteScheduleItemMock.mockResolvedValueOnce({ editor: deleted, resultScheduleVersion: 2 })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper
+      .findAll('.schedule-card__actions button')
+      .find((button) => button.text().includes('오후로'))
+      .trigger('click')
+    await flushPromises()
+
+    expect(updateScheduleItemMock).toHaveBeenCalledWith(
+      '101',
+      '201',
+      '301',
+      expect.objectContaining({ scheduleVersion: 0, itemVersion: 0, timeSlot: 'AFTERNOON' }),
+    )
+
+    await wrapper.get('[aria-label="경복궁 일정 삭제"]').trigger('click')
+    await flushPromises()
+
+    expect(deleteScheduleItemMock).toHaveBeenCalledWith(
+      '101',
+      '201',
+      '301',
+      expect.objectContaining({ scheduleVersion: 1, itemVersion: 1 }),
+    )
+    expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
   })
 
   it('조회 실패 메시지를 표시하고 다시 시도한다', async () => {
@@ -95,5 +408,101 @@ describe('PlanEditorView', () => {
 
     expect(getTravelPlanEditorMock).toHaveBeenCalledTimes(2)
     expect(wrapper.text()).toContain('서울특별시 여행')
+  })
+
+  it('제작 페이지에서 여행 날짜를 변경하고 응답 DAY를 반영한다', async () => {
+    const updatedEditor = {
+      plan: {
+        ...editor.plan,
+        startDate: '2026-08-09',
+        endDate: '2026-08-11',
+        versionNo: 1,
+      },
+      days: [
+        {
+          planDayId: '200',
+          dayNo: 1,
+          travelDate: '2026-08-09',
+          scheduleVersion: 0,
+          items: [],
+        },
+        { ...editor.days[0], dayNo: 2 },
+        { ...editor.days[1], dayNo: 3 },
+      ],
+    }
+    updateTravelPlanDatesMock.mockResolvedValueOnce(updatedEditor)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-09')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-11')
+    await wrapper.get('.date-editor__form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTravelPlanDatesMock).toHaveBeenCalledWith('101', {
+      startDate: '2026-08-09',
+      endDate: '2026-08-11',
+      versionNo: 0,
+      force: false,
+    })
+    expect(wrapper.text()).toContain('3일')
+    expect(wrapper.findAll('.day-tab')).toHaveLength(3)
+    expect(wrapper.find('.date-editor__form').exists()).toBe(false)
+  })
+
+  it('일정이 있는 DAY가 제외되면 확인 후 강제로 날짜를 변경한다', async () => {
+    updateTravelPlanDatesMock
+      .mockRejectedValueOnce({
+        response: {
+          status: 409,
+          data: {
+            code: 'PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED',
+            message: '변경 범위에서 제외되는 날짜에 일정이 있습니다.',
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        plan: { ...editor.plan, startDate: '2026-08-11', versionNo: 1 },
+        days: [{ ...editor.days[1], dayNo: 1 }],
+      })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-11')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-11')
+    await wrapper.get('.date-editor__form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alertdialog"]').exists()).toBe(true)
+
+    const confirmButton = wrapper
+      .findAll('.confirmation-dialog__actions button')
+      .find((button) => button.text().includes('일정 삭제 후 변경'))
+    await confirmButton.trigger('click')
+    await flushPromises()
+
+    expect(updateTravelPlanDatesMock).toHaveBeenNthCalledWith(2, '101', {
+      startDate: '2026-08-11',
+      endDate: '2026-08-11',
+      versionNo: 0,
+      force: true,
+    })
+    expect(wrapper.find('[role="alertdialog"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('1일')
+  })
+
+  it('14일을 초과한 날짜 변경은 API를 호출하지 않는다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-01')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-15')
+    await wrapper.get('.date-editor__form').trigger('submit')
+
+    expect(updateTravelPlanDatesMock).not.toHaveBeenCalled()
+    expect(wrapper.text()).toContain('여행 기간은 최대 14일까지 설정할 수 있습니다.')
   })
 })

@@ -24,7 +24,7 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 
 .not-found p {
   margin: 0;
-  color: #0f766e;
+  color: var(--color-brand);
   font-size: 18px;
   font-weight: 800;
 }
@@ -34,7 +34,7 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 }
 
 .not-found a {
-  color: #0f766e;
+  color: var(--color-brand);
   font-weight: 750;
 }
 </style>

@@ -13,13 +13,10 @@
           <div class="loading-text">초대 정보를 확인하고 있어요...</div>
         </template>
 
-        <!-- 정상: 초대 정보 표시 -->
         <template v-else-if="status === 'valid'">
           <div class="inviter-row">
-            <div class="inviter-avatar" :style="invitation.inviterAvatar ? { backgroundImage: `url(${invitation.inviterAvatar})` } : {}">
-              <span v-if="!invitation.inviterAvatar">{{ invitation.inviterName?.[0] }}</span>
-            </div>
-            <span class="inviter-text"><strong>{{ invitation.inviterName }}</strong>님의 초대예요.</span>
+            <div class="inviter-avatar" aria-hidden="true">W</div>
+            <span class="inviter-text"><strong>WithTrip</strong> 동행자 초대예요.</span>
           </div>
 
           <h1 class="accept-title">"{{ invitation.planTitle }}"에 함께 하시겠어요?</h1>
@@ -30,23 +27,25 @@
               <span class="info-value">{{ invitation.startDate }} ~ {{ invitation.endDate }}</span>
             </div>
             <div class="info-row">
-              <span class="info-label">참여 인원</span>
-              <div class="participant-avatars">
-                <span
-                  v-for="p in invitation.participants"
-                  :key="p.id"
-                  class="participant-avatar"
-                  :style="{ background: p.color }"
-                  :title="p.name"
-                >{{ p.name[0] }}</span>
-              </div>
+              <span class="info-label">여행 지역</span>
+              <span class="info-value">{{ invitation.regionName }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">초대 이메일</span>
+              <span class="info-value">{{ invitation.inviteeEmail }}</span>
             </div>
           </div>
 
-          <button class="accept-btn" :disabled="accepting" @click="acceptInvitation">
-            {{ accepting ? '처리 중...' : '여행 계획 열기' }}
+          <button
+            class="accept-btn"
+            type="button"
+            :disabled="accepting"
+            :aria-busy="accepting"
+            @click="acceptCurrentInvitation"
+          >
+            {{ accepting ? '처리 중...' : '초대 수락하고 여행 계획 열기' }}
           </button>
-          <div v-if="errorMessage" class="error-text">{{ errorMessage }}</div>
+          <div v-if="errorMessage" class="error-text" role="alert">{{ errorMessage }}</div>
         </template>
 
         <!-- 만료: 링크 만료 -->
@@ -57,7 +56,6 @@
           <button class="home-btn" @click="goHome">홈으로 가기</button>
         </template>
 
-        <!-- 오류: 그 외 실패(잘못된 토큰, 이미 수락됨 등) -->
         <template v-else-if="status === 'error'">
           <div class="expired-icon"><i class="ti ti-alert-triangle" aria-hidden="true"></i></div>
           <div class="expired-title">{{ errorMessage || '초대를 확인할 수 없어요' }}</div>
@@ -71,95 +69,68 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+import { acceptPlanInvitation, getPlanInvitation } from '@/api/invitations'
 
 const route = useRoute()
 const router = useRouter()
 
-// status: 'loading' | 'valid' | 'expired' | 'error'
 const status = ref('loading')
 const accepting = ref(false)
 const errorMessage = ref('')
-
-// ── mock 데이터: 백엔드 연동 시 토큰 검증 API 응답으로 교체 ──
-const invitation = ref({
-  inviterName: '홍길동',
-  inviterAvatar: '',
-  planTitle: '제주도 여행',
-  startDate: '2026.07.16',
-  endDate: '2026.08.27',
-  participants: [
-    { id: 1, name: '홍길동', color: '#1DA97C' },
-    { id: 2, name: '김철수', color: '#0f766e' },
-  ],
-})
+const invitation = ref(null)
 
 async function verifyToken() {
   const token = route.query.token
 
   if (!token) {
     status.value = 'error'
-    errorMessage.value = '잘못된 초대 링크예요'
+    errorMessage.value = '잘못된 초대 링크예요.'
     return
   }
 
   status.value = 'loading'
+  errorMessage.value = ''
 
-  // TODO: 백엔드 연동 시 아래를 실제 API 호출로 교체
-  //   GET /api/invitations/verify?token={token}
-  //   응답: { valid: true, planTitle, inviterName, inviterAvatar, startDate, endDate, participants }
-  //   또는 만료/오류 시 { valid: false, reason: 'EXPIRED' | 'INVALID' | 'ALREADY_ACCEPTED' }
   try {
-    await new Promise((resolve) => setTimeout(resolve, 600)) // 로딩 상태 확인용 지연, 실제 연동 시 제거
-
-    // mock: 토큰 값에 "expired"가 포함되면 만료 상태를 재현할 수 있게 해둔다.
-    // 예: /invite/accept?token=expired-token 으로 접속해보면 만료 화면을 확인할 수 있다.
-    if (String(token).includes('expired')) {
+    invitation.value = await getPlanInvitation(token)
+    status.value = 'valid'
+  } catch (error) {
+    if (error?.response?.status === 410) {
       status.value = 'expired'
       return
     }
-
-    status.value = 'valid'
-  } catch (err) {
-    // 실제 API 연동 시 네트워크 오류나 서버 오류 원인을 파악할 수 있도록 콘솔에 남긴다.
-    console.error('초대 토큰 검증 실패:', err)
     status.value = 'error'
-    errorMessage.value = '초대 정보를 불러오지 못했어요'
+    errorMessage.value =
+      error?.response?.data?.message ?? '초대 정보를 불러오지 못했어요.'
   }
 }
 
-async function acceptInvitation() {
+async function acceptCurrentInvitation() {
+  if (accepting.value) return
+
   accepting.value = true
   errorMessage.value = ''
 
-  // TODO: 백엔드 연동 시 아래를 실제 API 호출로 교체
-  //   POST /api/invitations/accept  { token }
-  //
-  //   서버가 로그인 여부를 판단해서:
-  //   - 로그인 안 되어 있으면 401 응답 → 아래 catch에서 로그인 페이지로 리다이렉트
-  //   - 로그인 되어 있고 정상 처리되면 200 + { planId } 응답
-  //     (이미 참여 중인 경우도 서버가 중복 추가 없이 그냥 planId를 내려준다)
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    // mock: 실제 axios 사용 시 아래처럼 응답 상태에 따라 분기한다.
-    //   const res = await api.post('/invitations/accept', { token: route.query.token })
-    //   router.push({ name: 'plan-detail', params: { id: res.data.planId } })
-    router.push({ name: 'plan-detail', params: { id: 1 } }) // TODO: 실제 planId로 교체
-  } catch (err) {
-    // 서버가 401(비로그인)을 내려주면, 로그인 페이지로 보내되
-    // 로그인 성공 후 이 초대 수락 흐름으로 다시 돌아올 수 있도록
-    // 현재 경로(토큰 포함)를 redirect 쿼리로 함께 넘긴다.
-    if (err?.response?.status === 401) {
+    const data = await acceptPlanInvitation(route.query.token)
+    router.push({ name: 'plan-editor', params: { planId: data.planId } })
+  } catch (error) {
+    if (error?.response?.status === 401) {
       router.push({
         name: 'login',
         query: { redirect: route.fullPath },
       })
       return
     }
-
-    console.error('초대 수락 처리 실패:', err)
-    errorMessage.value = '수락 처리에 실패했어요. 다시 시도해주세요.'
+    if (error?.response?.status === 410) {
+      status.value = 'expired'
+      return
+    }
+    errorMessage.value =
+      error?.response?.data?.message ?? '수락 처리에 실패했어요. 다시 시도해 주세요.'
   } finally {
     accepting.value = false
   }
@@ -194,7 +165,7 @@ onMounted(verifyToken)
 .logo {
   font-size: 16px;
   font-weight: 700;
-  color: #0f766e;
+  color: var(--color-brand);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -223,7 +194,7 @@ onMounted(verifyToken)
   width: 36px;
   height: 36px;
   border: 3px solid #f0e0de;
-  border-top-color: #0f766e;
+  border-top-color: var(--color-brand-accent);
   border-radius: 50%;
   margin: 0 auto 1.25rem;
   animation: spin .8s linear infinite;
@@ -323,7 +294,7 @@ onMounted(verifyToken)
 .accept-btn {
   width: 100%;
   padding: 14px;
-  background: #0f766e;
+  background: var(--color-brand);
   color: #fff;
   border: none;
   border-radius: 26px;
@@ -332,7 +303,7 @@ onMounted(verifyToken)
   cursor: pointer;
 }
 .accept-btn:hover {
-  background: #0c5c56;
+  background: var(--color-brand-hover);
 }
 .accept-btn:disabled {
   background: #e0b8b0;
@@ -341,14 +312,14 @@ onMounted(verifyToken)
 
 .error-text {
   font-size: 12.5px;
-  color: #0f766e;
+  color: var(--color-danger);
   margin-top: 10px;
 }
 
 /* 만료/오류 상태 */
 .expired-icon {
   font-size: 40px;
-  color: #0f766e;
+  color: var(--color-brand-accent);
   margin-bottom: 1.25rem;
 }
 .expired-title {
@@ -365,7 +336,7 @@ onMounted(verifyToken)
 .home-btn {
   width: 100%;
   padding: 14px;
-  background: #0f766e;
+  background: var(--color-brand);
   color: #fff;
   border: none;
   border-radius: 26px;
@@ -374,6 +345,6 @@ onMounted(verifyToken)
   cursor: pointer;
 }
 .home-btn:hover {
-  background: #0c5c56;
+  background: var(--color-brand-hover);
 }
 </style>

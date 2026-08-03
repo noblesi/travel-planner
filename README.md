@@ -24,7 +24,7 @@ flowchart LR
     D --> E[(Oracle)]
 ```
 
-UI 및 데이터 모델 원본은 [설계 자료](docs/README.md)에서 확인합니다.
+UI 및 데이터 모델 원본은 [설계 자료](docs/README.md)에서 확인합니다. 현재 적용된 사용자·관리자 공통 레이아웃, orange design token과 공통 UI Component 사용법은 [공통 레이아웃·UI Component 가이드](docs/frontend/common-layout-ui.md)를 기준으로 합니다.
 
 세부 코딩 규칙과 PR 체크리스트는 [CONTRIBUTING.md](CONTRIBUTING.md)를 확인합니다.
 
@@ -89,8 +89,8 @@ Eclipse에서 Terminal을 두 개 열고 각각 실행합니다. Oracle을 먼�
 터미널 1 — Spring Boot:
 
 ```powershell
-cd travel-planner/backend
-.\gradlew.bat bootRun
+cd travel-planner
+.\scripts\run-backend.ps1
 ```
 
 터미널 2 — Vue:
@@ -156,8 +156,7 @@ VS Code에서 Terminal을 두 개 열고 각각 실행합니다. Oracle을 먼�
 터미널 1 — Spring Boot:
 
 ```powershell
-cd backend
-.\gradlew.bat bootRun
+.\scripts\run-backend.ps1
 ```
 
 터미널 2 — Vue:
@@ -210,13 +209,14 @@ travel-planner/
 │   ├── src/api/                       # Axios 인스턴스와 API 모듈
 │   ├── src/assets/                    # 전역 스타일과 정적 자원
 │   ├── src/components/                # 재사용 컴포넌트
+│   │   └── ui/                        # Button·Input·Modal·상태·Toast 공통 UI
 │   ├── src/layouts/                   # 공통 화면 레이아웃
 │   ├── src/router/                    # Vue Router 설정
 │   ├── src/stores/                    # Pinia 전역 상태
 │   ├── src/views/                     # 라우트 단위 화면
 │   ├── package.json
 │   └── vite.config.js
-├── scripts/                           # Linux 빌드·실행 스크립트
+├── scripts/                           # Windows·Linux 빌드 및 실행 스크립트
 ├── .env.example                       # 백엔드 환경변수 예시
 ├── .nvmrc                             # Node.js 공통 버전
 ├── CONTRIBUTING.md
@@ -227,7 +227,15 @@ travel-planner/
 
 ### 백엔드
 
-루트의 `.env.example`은 값의 형식을 확인하기 위한 예시입니다. Spring Boot를 실행할 터미널에 환경변수를 등록합니다.
+루트의 `.env.example`은 값의 형식을 확인하기 위한 예시입니다. 실제 DB 비밀번호와 API 키는 팀 보안 채널로 공유하고 Git에는 커밋하지 않습니다.
+
+Windows에서는 저장소 루트에서 예시 파일을 복사한 뒤 전달받은 값을 입력합니다.
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+`.env.local`은 `.gitignore`에 포함되어 있습니다. `scripts/run-backend.ps1`은 이 파일에서 백엔드에 필요한 변수만 현재 실행 프로세스에 로드하고, 실제 값은 콘솔에 출력하지 않습니다. `ORACLE_SYSTEM_*`과 `VITE_*`처럼 백엔드 실행에 필요하지 않은 항목은 하위 Java 프로세스에 전달하지 않습니다.
 
 | 환경변수 | 예시 | 용도 |
 | --- | --- | --- |
@@ -235,6 +243,8 @@ travel-planner/
 | `ORACLE_USERNAME` | `travel_planner` | DB 계정 |
 | `ORACLE_PASSWORD` | `change-me` | DB 비밀번호 |
 | `SERVER_PORT` | `8080` | 백엔드 포트 |
+| `TOUR_API_SERVICE_KEY` | `change-me` | TourAPI 서비스 인증키 |
+| `KAKAO_REST_API_KEY` | `change-me` | Kakao REST API 키 |
 
 macOS/Linux:
 
@@ -245,13 +255,23 @@ export ORACLE_PASSWORD='change-me'
 export SERVER_PORT='8080'
 ```
 
-Windows PowerShell:
+Windows PowerShell에서는 환경변수를 매번 직접 입력하는 대신 실행 스크립트를 권장합니다.
 
 ```powershell
-$env:ORACLE_URL='jdbc:oracle:thin:@//localhost:1521/FREEPDB1'
-$env:ORACLE_USERNAME='travel_planner'
-$env:ORACLE_PASSWORD='change-me'
-$env:SERVER_PORT='8080'
+.\scripts\run-backend.ps1
+```
+
+다른 위치의 환경변수 파일을 사용하려면 `-EnvironmentFile`을 지정합니다.
+
+```powershell
+.\scripts\run-backend.ps1 -EnvironmentFile C:\secure\withtrip.env
+```
+
+PowerShell 실행 정책으로 스크립트 실행이 차단되면 현재 터미널에만 임시로 허용한 뒤 다시 실행합니다.
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\scripts\run-backend.ps1
 ```
 
 Oracle 접속 정보가 아직 준비되지 않은 경우에는 Backend의 `local` Profile을 사용합니다. 이 Profile은 Memory 기반 H2를 Oracle 호환 모드로 실행하고 개발용 Schema와 Seed를 자동으로 적용합니다.
@@ -279,9 +299,12 @@ cd backend
 ```dotenv
 VITE_API_BASE_URL=/api
 VITE_API_PROXY_TARGET=http://localhost:8080
+VITE_KAKAO_MAP_KEY=change-me
 ```
 
 개인 설정이 필요하면 `frontend/.env.local`을 만들고 Git에는 커밋하지 않습니다. Vite 개발 서버는 `/api` 요청을 Spring Boot로 프록시하므로 기본 구성에서는 별도 CORS 설정이 필요하지 않습니다.
+
+TourAPI와 Kakao REST API의 Backend 환경변수 및 Kakao JavaScript SDK 도메인 등록 방법은 [`docs/api/external-api-setup.md`](docs/api/external-api-setup.md)를 따릅니다.
 
 ## 5. 최초 설치
 
@@ -314,9 +337,8 @@ Oracle을 실행하고 환경변수를 설정하거나 Backend `local` Profile�
 
 Windows:
 
-```bat
-cd backend
-gradlew.bat bootRun
+```powershell
+.\scripts\run-backend.ps1
 ```
 
 macOS/Linux:
@@ -423,6 +445,9 @@ chore: 프론트엔드 의존성 설정 수정
 ### 프론트엔드
 
 - `views`는 라우트 단위 화면, `components`는 재사용 UI로 구분합니다.
+- 사용자 화면은 `DefaultLayout`, 관리자 화면은 `AdminLayout`을 기본 레이아웃으로 사용합니다.
+- 공통 버튼·입력·Modal·비동기 상태 UI는 `src/components/ui`의 Component를 우선 사용합니다.
+- 색상과 layout 수치는 `src/assets/main.css`의 design token을 사용하고 화면별로 brand 색상을 다시 정의하지 않습니다.
 - Axios 호출은 컴포넌트에서 직접 작성하지 않고 `src/api` 모듈에 둡니다.
 - 둘 이상의 화면에서 공유하는 상태만 Pinia에 둡니다.
 - 공통 Header와 Footer는 레이아웃 컴포넌트로 관리합니다.

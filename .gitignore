@@ -4,6 +4,9 @@
 .vscode/
 *.iml
 
+# Personal notes (not shared with the team)
+*.local.md
+
 # Eclipse / Buildship
 .project
 .classpath

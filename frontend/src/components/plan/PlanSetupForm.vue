@@ -1,7 +1,7 @@
 <script setup>
-import { reactive } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 
-defineProps({
+const props = defineProps({
   regions: {
     type: Array,
     required: true,
@@ -14,9 +14,19 @@ defineProps({
     type: String,
     default: '',
   },
+  serverFieldErrors: {
+    type: Object,
+    default: () => ({}),
+  },
 })
 
-const emit = defineEmits(['submit'])
+const emit = defineEmits(['field-change', 'submit'])
+
+const formElement = ref(null)
+const regionPicker = ref(null)
+const regionTrigger = ref(null)
+const regionDropdownOpen = ref(false)
+const activeRegionIndex = ref(-1)
 
 const form = reactive({
   regionCode: '',
@@ -31,8 +41,137 @@ const errors = reactive({
   endDate: '',
 })
 
+function toDateInputValue(date) {
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+  return localDate.toISOString().slice(0, 10)
+}
+
+const today = toDateInputValue(new Date())
+const maxEndDate = computed(() => {
+  if (!form.startDate) return undefined
+
+  const date = new Date(`${form.startDate}T00:00:00`)
+  date.setDate(date.getDate() + 13)
+  return toDateInputValue(date)
+})
+
+const tripDayCount = computed(() => {
+  if (!form.startDate || !form.endDate) return 0
+  return inclusiveDayCount(form.startDate, form.endDate)
+})
+
+const tripDateSummary = computed(() => {
+  if (tripDayCount.value < 1 || tripDayCount.value > 14) return ''
+  return `${tripDayCount.value}일 여행으로 계획을 시작합니다.`
+})
+
+const selectedRegion = computed(() =>
+  props.regions.find((region) => region.regionCode === form.regionCode),
+)
+
+const activeRegionId = computed(() =>
+  regionDropdownOpen.value && activeRegionIndex.value >= 0
+    ? `region-option-${activeRegionIndex.value}`
+    : undefined,
+)
+
+function fieldError(field) {
+  return errors[field] || props.serverFieldErrors[field] || ''
+}
+
 function clearError(field) {
   errors[field] = ''
+  emit('field-change', field)
+}
+
+function clearDateErrors() {
+  clearError('startDate')
+  clearError('endDate')
+}
+
+function notifyVisibilityChange() {
+  emit('field-change', 'visibility')
+}
+
+function openRegionDropdown(preferLast = false) {
+  if (props.regions.length === 0) return
+
+  const selectedIndex = props.regions.findIndex(
+    (region) => region.regionCode === form.regionCode,
+  )
+  activeRegionIndex.value =
+    selectedIndex >= 0 ? selectedIndex : preferLast ? props.regions.length - 1 : 0
+  regionDropdownOpen.value = true
+}
+
+function closeRegionDropdown() {
+  regionDropdownOpen.value = false
+}
+
+function toggleRegionDropdown() {
+  if (regionDropdownOpen.value) {
+    closeRegionDropdown()
+    return
+  }
+
+  openRegionDropdown()
+}
+
+function moveActiveRegion(offset) {
+  if (!regionDropdownOpen.value) {
+    openRegionDropdown(offset < 0)
+    return
+  }
+
+  activeRegionIndex.value =
+    (activeRegionIndex.value + offset + props.regions.length) % props.regions.length
+}
+
+function selectRegion(index) {
+  const region = props.regions[index]
+  if (!region) return
+
+  form.regionCode = region.regionCode
+  activeRegionIndex.value = index
+  clearError('regionCode')
+  closeRegionDropdown()
+  nextTick(() => regionTrigger.value?.focus())
+}
+
+function handleRegionKeydown(event) {
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault()
+    moveActiveRegion(event.key === 'ArrowDown' ? 1 : -1)
+    return
+  }
+
+  if (event.key === 'Home' || event.key === 'End') {
+    event.preventDefault()
+    if (!regionDropdownOpen.value) openRegionDropdown()
+    activeRegionIndex.value = event.key === 'Home' ? 0 : props.regions.length - 1
+    return
+  }
+
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    if (regionDropdownOpen.value) {
+      selectRegion(activeRegionIndex.value)
+    } else {
+      openRegionDropdown()
+    }
+    return
+  }
+
+  if (event.key === 'Escape' && regionDropdownOpen.value) {
+    event.preventDefault()
+    closeRegionDropdown()
+  }
+
+  if (event.key === 'Tab') closeRegionDropdown()
+}
+
+function handleOutsidePointerDown(event) {
+  if (!regionPicker.value?.contains(event.target)) closeRegionDropdown()
 }
 
 function inclusiveDayCount(startDate, endDate) {
@@ -46,6 +185,10 @@ function validate() {
   errors.startDate = form.startDate ? '' : '시작 날짜를 선택해 주세요.'
   errors.endDate = form.endDate ? '' : '종료 날짜를 선택해 주세요.'
 
+  if (form.startDate && form.startDate < today) {
+    errors.startDate = '오늘 이후의 시작 날짜를 선택해 주세요.'
+  }
+
   if (form.startDate && form.endDate) {
     if (form.startDate > form.endDate) {
       errors.endDate = '종료 날짜는 시작 날짜보다 빠를 수 없습니다.'
@@ -57,8 +200,16 @@ function validate() {
   return !errors.regionCode && !errors.startDate && !errors.endDate
 }
 
+async function focusFirstInvalidField() {
+  await nextTick()
+  formElement.value?.querySelector('[aria-invalid="true"]')?.focus()
+}
+
 function submitForm() {
-  if (!validate()) return
+  if (!validate()) {
+    focusFirstInvalidField()
+    return
+  }
 
   emit('submit', {
     regionCode: form.regionCode,
@@ -67,28 +218,100 @@ function submitForm() {
     visibility: form.visibility,
   })
 }
+
+watch(
+  () => props.serverFieldErrors,
+  (serverFieldErrors) => {
+    if (Object.keys(serverFieldErrors).length > 0) focusFirstInvalidField()
+  },
+  { deep: true },
+)
+
+watch(
+  () => props.regions,
+  () => {
+    if (!props.regions.some((region) => region.regionCode === form.regionCode)) {
+      form.regionCode = ''
+    }
+    if (activeRegionIndex.value >= props.regions.length) activeRegionIndex.value = -1
+  },
+  { deep: true },
+)
+
+onMounted(() => document.addEventListener('pointerdown', handleOutsidePointerDown))
+onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsidePointerDown))
 </script>
 
 <template>
-  <form class="setup-form" novalidate @submit.prevent="submitForm">
+  <form ref="formElement" class="setup-form" novalidate @submit.prevent="submitForm">
     <fieldset class="setup-form__fieldset" :disabled="submitting">
       <div class="form-field">
-        <label for="regionCode">어디로 떠나시나요?</label>
-        <select
-          id="regionCode"
-          v-model="form.regionCode"
-          name="regionCode"
-          :aria-describedby="errors.regionCode ? 'regionCode-error' : undefined"
-          :aria-invalid="Boolean(errors.regionCode)"
-          @change="clearError('regionCode')"
-        >
-          <option value="" disabled>여행지역을 선택해 주세요</option>
-          <option v-for="region in regions" :key="region.regionCode" :value="region.regionCode">
-            {{ region.regionName }}
-          </option>
-        </select>
-        <p v-if="errors.regionCode" id="regionCode-error" class="field-error">
-          {{ errors.regionCode }}
+        <label id="regionCode-label" for="regionCode">어디로 떠나시나요?</label>
+        <div ref="regionPicker" class="region-picker">
+          <button
+            id="regionCode"
+            ref="regionTrigger"
+            class="region-select"
+            :class="{ 'region-select--open': regionDropdownOpen }"
+            type="button"
+            role="combobox"
+            aria-autocomplete="none"
+            aria-haspopup="listbox"
+            aria-controls="region-options"
+            :aria-activedescendant="activeRegionId"
+            :aria-describedby="fieldError('regionCode') ? 'regionCode-error' : undefined"
+            :aria-expanded="regionDropdownOpen"
+            :aria-invalid="Boolean(fieldError('regionCode'))"
+            aria-labelledby="regionCode-label regionCode-value"
+            @click="toggleRegionDropdown"
+            @keydown="handleRegionKeydown"
+          >
+            <span
+              id="regionCode-value"
+              class="region-select__value"
+              :class="{ 'region-select__value--placeholder': !selectedRegion }"
+            >
+              {{ selectedRegion?.regionName || '여행지역을 선택해 주세요' }}
+            </span>
+            <span class="region-select__chevron" aria-hidden="true" />
+          </button>
+
+          <Transition name="region-options">
+            <ul
+              v-if="regionDropdownOpen"
+              id="region-options"
+              class="region-options"
+              role="listbox"
+              aria-labelledby="regionCode-label"
+            >
+              <li
+                v-for="(region, index) in regions"
+                :id="`region-option-${index}`"
+                :key="region.regionCode"
+                class="region-option"
+                :class="{
+                  'region-option--active': activeRegionIndex === index,
+                  'region-option--selected': form.regionCode === region.regionCode,
+                }"
+                role="option"
+                :aria-selected="form.regionCode === region.regionCode"
+                @pointermove="activeRegionIndex = index"
+                @mousedown.prevent
+                @click="selectRegion(index)"
+              >
+                <span>{{ region.regionName }}</span>
+                <span
+                  v-if="form.regionCode === region.regionCode"
+                  class="region-option__check"
+                  aria-hidden="true"
+                  >✓</span
+                >
+              </li>
+            </ul>
+          </Transition>
+        </div>
+        <p v-if="fieldError('regionCode')" id="regionCode-error" class="field-error" role="alert">
+          {{ fieldError('regionCode') }}
         </p>
       </div>
 
@@ -106,12 +329,13 @@ function submitForm() {
               v-model="form.startDate"
               name="startDate"
               type="date"
-              :aria-describedby="errors.startDate ? 'startDate-error' : undefined"
-              :aria-invalid="Boolean(errors.startDate)"
-              @input="clearError('startDate')"
+              :min="today"
+              :aria-describedby="fieldError('startDate') ? 'startDate-error' : undefined"
+              :aria-invalid="Boolean(fieldError('startDate'))"
+              @input="clearDateErrors"
             />
-            <p v-if="errors.startDate" id="startDate-error" class="field-error">
-              {{ errors.startDate }}
+            <p v-if="fieldError('startDate')" id="startDate-error" class="field-error" role="alert">
+              {{ fieldError('startDate') }}
             </p>
           </div>
 
@@ -122,16 +346,22 @@ function submitForm() {
               v-model="form.endDate"
               name="endDate"
               type="date"
-              :min="form.startDate || undefined"
-              :aria-describedby="errors.endDate ? 'endDate-error' : undefined"
-              :aria-invalid="Boolean(errors.endDate)"
+              :disabled="!form.startDate"
+              :min="form.startDate || today"
+              :max="maxEndDate"
+              :aria-describedby="fieldError('endDate') ? 'endDate-error' : undefined"
+              :aria-invalid="Boolean(fieldError('endDate'))"
               @input="clearError('endDate')"
             />
-            <p v-if="errors.endDate" id="endDate-error" class="field-error">
-              {{ errors.endDate }}
+            <p v-if="fieldError('endDate')" id="endDate-error" class="field-error" role="alert">
+              {{ fieldError('endDate') }}
             </p>
           </div>
         </div>
+
+        <p v-if="tripDateSummary" class="date-summary" aria-live="polite">
+          {{ tripDateSummary }}
+        </p>
       </div>
 
       <label class="visibility-card" for="visibility">
@@ -148,6 +378,7 @@ function submitForm() {
             type="checkbox"
             true-value="PUBLIC"
             false-value="PRIVATE"
+            @change="notifyVisibilityChange"
           />
           <span class="switch__track" aria-hidden="true" />
         </span>
@@ -187,7 +418,7 @@ function submitForm() {
   font-weight: 750;
 }
 
-.form-field select,
+.region-select,
 .form-field input {
   width: 100%;
   min-height: 54px;
@@ -202,15 +433,122 @@ function submitForm() {
     box-shadow 160ms ease;
 }
 
-.form-field select:focus,
+.region-select:focus-visible,
+.region-select--open,
 .form-field input:focus {
   border-color: #ff5a4e;
   box-shadow: 0 0 0 4px rgb(255 90 78 / 13%);
 }
 
-.form-field select[aria-invalid='true'],
+.region-select[aria-invalid='true'],
 .form-field input[aria-invalid='true'] {
   border-color: #dc2626;
+}
+
+.region-picker {
+  position: relative;
+}
+
+.region-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.region-select:hover:not(:disabled) {
+  border-color: #b9c1cd;
+}
+
+.region-select__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.region-select__value--placeholder {
+  color: #94a3b8;
+}
+
+.region-select__chevron {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-right: 2px solid #64748b;
+  border-bottom: 2px solid #64748b;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.region-select--open .region-select__chevron {
+  transform: translateY(2px) rotate(225deg);
+}
+
+.region-options {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  right: 0;
+  left: 0;
+  max-height: 280px;
+  margin: 0;
+  padding: 8px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgb(15 23 42 / 16%);
+  list-style: none;
+  overscroll-behavior: contain;
+  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-width: thin;
+}
+
+.region-option {
+  display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  color: #334155;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    background 120ms ease;
+}
+
+.region-option--active {
+  color: #d83a31;
+  background: #fff1f0;
+}
+
+.region-option--selected {
+  color: #d83a31;
+  font-weight: 750;
+}
+
+.region-option__check {
+  color: #ff5a4e;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.region-options-enter-active,
+.region-options-leave-active {
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
+  transform-origin: top;
+}
+
+.region-options-enter-from,
+.region-options-leave-to {
+  opacity: 0;
+  transform: translateY(-5px) scale(0.99);
 }
 
 .date-section {
@@ -240,6 +578,13 @@ function submitForm() {
   color: #b91c1c;
   font-size: 13px;
   line-height: 1.5;
+}
+
+.date-summary {
+  margin: 0;
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .visibility-card {
@@ -359,7 +704,11 @@ function submitForm() {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .form-field select,
+  .region-select,
+  .region-select__chevron,
+  .region-option,
+  .region-options-enter-active,
+  .region-options-leave-active,
   .form-field input,
   .switch__track,
   .switch__track::after,

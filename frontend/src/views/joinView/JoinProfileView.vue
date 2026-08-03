@@ -22,7 +22,7 @@ const handleContinue = () => {
   }
   alert('정상 가입되었습니다.')
   userStore.setStep2Data(birth.value,name.value, gender.value, phone.value)
-  router.push('/joinCompleteView')
+  router.push({ name: 'complete' })
 }
 
 </script>

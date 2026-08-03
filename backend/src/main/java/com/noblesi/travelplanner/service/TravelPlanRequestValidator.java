@@ -15,8 +15,10 @@ public class TravelPlanRequestValidator {
 	private static final int MAX_TRAVEL_DAYS = 14;
 
 	public void validate(CreateTravelPlanRequest request) {
-		LocalDate startDate = request.startDate();
-		LocalDate endDate = request.endDate();
+		validateDates(request.startDate(), request.endDate());
+	}
+
+	public void validateDates(LocalDate startDate, LocalDate endDate) {
 		if (startDate == null || endDate == null) {
 			return;
 		}

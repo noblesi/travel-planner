@@ -1,7 +1,7 @@
 <template>
   <DefaultLayout>
     <div class="detail-page">
-      <div class="detail-card">
+      <div class="app-container detail-card">
         <div class="detail-head">
           <button class="back-link" title="여행플랜 상세페이지로 돌아가기" @click="goBack">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>
@@ -29,7 +29,7 @@
         <div class="detail-body">
           <div class="day-sidebar">
             <button v-for="day in plan.days" :key="day.dayNumber" class="day-item"
-              :class="{ active: selectedDay === day.dayNumber }" @click="selectedDay = day.dayNumber">
+              :class="{ active: selectedDay === day.dayNumber }" @click="selectDay(day.dayNumber)">
               <div class="day-num">DAY {{ day.dayNumber }}</div>
               <div class="day-date">{{ day.dateLabel }}</div>
             </button>
@@ -94,13 +94,20 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import KakaoMap from '@/components/map/KakaoMap.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import ReportModal from './ReportModal.vue'
 import ImportModal from './ImportModal.vue'
-import KakaoMap from './KakaoMap.vue'
+
+// 라우터가 plan-detail 경로(/plans/:id)에 props: true로 연결돼 있어 id를 prop으로 받는다.
+// TODO: 백엔드 연동 시 이 id로 GET /plans/{id}를 호출해 plan 데이터를 채운다.
+const props = defineProps({
+  id: { type: [String, Number], required: false, default: null },
+})
 
 const router = useRouter()
+const route = useRoute()
 
 function goBack() {
   // 브라우저 히스토리를 한 칸 뒤로 이동한다.
@@ -110,11 +117,11 @@ function goBack() {
   router.back()
 }
 
-// ── mock 데이터: 백엔드 연동 시 props나 API 호출로 교체 ──
+// ── mock 데이터: 백엔드 연동 시 props.id로 GET /plans/{id}를 호출하는 형태로 교체 ──
 // DAY 2에는 장소를 많이 넣어서 "일정 카드가 넘칠 때" 스크롤 동작을 확인할 수 있게 했고,
 // DAY도 8개까지 늘려서 "사이드바가 넘칠 때" 스크롤 동작을 확인할 수 있게 했다.
 const plan = ref({
-  id: 101,
+  id: props.id ?? 101,
   title: '부산 여행',
   authorName: '김민준',
   periodLabel: '07.20 - 07.27 (8일)',
@@ -184,8 +191,19 @@ const plan = ref({
   ],
 })
 
-const selectedDay = ref(1)
+// 새로고침해도 보고 있던 DAY가 유지되도록 URL 쿼리(day)에서 초기값을 복원한다.
+// 쿼리가 없거나 plan에 없는 dayNumber면 1일차로 되돌아간다.
+const queryDay = Number(route.query.day)
+const initialDay = plan.value.days.some((d) => d.dayNumber === queryDay) ? queryDay : 1
+const selectedDay = ref(initialDay)
 const currentDay = computed(() => plan.value.days.find((d) => d.dayNumber === selectedDay.value))
+
+function selectDay(dayNumber) {
+  selectedDay.value = dayNumber
+  // push가 아니라 replace를 쓰는 이유: DAY를 바꿀 때마다 히스토리가 쌓이면
+  // 뒤로가기 한 번으로 이전 DAY로 안 돌아가고 탐색 페이지까지 나가버린다.
+  router.replace({ query: { ...route.query, day: dayNumber } })
+}
 
 // DAY 요약 패널용 계산: 오전/오후 개수
 const morningCount = computed(() => currentDay.value.places.filter((p) => p.timeSlot === '오전').length)
@@ -239,13 +257,10 @@ function formatCount(n) {
 }
 
 .detail-card {
-  max-width: 1280px;
-  width: 100%;
   /* 100vh를 그대로 쓰면 DefaultLayout의 헤더/푸터까지 더해져 전체 페이지가
      뷰포트보다 길어진다. 고정 픽셀 높이로 바꿔 "한눈에 보이는" 크기로 줄이고,
      DAY 목록이나 장소가 넘칠 때는 이 안에서만 스크롤되게 한다. */
   height: 640px;
-  margin: 0 auto;
   background: #fff;
   border-radius: 20px;
   padding: 2rem 2.5rem;
@@ -294,7 +309,7 @@ function formatCount(n) {
 /* 작성자/날짜 정보를 제목 옆에 나란히 배치. margin-left는 주지 않고 gap으로만 간격을 준다. */
 .plan-author {
   font-size: 13px;
-  color: #0f766e;
+  color: var(--color-brand);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -307,7 +322,7 @@ function formatCount(n) {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #0f766e;
+  background: var(--color-brand-accent);
   flex-shrink: 0;
 }
 
@@ -333,7 +348,7 @@ function formatCount(n) {
 }
 
 .like-stat.liked {
-  color: #0f766e;
+  color: var(--color-brand);
 }
 
 .view-stat {
@@ -359,14 +374,14 @@ function formatCount(n) {
 }
 
 .report-btn:hover {
-  border-color: #0f766e;
-  color: #0f766e;
+  border-color: var(--color-brand-accent);
+  color: var(--color-brand);
 }
 
 .import-btn {
   padding: 9px 18px;
-  background: #0f766e;
-  color: #fff;
+  background: var(--color-brand);
+  color: var(--color-brand-on);
   border-radius: 20px;
   font-size: 13.5px;
   font-weight: 600;
@@ -376,7 +391,7 @@ function formatCount(n) {
 }
 
 .import-btn:hover {
-  background: #0c5c56;
+  background: var(--color-brand-hover);
 }
 
 .detail-body {
@@ -425,7 +440,7 @@ function formatCount(n) {
 }
 
 .day-item.active {
-  background: #d9f0ed;
+  background: var(--color-brand-soft);
 }
 
 .day-num {
@@ -436,7 +451,7 @@ function formatCount(n) {
 }
 
 .day-item.active .day-num {
-  color: #0f766e;
+  color: var(--color-brand);
 }
 
 .day-date {
@@ -497,15 +512,16 @@ function formatCount(n) {
   margin-bottom: 0;
 }
 
-/* 시안 B: 오전은 블루, 오후는 코랄로 구분. 라벨 텍스트 색과 카드 왼쪽 컬러바에 같은 색을 사용한다. */
+/* 오전은 레드, 오후는 블루 계열로 구분. 라벨 텍스트 색과 카드 왼쪽 컬러바에 같은 색을 사용한다.
+   두 색 모두 헤더 로고(연필의 주황, 핀의 파랑)에서 뽑은 톤이라 사이트 전체 톤과 어울린다. */
 .time-section--morning {
-  --slot-color: #378ADD;
-  --slot-color-dark: #185FA5;
+  --slot-color: #FB633C;
+  --slot-color-dark: #AB4329;
 }
 
 .time-section--afternoon {
-  --slot-color: #0f766e;
-  --slot-color-dark: #993C1D;
+  --slot-color: var(--color-brand-accent);
+  --slot-color-dark: var(--color-brand);
 }
 
 .time-section-head {

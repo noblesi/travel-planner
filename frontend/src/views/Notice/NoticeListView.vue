@@ -1,10 +1,10 @@
 <template>
   <DefaultLayout>
-    <div class="announce-page">
+    <div class="app-container announce-page">
     <div class="announce-head">
       <div class="eyebrow">NOTICE</div>
-      <h1 class="announce-title">공지사항</h1>
-      <p class="announce-sub">WithTrip의 새로운 기능 업데이트와 서비스 소식을 전해드립니다.</p>
+      <h1 class="notice-title">공지사항</h1>
+      <p class="notice-sub">WithTrip의 새로운 기능 업데이트와 서비스 소식을 전해드립니다.</p>
     </div>
 
     <div class="filter-row">
@@ -19,11 +19,11 @@
       </button>
     </div>
 
-    <div class="announce-list">
+    <div class="notice-list">
       <button
-        v-for="item in pagedAnnouncements"
+        v-for="item in pagedNotices"
         :key="item.id"
-        class="announce-card"
+        class="notice-card"
         @click="goToDetail(item.id)"
       >
         <div class="card-icon" :class="'icon-' + item.category.toLowerCase()">
@@ -40,7 +40,7 @@
         <i class="ti ti-chevron-right card-arrow" aria-hidden="true"></i>
       </button>
 
-      <div v-if="pagedAnnouncements.length === 0" class="empty-state">
+      <div v-if="pagedNotices.length === 0" class="empty-state">
         <i class="ti ti-file-off empty-icon" aria-hidden="true"></i>
         <div class="empty-title">해당하는 공지사항이 없어요</div>
         <div class="empty-sub">다른 분류를 선택해보세요.</div>
@@ -69,12 +69,12 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 
 const router = useRouter()
 
-function goToDetail(announcementId) {
-  router.push({ name: 'announcements-detail', params: { id: announcementId } })
+function goToDetail(noticeId) {
+  router.push({ name: 'notice-detail', params: { id: noticeId } })
 }
 
 // ── mock 데이터: 백엔드 연동 시 API 호출로 교체 ──
-const announcements = ref([
+const notices = ref([
   { id: 1, category: 'GUIDE', categoryLabel: '안내', title: '카카오맵을 이용한 동선 최적화 알고리즘 개선 안내', createdAt: '2026.07.15' },
   { id: 2, category: 'MAINTENANCE', categoryLabel: '점검', title: '데이터베이스 서버 이중화 작업을 위한 시스템 정기 점검 안내 (02:00 ~ 06:00)', createdAt: '2026.07.10' },
   { id: 3, category: 'GUIDE', categoryLabel: '안내', title: '서버 안정성을 개선하고 원활한 이용 가능 안내', createdAt: '2026.07.01' },
@@ -94,16 +94,16 @@ const selectedCategory = ref('ALL')
 const currentPage = ref(1)
 const pageSize = 5
 
-const filteredAnnouncements = computed(() => {
-  if (selectedCategory.value === 'ALL') return announcements.value
-  return announcements.value.filter((a) => a.category === selectedCategory.value)
+const filteredNotices = computed(() => {
+  if (selectedCategory.value === 'ALL') return notices.value
+  return notices.value.filter((a) => a.category === selectedCategory.value)
 })
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredAnnouncements.value.length / pageSize)))
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredNotices.value.length / pageSize)))
 
-const pagedAnnouncements = computed(() => {
+const pagedNotices = computed(() => {
   const start = (currentPage.value - 1) * pageSize
-  return filteredAnnouncements.value.slice(start, start + pageSize)
+  return filteredNotices.value.slice(start, start + pageSize)
 })
 
 watch(selectedCategory, () => { currentPage.value = 1 })
@@ -126,16 +126,14 @@ function isNew(createdAt) {
 <style scoped>
 * { box-sizing: border-box; }
 
-.announce-page {
+.notice-page {
   font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   background: #fff;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 3rem 3rem 4rem;
+  padding-block: 3rem 4rem;
 }
 
 .announce-head { text-align: center; margin-bottom: 2.5rem; }
-.eyebrow { font-size: 13px; letter-spacing: .14em; color: #0f766e; margin-bottom: .6rem; text-transform: uppercase; }
+.eyebrow { font-size: 13px; letter-spacing: .14em; color: var(--color-brand); margin-bottom: .6rem; text-transform: uppercase; }
 .announce-title { font-size: 34px; font-weight: 700; color: #1a1a1a; margin-bottom: .75rem; }
 .announce-sub { font-size: 15px; color: #999; }
 
@@ -144,11 +142,11 @@ function isNew(createdAt) {
   padding: 10px 24px; border-radius: 24px; border: 1px solid #e0e0e0;
   background: #fff; color: #666; font-size: 14px; cursor: pointer; transition: all .15s;
 }
-.filter-chip.active { background: #0f766e; border-color: #0f766e; color: #fff; }
+.filter-chip.active { background: var(--color-brand); border-color: var(--color-brand); color: var(--color-brand-on); }
 
-.announce-list { display: flex; flex-direction: column; gap: 10px; }
+.notice-list { display: flex; flex-direction: column; gap: 10px; }
 
-.announce-card {
+.notice-card {
   display: flex;
   align-items: center;
   gap: 16px;
@@ -161,22 +159,22 @@ function isNew(createdAt) {
   text-align: left;
   transition: border-color .15s, box-shadow .15s;
 }
-.announce-card:hover { border-color: #e0e0e0; box-shadow: 0 4px 14px rgba(0,0,0,.05); }
+.notice-card:hover { border-color: #e0e0e0; box-shadow: 0 4px 14px rgba(0,0,0,.05); }
 
 .card-icon {
   width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center; font-size: 20px;
 }
-.card-icon.icon-guide { background: #d9f0ed; color: #0f766e; }
+.card-icon.icon-guide { background: var(--color-secondary-soft); color: var(--color-secondary); }
 .card-icon.icon-maintenance { background: #fdeee0; color: #c07a1f; }
 
 .card-body { flex: 1; min-width: 0; }
 .card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
 .cat-badge { font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 12px; }
-.badge-guide { background: #d9f0ed; color: #0d5750; }
+.badge-guide { background: var(--color-secondary-soft); color: var(--color-secondary); }
 .badge-maintenance { background: #fdeee0; color: #96601a; }
 .new-badge {
-  font-size: 10px; font-weight: 700; color: #fff; background: #0f766e;
+  font-size: 10px; font-weight: 700; color: var(--color-brand-on); background: var(--color-brand);
   padding: 2px 7px; border-radius: 8px; letter-spacing: .02em;
 }
 .card-title {

@@ -47,4 +47,142 @@
 		          I.POSITION_NO ASC
 	</select>
 
+	<select id="nextScheduleItemId" resultType="long">
+		SELECT SEQ_PLAN_SCHEDULE_ITEM.NEXTVAL
+		  FROM DUAL
+	</select>
+
+	<select id="findByIdAndDayId" resultMap="planScheduleItemResultMap">
+		SELECT SCHEDULE_ITEM_ID,
+		       PLAN_DAY_ID,
+		       TIME_SLOT,
+		       POSITION_NO,
+		       PLACE_PROVIDER,
+		       EXTERNAL_PLACE_ID,
+		       PLACE_NAME_SNAPSHOT,
+		       CATEGORY_SNAPSHOT,
+		       ADDRESS_SNAPSHOT,
+		       LATITUDE_SNAPSHOT,
+		       LONGITUDE_SNAPSHOT,
+		       IMAGE_URL_SNAPSHOT,
+		       DESCRIPTION_SNAPSHOT,
+		       ITEM_VERSION
+		  FROM PLAN_SCHEDULE_ITEM
+		 WHERE SCHEDULE_ITEM_ID = #{scheduleItemId}
+		   AND PLAN_DAY_ID = #{planDayId}
+	</select>
+
+	<select id="findIdsByDayAndTimeSlot" resultType="long">
+		SELECT SCHEDULE_ITEM_ID
+		  FROM PLAN_SCHEDULE_ITEM
+		 WHERE PLAN_DAY_ID = #{planDayId}
+		   AND TIME_SLOT = #{timeSlot}
+		 ORDER BY POSITION_NO ASC
+	</select>
+
+	<select id="countByDayAndTimeSlot" resultType="int">
+		SELECT COUNT(*)
+		  FROM PLAN_SCHEDULE_ITEM
+		 WHERE PLAN_DAY_ID = #{planDayId}
+		   AND TIME_SLOT = #{timeSlot}
+	</select>
+
+	<select id="countDuplicatePlaceInSlot" resultType="int">
+		SELECT COUNT(*)
+		  FROM PLAN_SCHEDULE_ITEM
+		 WHERE PLAN_DAY_ID = #{planDayId}
+		   AND TIME_SLOT = #{timeSlot}
+		   AND PLACE_PROVIDER = #{placeProvider}
+		   AND EXTERNAL_PLACE_ID = #{externalPlaceId}
+		<if test="excludedScheduleItemId != null">
+		   AND SCHEDULE_ITEM_ID &lt;&gt; #{excludedScheduleItemId}
+		</if>
+	</select>
+
+	<insert id="insertScheduleItem" parameterType="com.noblesi.travelplanner.domain.plan.PlanScheduleItem">
+		INSERT INTO PLAN_SCHEDULE_ITEM (
+			SCHEDULE_ITEM_ID,
+			PLAN_DAY_ID,
+			TIME_SLOT,
+			POSITION_NO,
+			PLACE_PROVIDER,
+			EXTERNAL_PLACE_ID,
+			PLACE_NAME_SNAPSHOT,
+			CATEGORY_SNAPSHOT,
+			ADDRESS_SNAPSHOT,
+			LATITUDE_SNAPSHOT,
+			LONGITUDE_SNAPSHOT,
+			IMAGE_URL_SNAPSHOT,
+			DESCRIPTION_SNAPSHOT,
+			ITEM_VERSION
+		) VALUES (
+			#{scheduleItemId},
+			#{planDayId},
+			#{timeSlot},
+			#{positionNo},
+			#{placeProvider},
+			#{externalPlaceId},
+			#{placeName},
+			#{categoryName,jdbcType=VARCHAR},
+			#{address,jdbcType=VARCHAR},
+			#{latitude,jdbcType=DECIMAL},
+			#{longitude,jdbcType=DECIMAL},
+			#{imageUrl,jdbcType=VARCHAR},
+			#{description,jdbcType=VARCHAR},
+			#{itemVersion}
+		)
+	</insert>
+
+	<update id="updateTimeSlot">
+		UPDATE PLAN_SCHEDULE_ITEM
+		   SET TIME_SLOT = #{timeSlot},
+		       POSITION_NO = #{positionNo},
+		       ITEM_VERSION = ITEM_VERSION + 1,
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE SCHEDULE_ITEM_ID = #{scheduleItemId}
+		   AND PLAN_DAY_ID = #{planDayId}
+		   AND ITEM_VERSION = #{itemVersion}
+	</update>
+
+	<delete id="deleteByIdAndVersion">
+		DELETE FROM PLAN_SCHEDULE_ITEM
+		 WHERE SCHEDULE_ITEM_ID = #{scheduleItemId}
+		   AND PLAN_DAY_ID = #{planDayId}
+		   AND ITEM_VERSION = #{itemVersion}
+	</delete>
+
+	<update id="compactPositions">
+		UPDATE PLAN_SCHEDULE_ITEM
+		   SET POSITION_NO = POSITION_NO - 1,
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE PLAN_DAY_ID = #{planDayId}
+		   AND TIME_SLOT = #{timeSlot}
+		   AND POSITION_NO &gt; #{removedPositionNo}
+	</update>
+
+	<update id="movePositionsToTemporaryRange">
+		UPDATE PLAN_SCHEDULE_ITEM
+		   SET POSITION_NO = POSITION_NO + #{offset},
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE PLAN_DAY_ID = #{planDayId}
+		   AND TIME_SLOT = #{timeSlot}
+	</update>
+
+	<update id="updatePosition">
+		UPDATE PLAN_SCHEDULE_ITEM
+		   SET POSITION_NO = #{positionNo},
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE SCHEDULE_ITEM_ID = #{scheduleItemId}
+		   AND PLAN_DAY_ID = #{planDayId}
+		   AND TIME_SLOT = #{timeSlot}
+	</update>
+
+	<delete id="deleteByPlanDayIds">
+		DELETE FROM PLAN_SCHEDULE_ITEM
+		 WHERE PLAN_DAY_ID IN
+		<foreach collection="planDayIds" item="planDayId" open="(" separator="," close=")">
+			#{planDayId}
+		</foreach>
+	</delete>
+
 </mapper>

@@ -12,6 +12,7 @@ describe('HomeView', () => {
     const wrapper = mount(HomeView, {
       global: {
         stubs: {
+          AppHeader: true,
           RouterLink: { template: '<a><slot /></a>' },
         },
       },

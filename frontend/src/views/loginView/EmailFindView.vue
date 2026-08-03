@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { RouterLink } from 'vue-router'
 
 const name = ref('')
 const birth = ref('')
@@ -52,7 +53,7 @@ const handleContinue = () => {
         <button type="submit" class="btn-submit">이메일 찾기</button>
       </form>
       <div class="footer-links">
-        <p class="signup-prompt">신규 사용자이신가요? <a href="/joinView">가입하기</a></p>
+        <p class="signup-prompt">신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink></p>
       </div>
 
     </div>
