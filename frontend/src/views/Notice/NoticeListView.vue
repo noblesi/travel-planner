@@ -133,6 +133,7 @@ function isNew(createdAt) {
 /* 홈 화면과 같은 브랜드 글로우를 좌우 여백 곳곳에 비정형적으로 흩뿌린다.
    공지 카드(.notice-card)는 자체 흰 배경이라 카드가 없는 여백에서만 은은하게 드러난다. */
 .notice-page {
+  min-height: calc(100vh - var(--layout-header-height));
   background:
     radial-gradient(circle at 4% 8%, rgb(249 115 22 / 8%) 0%, rgb(249 115 22 / 0%) 38%),
     radial-gradient(circle at 97% 22%, rgb(249 115 22 / 6.5%) 0%, rgb(249 115 22 / 0%) 32%),
@@ -206,11 +207,20 @@ function isNew(createdAt) {
 .empty-title { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 5px; }
 .empty-sub { font-size: 13px; color: #bbb; }
 
-.pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 2rem; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 2rem; }
 .page-arrow, .page-num {
-  width: 32px; height: 32px; border-radius: 8px; border: none; background: none;
-  color: #999; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%; border: none; background: none;
+  color: #666; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
 }
-.page-arrow:disabled { color: #ddd; cursor: not-allowed; }
-.page-num.active { color: #1a1a1a; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+.page-arrow:hover:not(:disabled), .page-num:hover:not(.active) {
+  background: #f0f0f0;
+  color: #1a1a1a;
+}
+.page-arrow:disabled { color: #ccc; cursor: not-allowed; }
+.page-num.active {
+  background: var(--color-brand);
+  color: var(--color-brand-on);
+  font-weight: 700;
+}
 </style>

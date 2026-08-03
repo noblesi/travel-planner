@@ -17,8 +17,10 @@
 
       <div v-if="!hasSearched" class="suggested-tags">
         <span class="suggested-label">이런 여행지는 어때요?</span>
-        <button v-for="city in suggestedCities" :key="city" class="suggested-tag" @click="searchSuggested(city)">{{ city
-        }}</button>
+        <div class="suggested-tag-list">
+          <button v-for="city in suggestedCities" :key="city" class="suggested-tag" @click="searchSuggested(city)">{{ city
+          }}</button>
+        </div>
       </div>
 
       <div v-if="hasSearched" class="result-meta">
@@ -28,6 +30,8 @@
           <span v-else class="zero">0개</span>
         </div>
       </div>
+
+      <div v-if="!hasSearched || filteredPlans.length > 0" class="divider"></div>
 
       <div v-if="!hasSearched || filteredPlans.length > 0" class="grid">
         <div v-for="plan in displayedPlans" :key="plan.id" class="card" @click="goToDetail(plan.id)">
@@ -417,17 +421,23 @@ function regionColorKey(region) {
 
 .suggested-tags {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2.5rem;
+}
+
+.suggested-tag-list {
+  display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 2.5rem;
 }
 
 .suggested-label {
   font-size: 13px;
   color: #888;
-  margin-right: 4px;
 }
 
 .suggested-tag {

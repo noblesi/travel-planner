@@ -16,19 +16,6 @@
 
     <div class="detail-body" v-html="notice.content"></div>
 
-    <div class="nav-block">
-      <button class="nav-row" @click="goToNotice(prevNotice.id)">
-        <i class="ti ti-chevron-up nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">이전글</span>
-        <span class="nav-title">{{ prevNotice.title }}</span>
-      </button>
-      <button class="nav-row" @click="goToNotice(nextNotice.id)">
-        <i class="ti ti-chevron-down nav-icon" aria-hidden="true"></i>
-        <span class="nav-label">다음글</span>
-        <span class="nav-title">{{ nextNotice.title }}</span>
-      </button>
-    </div>
-
     <div class="back-wrap">
       <button class="back-btn" @click="goToList">목록으로</button>
     </div>
@@ -80,15 +67,6 @@ const notice = ref({
   `,
 })
 
-// 이전글/다음글은 실제로 이동할 대상이 필요하므로 id를 함께 들고 있는다.
-// TODO: 백엔드 연동 시 현재 글 기준으로 이전/다음 게시물을 API에서 조회해 채운다.
-const prevNotice = ref({ id: 6, title: '"내가 만든 인생 코스는?" 최고의 여름 휴가 가이드북 투표 이벤트 오픈' })
-const nextNotice = ref({ id: 7, title: '구글 맵 트래픽 실시간 연동 및 동선 최적화 알고리즘 업데이트 완료' })
-
-function goToNotice(id) {
-  router.push({ name: 'notice-detail', params: { id } })
-}
-
 function goToList() {
   router.push({ name: 'notice-list' })
 }
@@ -101,6 +79,8 @@ function goToList() {
    합쳐놓으면 app-container의 max-width 바깥으로 body의 --color-page(크림색)가 그대로 보인다. */
 /* 홈 화면과 같은 브랜드 글로우를 좌우 여백 곳곳에 비정형적으로 흩뿌린다. */
 .detail-page {
+  min-height: calc(100vh - var(--layout-header-height));
+  padding-block: 2rem;
   background:
     radial-gradient(circle at 4% 8%, rgb(249 115 22 / 8%) 0%, rgb(249 115 22 / 0%) 38%),
     radial-gradient(circle at 97% 22%, rgb(249 115 22 / 6.5%) 0%, rgb(249 115 22 / 0%) 32%),
@@ -114,6 +94,12 @@ function goToList() {
   /* 본문 글 읽기 영역은 app-container 기본 gutter(20px)보다 넉넉하게 덮어쓴다. */
   padding-inline: clamp(20px, 5vw, 64px);
   padding-block: 3rem;
+  /* 한 줄이 너무 길어지면 읽기 어려우므로, 읽기 편한 폭으로 제한하고 가운데 정렬한다. */
+  max-width: 900px;
+  margin-inline: auto;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
 }
 
 .cat-badge {
@@ -144,19 +130,6 @@ function goToList() {
 .detail-body :deep(.notice-row:last-child) { border-bottom: none; }
 .detail-body :deep(.notice-row dt) { font-size: 13px; color: #999; font-weight: 600; margin: 0; }
 .detail-body :deep(.notice-row dd) { font-size: 13.5px; color: #333; margin: 0; line-height: 1.6; }
-
-.nav-block { margin-top: 3rem; border-top: 1px solid #eee; }
-.nav-row {
-  width: 100%; display: flex; align-items: center; gap: 14px;
-  padding: 1.1rem 0; border-bottom: 1px solid #eee;
-  background: none; border-left: none; border-right: none; border-top: none; cursor: pointer; text-align: left;
-}
-.nav-icon { font-size: 15px; color: #bbb; flex-shrink: 0; }
-.nav-label { font-size: 13px; color: #999; width: 46px; flex-shrink: 0; }
-.nav-title {
-  font-size: 14px; color: #333;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
 
 .back-wrap { display: flex; justify-content: center; margin-top: 2.5rem; }
 .back-btn {

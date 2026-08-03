@@ -222,6 +222,7 @@ function goBackToPlan() {
   border: 1px solid #eee;
   border-radius: 16px;
   background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
 }
 
 .eyebrow {
@@ -253,6 +254,10 @@ function goBackToPlan() {
   gap: 10px;
 }
 
+.input-row {
+  gap: 16px;
+}
+
 .email-input,
 .link-row input {
   min-width: 0;
@@ -266,7 +271,7 @@ function goBackToPlan() {
 .email-input:focus,
 .link-row input:focus {
   border-color: var(--color-brand-accent);
-  outline: 3px solid var(--color-brand-focus);
+  outline: none;
 }
 
 .add-btn,
@@ -364,6 +369,7 @@ button:disabled {
 
 .send-btn {
   width: 100%;
+  margin-top: 1.5rem;
 }
 
 .success-icon {
