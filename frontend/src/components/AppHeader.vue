@@ -20,6 +20,13 @@ const toggleMenu = () => {
 
 watch(() => route.fullPath, closeMenu)
 
+const handlePlanSearchClick = () => {
+  closeMenu()
+  if (route.name === 'plan-search') {
+    window.dispatchEvent(new Event('plan-search:reset'))
+  }
+}
+
 const handleLogout = async () => {
   try {
     await authStore.logout()
@@ -45,7 +52,7 @@ const handleLogout = async () => {
         aria-label="주요 메뉴"
       >
         <RouterLink class="navigation__link" :to="{ name: 'home' }" @click="closeMenu">홈</RouterLink>
-        <RouterLink class="navigation__link" :to="{ name: 'plan-search' }" @click="closeMenu">
+        <RouterLink class="navigation__link" :to="{ name: 'plan-search' }" @click="handlePlanSearchClick">
           일정 탐색
         </RouterLink>
         <RouterLink

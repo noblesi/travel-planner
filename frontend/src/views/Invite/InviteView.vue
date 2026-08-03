@@ -213,7 +213,6 @@ function goBackToPlan() {
   justify-content: center;
   padding: 4rem 2rem;
   background: #fafafa;
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
 }
 
 .invite-card {
@@ -266,8 +265,8 @@ function goBackToPlan() {
 
 .email-input:focus,
 .link-row input:focus {
-  border-color: #ff5a4e;
-  outline: 3px solid rgb(255 90 78 / 12%);
+  border-color: var(--color-brand-accent);
+  outline: 3px solid var(--color-brand-focus);
 }
 
 .add-btn,
@@ -285,9 +284,16 @@ function goBackToPlan() {
 .add-btn,
 .send-btn,
 .link-row button {
-  color: #fff;
-  border: 1px solid #ff5a4e;
-  background: #ff5a4e;
+  color: var(--color-brand-on);
+  border: 1px solid var(--color-brand);
+  background: var(--color-brand);
+}
+
+.add-btn:hover,
+.send-btn:hover,
+.link-row button:hover {
+  border-color: var(--color-brand-hover);
+  background: var(--color-brand-hover);
 }
 
 .back-btn {
@@ -333,9 +339,9 @@ button:disabled {
   height: 32px;
   flex-shrink: 0;
   place-items: center;
-  color: #e8443a;
+  color: var(--color-brand);
   border-radius: 50%;
-  background: #fff0ee;
+  background: var(--color-brand-soft);
   font-weight: 700;
 }
 
@@ -366,9 +372,9 @@ button:disabled {
   height: 72px;
   margin: 0 auto 1.5rem;
   place-items: center;
-  color: #e8443a;
+  color: var(--color-brand);
   border-radius: 50%;
-  background: #fff0ee;
+  background: var(--color-brand-soft);
   font-size: 32px;
 }
 

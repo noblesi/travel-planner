@@ -147,7 +147,6 @@ onMounted(verifyToken)
 * { box-sizing: border-box; }
 
 .accept-page {
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   min-height: 100vh;
   background:
     linear-gradient(rgba(255, 245, 235, .55), rgba(255, 235, 220, .7)),

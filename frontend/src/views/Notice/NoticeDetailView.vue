@@ -1,6 +1,7 @@
 <template>
   <DefaultLayout>
-    <div class="app-container detail-page">
+    <div class="detail-page">
+    <div class="app-container detail-page__inner">
     <div class="detail-head">
       <span class="cat-badge" :class="'badge-' + (notice.category ?? 'guide')">{{ notice.categoryLabel }}</span>
       <h1 class="detail-title">{{ notice.title }}</h1>
@@ -30,6 +31,7 @@
 
     <div class="back-wrap">
       <button class="back-btn" @click="goToList">목록으로</button>
+    </div>
     </div>
     </div>
   </DefaultLayout>
@@ -95,9 +97,22 @@ function goToList() {
 <style scoped>
 * { box-sizing: border-box; }
 
+/* 배경은 이 바깥 래퍼가 뷰포트 전체 폭으로 칠하고, 폭 제한은 안쪽 .detail-page__inner(app-container)가 맡는다.
+   합쳐놓으면 app-container의 max-width 바깥으로 body의 --color-page(크림색)가 그대로 보인다. */
+/* 홈 화면과 같은 브랜드 글로우를 좌우 여백 곳곳에 비정형적으로 흩뿌린다. */
 .detail-page {
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-  background: #fff;
+  background:
+    radial-gradient(circle at 4% 8%, rgb(249 115 22 / 8%) 0%, rgb(249 115 22 / 0%) 38%),
+    radial-gradient(circle at 97% 22%, rgb(249 115 22 / 6.5%) 0%, rgb(249 115 22 / 0%) 32%),
+    radial-gradient(circle at 2% 55%, rgb(249 115 22 / 6%) 0%, rgb(249 115 22 / 0%) 35%),
+    radial-gradient(circle at 96% 68%, rgb(249 115 22 / 7%) 0%, rgb(249 115 22 / 0%) 34%),
+    radial-gradient(circle at 6% 90%, rgb(249 115 22 / 5%) 0%, rgb(249 115 22 / 0%) 28%),
+    var(--color-page);
+}
+
+.detail-page__inner {
+  /* 본문 글 읽기 영역은 app-container 기본 gutter(20px)보다 넉넉하게 덮어쓴다. */
+  padding-inline: clamp(20px, 5vw, 64px);
   padding-block: 3rem;
 }
 
