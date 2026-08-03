@@ -1,6 +1,7 @@
 <template>
   <DefaultLayout>
-    <div class="app-container search-page">
+    <div class="search-page">
+      <div class="app-container search-page__inner">
 
       <div class="pg-head">
         <div class="eyebrow">DISCOVER ITINERARIES</div>
@@ -9,15 +10,17 @@
       </div>
 
       <div class="search-wrap">
-        <i class="ti ti-search" aria-hidden="true"></i>
+        <i class="ti ti-search" aria-hidden="true" @click="handleSearch"></i>
         <input class="search-input" type="text" v-model="keyword" placeholder="목적지 검색 (예: 서울, 부산, 제주)"
           @keyup.enter="handleSearch" />
       </div>
 
       <div v-if="!hasSearched" class="suggested-tags">
         <span class="suggested-label">이런 여행지는 어때요?</span>
-        <button v-for="city in suggestedCities" :key="city" class="suggested-tag" @click="searchSuggested(city)">{{ city
-        }}</button>
+        <div class="suggested-tag-list">
+          <button v-for="city in suggestedCities" :key="city" class="suggested-tag" @click="searchSuggested(city)">{{ city
+          }}</button>
+        </div>
       </div>
 
       <div v-if="hasSearched" class="result-meta">
@@ -27,6 +30,8 @@
           <span v-else class="zero">0개</span>
         </div>
       </div>
+
+      <div v-if="!hasSearched || filteredPlans.length > 0" class="divider"></div>
 
       <div v-if="!hasSearched || filteredPlans.length > 0" class="grid">
         <div v-for="plan in displayedPlans" :key="plan.id" class="card" @click="goToDetail(plan.id)">
@@ -96,13 +101,14 @@
         <button class="browse-btn" @click="resetSearch">모든 일정 보기</button>
       </div>
 
+      </div>
     </div>
   </DefaultLayout>
 </template>
 
 <script setup>
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
@@ -272,7 +278,9 @@ function syncUrl() {
 }
 
 function handleSearch() {
-  searchedKeyword.value = keyword.value.trim()
+  const trimmed = keyword.value.trim()
+  if (!trimmed) return
+  searchedKeyword.value = trimmed
   hasSearched.value = true
   visibleCount.value = pageSize
   syncUrl()
@@ -285,6 +293,7 @@ function searchSuggested(city) {
 
 function resetSearch() {
   keyword.value = ''
+  searchedKeyword.value = ''
   hasSearched.value = false
   visibleCount.value = pageSize
   syncUrl()
@@ -294,6 +303,12 @@ function loadMore() {
   visibleCount.value += pageSize
   syncUrl()
 }
+
+// 헤더의 "일정 탐색"을 이미 이 페이지에 있는 상태에서 다시 클릭하면
+// 라우트가 바뀌지 않아 컴포넌트가 재마운트되지 않으므로, AppHeader가 쏘는
+// 커스텀 이벤트를 받아 검색 상태를 새로고침한 것처럼 초기화한다.
+onMounted(() => window.addEventListener('plan-search:reset', resetSearch))
+onUnmounted(() => window.removeEventListener('plan-search:reset', resetSearch))
 
 function formatCount(n) {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
@@ -320,13 +335,28 @@ function regionColorKey(region) {
   box-sizing: border-box;
 }
 
+/* 배경은 이 바깥 래퍼가 뷰포트 전체 폭으로 칠하고,
+   폭 제한은 안쪽 .search-page__inner(app-container)가 맡는다.
+   AppHeader/AppFooter와 같은 패턴 — 이렇게 분리하지 않으면
+   app-container의 max-width 바깥으로 body의 --color-page(크림색)가 그대로 보인다. */
+/* 홈 화면과 같은 브랜드 글로우를 제목 뒤 한 군데가 아니라, 좌우 여백 곳곳에 비정형적으로 흩뿌린다.
+   검색 결과 카드 등 불투명한 콘텐츠에 자연히 가려지고, 카드가 없는 여백에서만 은은하게 드러난다. */
 .search-page {
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-  background: #ffffff;
+  background:
+    radial-gradient(circle at 4% 8%, rgb(249 115 22 / 8%) 0%, rgb(249 115 22 / 0%) 38%),
+    radial-gradient(circle at 97% 22%, rgb(249 115 22 / 6.5%) 0%, rgb(249 115 22 / 0%) 32%),
+    radial-gradient(circle at 2% 55%, rgb(249 115 22 / 6%) 0%, rgb(249 115 22 / 0%) 35%),
+    radial-gradient(circle at 96% 68%, rgb(249 115 22 / 7%) 0%, rgb(249 115 22 / 0%) 34%),
+    radial-gradient(circle at 6% 90%, rgb(249 115 22 / 5%) 0%, rgb(249 115 22 / 0%) 28%),
+    var(--color-page);
   color: #1a1a1a;
-  /* 헤더/푸터가 레이아웃으로 감싸는 구조이므로,
-     페이지 자체는 아래쪽에 큰 여백을 두지 않고 다음 요소(푸터)에 맡긴다. */
-  padding-block: 0 1.5rem;
+}
+
+.search-page__inner {
+  /* app-container 기본 padding-inline(--layout-gutter, 20px)은 헤더/푸터 내비게이션 기준으로
+     좁게 잡힌 값이라, 카드 그리드가 있는 본문에는 좀 더 넉넉하게 덮어쓴다. */
+  padding-inline: clamp(20px, 5vw, 64px);
+  padding-block: 0 5rem;
 }
 
 .pg-head {
@@ -367,12 +397,13 @@ function regionColorKey(region) {
   transform: translateY(-50%);
   color: #aaa;
   font-size: 20px;
+  cursor: pointer;
 }
 
 .search-input {
   width: 100%;
   padding: 16px 22px 16px 52px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #c4c4c4;
   border-radius: 30px;
   font-size: 16px;
   color: #1a1a1a;
@@ -380,30 +411,39 @@ function regionColorKey(region) {
   outline: none;
 }
 
+.search-input::placeholder {
+  color: #999;
+}
+
 .search-input:focus {
   border-color: var(--color-brand-accent);
-  box-shadow: 0 0 0 3px var(--color-brand-focus);
 }
 
 .suggested-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2.5rem;
+}
+
+.suggested-tag-list {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 2.5rem;
 }
 
 .suggested-label {
   font-size: 13px;
-  color: #bbb;
-  margin-right: 4px;
+  color: #888;
 }
 
 .suggested-tag {
   padding: 7px 18px;
   border-radius: 20px;
-  border: 1px solid #eee;
+  border: 1px solid #c4c4c4;
   background: #fafafa;
   color: #666;
   font-size: 13.5px;
@@ -446,16 +486,15 @@ function regionColorKey(region) {
 .card {
   background: #fff;
   border-radius: 16px;
-  border: 1px solid #ebebeb;
   overflow: hidden;
   cursor: pointer;
-  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+  transition: transform .2s ease, box-shadow .2s ease;
 }
 
 .card:hover {
   transform: translateY(-4px);
   box-shadow: 0 14px 32px rgba(0, 0, 0, .1);
-  border-color: #f0e0de;
 }
 
 /* 이미지를 감싸는 별도 wrap을 둬서, 카드 자체는 overflow: hidden으로 모서리를 유지하면서
@@ -609,12 +648,6 @@ function regionColorKey(region) {
   transition: color .15s;
 }
 
-/* 좋아요 수치는 카드 hover 시 브랜드 컬러로 살짝 강조해서 "인터랙션 대상"이라는 신호를 준다. */
-.card:hover .stat-like {
-  color: var(--color-brand);
-}
-
-
 .more {
   display: flex;
   justify-content: center;
@@ -624,7 +657,7 @@ function regionColorKey(region) {
 .more-btn {
   padding: 13px 40px;
   border-radius: 26px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #c4c4c4;
   background: #fff;
   color: #666;
   font-size: 15px;
@@ -632,7 +665,7 @@ function regionColorKey(region) {
 }
 
 .more-btn:hover {
-  border-color: #ccc;
+  border-color: #999;
 }
 
 .empty-wrap {
@@ -642,7 +675,7 @@ function regionColorKey(region) {
 
 .divider {
   height: 1px;
-  background: #f0f0f0;
+  background: #c4c4c4;
   margin: 0 0 3rem;
 }
 
