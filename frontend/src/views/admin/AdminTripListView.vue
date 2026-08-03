@@ -21,18 +21,17 @@ const pendingHide = ref(null)
 const page = ref(1)
 const pageSize = 3
 
-const recommendationWeights = reactive({
+const DEFAULT_RECOMMENDATION_WEIGHTS = Object.freeze({
   likes: 40,
   views: 20,
-  saves: 30,
-  freshness: 10,
+  saves: 40,
 })
 
+const recommendationWeights = reactive({ ...DEFAULT_RECOMMENDATION_WEIGHTS })
+
 const resetRecommendationWeights = () => {
-  recommendationWeights.likes = 40
-  recommendationWeights.views = 20
-  recommendationWeights.saves = 30
-  recommendationWeights.freshness = 10
+  Object.assign(recommendationWeights, DEFAULT_RECOMMENDATION_WEIGHTS)
+  toast.info('추천 점수 규칙을 기본값으로 초기화했습니다.')
 }
 
 const saveRecommendationWeights = () => {
@@ -161,22 +160,22 @@ const statusText = (status) => ({
         <table>
           <thead>
             <tr>
-              <th>플랜 번호</th><th>여행 플랜</th><th>작성자</th><th>기간</th>
+              <th class="text-column">플랜 번호</th><th class="text-column">여행 플랜</th><th class="text-column">작성자</th><th>기간</th>
               <th>좋아요/조회</th><th>노출 상태</th><th>관리</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="trip in paginatedTrips" :key="trip.id" class="trip-row" tabindex="0" @click="openDetail(trip)" @keydown.enter="openDetail(trip)">
-              <td>{{ trip.id }}</td>
+              <td class="text-column trip-id">{{ trip.id }}</td>
               <td class="trip-title"><strong>{{ trip.title }}</strong><span>{{ trip.region }}</span></td>
-              <td>{{ trip.author }}</td><td>{{ trip.duration }}</td><td>{{ trip.likes }}/{{ trip.views }}</td>
+              <td class="text-column trip-author">{{ trip.author }}</td><td>{{ trip.duration }}</td><td>{{ trip.likes }}/{{ trip.views }}</td>
               <td><AdminStatusBadge :tone="trip.status === 'public' ? 'info' : trip.status === 'review-pending' ? 'warning' : trip.status === 'review-completed' ? 'success' : 'neutral'">{{ statusText(trip.status) }}</AdminStatusBadge></td>
               <td>
                 <div class="actions">
                   <button
                     type="button"
                     @click.stop="openDetail(trip)"
-                  >상세</button><button type="button" @click.stop>수정</button><button class="danger" type="button" @click.stop="pendingHide = trip">숨김</button>
+                  >상세</button><button class="danger" type="button" @click.stop="pendingHide = trip">숨김</button>
                 </div>
               </td>
             </tr>
@@ -234,11 +233,6 @@ const statusText = (status) => ({
               <span>일정 저장 수</span>
               <span class="weight-input"><input v-model.number="recommendationWeights.saves" type="number" /><small>%</small></span>
             </label>
-            <label>
-              <span>최신성 점수</span>
-              <span class="weight-input"><input v-model.number="recommendationWeights.freshness" type="number" /><small>%</small></span>
-            </label>
-
             <div class="modal-actions">
               <button class="modal-reset" type="button" @click="resetRecommendationWeights">초기화</button>
               <button class="modal-save" type="submit">규칙 저장</button>
@@ -267,13 +261,16 @@ const statusText = (status) => ({
 .filters input, .filters select { width: 100%; height: 40px; padding: 0 13px; border: 1px solid #cfd4da; border-radius: 5px; outline: none; background: #fff; color: #464b53; font-size: 13px; }
 .filters input:focus, .filters select:focus { border-color: #f18460; box-shadow: 0 0 0 3px rgb(241 132 96 / 12%); }
 .search-button { border: 0; border-radius: 5px; background: #ed8c68; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer; }
-.table-wrapper { min-height: 310px; overflow-x: auto; border: 1px solid #d8dce2; border-radius: 4px; }
+.table-wrapper { min-height: 310px; overflow-x: auto; border: 1px solid var(--admin-border); border-radius: 4px; }
 table { width: 100%; min-width: 900px; border-collapse: collapse; table-layout: fixed; }
 .trip-row { cursor: pointer; }.trip-row:hover { background: #fffaf6; }.trip-row:focus-visible { outline: 3px solid rgb(243 136 59 / 22%); outline-offset: -3px; }
-thead { background: #e2e5e9; }
+thead { background: #f4eee9; }
 th { height: 48px; color: #545a63; font-size: 13px; font-weight: 800; }
-td { height: 55px; padding: 8px 12px; border-bottom: 1px solid #d8dce2; color: #464b52; font-size: 13px; text-align: center; }
-th:nth-child(1) { width: 12%; } th:nth-child(2) { width: 24%; } th:nth-child(3) { width: 12%; } th:nth-child(4) { width: 12%; } th:nth-child(5) { width: 13%; } th:nth-child(6) { width: 12%; } th:nth-child(7) { width: 15%; }
+td { height: 55px; padding: 8px 14px; border-bottom: 1px solid var(--admin-border); color: #464b52; font-size: 13px; text-align: center; vertical-align: middle; }
+th.text-column, td.text-column { text-align: left; }
+th.text-column { padding: 0 14px; }
+th:nth-child(1) { width: 13%; } th:nth-child(2) { width: 26%; } th:nth-child(3) { width: 13%; } th:nth-child(4) { width: 12%; } th:nth-child(5) { width: 12%; } th:nth-child(6) { width: 12%; } th:nth-child(7) { width: 12%; }
+.trip-id, .trip-author { font-weight: 700; }
 .trip-title { text-align: left; }
 .trip-title strong, .trip-title span { display: block; }
 .trip-title span { margin-top: 4px; color: #9aa0a8; font-size: 11px; }
