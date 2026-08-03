@@ -2,13 +2,18 @@
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AdminConfirmModal from '@/components/admin/AdminConfirmModal.vue'
+import { useToastStore } from '@/stores/toast'
+
 const route = useRoute()
 const router = useRouter()
+const toast = useToastStore()
 
 // /admin/members/:memberId의 동적 URL 값을 가져옵니다.
 const memberId = computed(() => route.params.memberId)
 const isEditingMemo = ref(false)
 const adminMemo = ref('특이 사항 없음')
+const showStatusConfirm = ref(false)
 
 // memberId를 전달한 회원 상세 API 응답으로 교체합니다.
 const member = reactive({
@@ -42,11 +47,14 @@ const statusText = computed(() => {
 const toggleMemberStatus = () => {
   // 회원 정지/해제 API 성공 결과에 따라 상태를 변경합니다.
   member.status = member.status === 'suspended' ? 'active' : 'suspended'
+  toast.success(`회원 상태가 ${member.status === 'suspended' ? '정지' : '정상'}으로 변경되었습니다.`)
+  showStatusConfirm.value = false
 }
 
 const saveMemo = () => {
   // 관리자 메모 저장 API 호출 후 편집 상태를 종료합니다.
   isEditingMemo.value = false
+  toast.success('관리자 메모가 저장되었습니다.')
 }
 </script>
 
@@ -65,7 +73,7 @@ const saveMemo = () => {
         <button
           :class="['button', member.status === 'suspended' ? 'button--activate' : 'button--danger']"
           type="button"
-          @click="toggleMemberStatus"
+          @click="showStatusConfirm = true"
         >
           {{ member.status === 'suspended' ? '정지 해제' : '회원 정지' }}
         </button>
@@ -134,6 +142,15 @@ const saveMemo = () => {
         </div>
       </aside>
     </div>
+    <AdminConfirmModal
+      v-if="showStatusConfirm"
+      :title="member.status === 'suspended' ? '회원 정지를 해제할까요?' : '회원을 정지할까요?'"
+      :message="`${member.name} 회원의 계정 상태를 변경합니다.`"
+      :confirm-label="member.status === 'suspended' ? '정지 해제' : '회원 정지'"
+      :danger="member.status !== 'suspended'"
+      @cancel="showStatusConfirm = false"
+      @confirm="toggleMemberStatus"
+    />
   </section>
 </template>
 

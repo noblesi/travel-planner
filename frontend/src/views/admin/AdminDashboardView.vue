@@ -1,15 +1,19 @@
 <script setup>
+import { useRouter } from 'vue-router'
+
 import newUserIcon from '@/assets/icons/admin/newmember_icon.png'
 import peopleIcon from '@/assets/icons/admin/member_icon.png'
 import planIcon from '@/assets/icons/admin/plan_icon.png'
 import reportIcon from '@/assets/icons/admin/report_icon.png'
 
+const router = useRouter()
+
 // 대시보드 통계 API 응답으로 교체할 요약 카드 데이터입니다.
 const summaryCards = [
-  { label: '전체 회원', value: '3,000', image: peopleIcon, imageClass: 'summary-image--people', caption: '전월 대비 12% 증가', tone: 'positive' },
-  { label: '신규 가입자 수', value: '15', image: newUserIcon, caption: '오늘 신규 가입', tone: 'positive' },
-  { label: '공개 여행 플랜', value: '200', image: planIcon, caption: '이번 달 42개 등록', tone: 'neutral' },
-  { label: '신고 검토 대기', value: '13', image: reportIcon, caption: '확인이 필요합니다', tone: 'warning' },
+  { label: '전체 회원', value: '3,000', image: peopleIcon, imageClass: 'summary-image--people', caption: '전월 대비 12% 증가', tone: 'positive', route: { name: 'admin-members' } },
+  { label: '신규 가입자 수', value: '15', image: newUserIcon, caption: '오늘 신규 가입', tone: 'positive', route: { name: 'admin-members' } },
+  { label: '공개 여행 플랜', value: '200', image: planIcon, caption: '이번 달 42개 등록', tone: 'neutral', route: { name: 'admin-trips' } },
+  { label: '신고 검토 대기', value: '13', image: reportIcon, caption: '확인이 필요합니다', tone: 'warning', route: { name: 'admin-trips', query: { tab: 'reported' } } },
 ]
 
 // 최근 7일 플랜 생성 통계 API 응답으로 교체합니다.
@@ -46,6 +50,10 @@ const popularRegions = [
           v-for="card in summaryCards"
           :key="card.label"
           class="summary-card"
+          role="link"
+          tabindex="0"
+          @click="router.push(card.route)"
+          @keydown.enter="router.push(card.route)"
         >
           <div>
             <span>{{ card.label }}</span>
@@ -182,7 +190,12 @@ const popularRegions = [
   border-radius: 5px;
   background: var(--admin-surface);
   box-shadow: 0 2px 7px rgb(31 41 55 / 4%);
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease;
 }
+
+.summary-card:hover { box-shadow: 0 10px 26px rgb(37 42 49 / 10%); transform: translateY(-2px); }
+.summary-card:focus-visible { outline: 3px solid rgb(243 136 59 / 24%); outline-offset: 3px; }
 
 .summary-card span {
   color: #9499a2;

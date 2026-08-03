@@ -1,5 +1,12 @@
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+
+import AdminConfirmModal from '@/components/admin/AdminConfirmModal.vue'
+import AdminPagination from '@/components/admin/AdminPagination.vue'
+import AdminStatusBadge from '@/components/admin/AdminStatusBadge.vue'
+import { useToastStore } from '@/stores/toast'
+
+const toast = useToastStore()
 
 // 화면 확인용 데이터입니다. 백엔드 연결 시 통계 조회 API 응답으로 교체합니다.
 const summaryCards = [
@@ -40,6 +47,9 @@ const syncHistory = ref([
 ])
 
 const isSyncing = ref(false)
+const showSyncConfirm = ref(false)
+const page = ref(1)
+const pageSize = 2
 const connectionTitle = ref('TourAPI 연결 정상')
 const connectionDescription = ref('마지막 동기화: 2026.07.26 14:28 · 변경 데이터 4,826건')
 
@@ -48,6 +58,7 @@ const synchronizeTourData = () => {
   if (isSyncing.value) return
 
   isSyncing.value = true
+  showSyncConfirm.value = false
   connectionTitle.value = '관광데이터 동기화 진행 중'
   connectionDescription.value = 'TourAPI에서 변경된 데이터를 확인하고 있습니다.'
 
@@ -65,8 +76,12 @@ const synchronizeTourData = () => {
     connectionTitle.value = '수동 동기화 완료'
     connectionDescription.value = '변경 데이터 321건을 정상적으로 반영했습니다.'
     isSyncing.value = false
+    toast.success('관광데이터 동기화가 완료되었습니다.')
   }, 1000)
 }
+
+const totalPages = computed(() => Math.max(1, Math.ceil(syncHistory.value.length / pageSize)))
+const paginatedHistory = computed(() => syncHistory.value.slice((page.value - 1) * pageSize, page.value * pageSize))
 
 const statusLabel = (status) => (status === 'success' ? '성공' : '부분 성공')
 </script>
@@ -83,7 +98,7 @@ const statusLabel = (status) => (status === 'success' ? '성공' : '부분 성�
         class="sync-button"
         type="button"
         :disabled="isSyncing"
-        @click="synchronizeTourData"
+        @click="showSyncConfirm = true"
       >
         <span class="sync-icon" :class="{ 'sync-icon--running': isSyncing }">↻</span>
         {{ isSyncing ? '동기화 중' : '지금 동기화' }}
@@ -147,23 +162,25 @@ const statusLabel = (status) => (status === 'success' ? '성공' : '부분 성�
             </tr>
           </thead>
           <tbody>
-            <tr v-for="history in syncHistory" :key="history.id">
+            <tr v-for="history in paginatedHistory" :key="history.id">
               <td>{{ history.id }}</td>
               <td>{{ history.startedAt }}</td>
               <td>{{ history.endedAt }}</td>
               <td>{{ history.changedCount.toLocaleString() }}</td>
               <td>{{ history.failedCount.toLocaleString() }}</td>
               <td>
-                <span :class="['status-badge', `status-badge--${history.status}`]">
+                <AdminStatusBadge :tone="history.status === 'success' ? 'success' : 'warning'">
                   {{ statusLabel(history.status) }}
-                </span>
+                </AdminStatusBadge>
               </td>
               <td>{{ history.manager }}</td>
             </tr>
           </tbody>
         </table>
       </div>
+      <AdminPagination v-model:page="page" :total-pages="totalPages" />
     </article>
+    <AdminConfirmModal v-if="showSyncConfirm" title="관광데이터를 동기화할까요?" message="TourAPI의 최신 데이터를 확인하고 변경 사항을 반영합니다." confirm-label="동기화 시작" @cancel="showSyncConfirm = false" @confirm="synchronizeTourData" />
   </section>
 </template>
 

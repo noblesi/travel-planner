@@ -2,10 +2,21 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AdminConfirmModal from '@/components/admin/AdminConfirmModal.vue'
+import { useToastStore } from '@/stores/toast'
+
 const route = useRoute()
 const router = useRouter()
+const toast = useToastStore()
 const noticeId = computed(() => route.params.noticeId)
 const displayStatus = ref('published')
+const showDeleteConfirm = ref(false)
+
+const deleteNotice = () => {
+  toast.success('공지사항이 삭제되었습니다.')
+  showDeleteConfirm.value = false
+  router.push({ name: 'admin-notices' })
+}
 
 const notice = {
   title: '서비스 이용약관 변경 안내',
@@ -20,7 +31,7 @@ const notice = {
       <div class="header-actions">
         <button type="button" @click="router.push({ name: 'admin-notices' })">목록으로</button>
         <button class="accent" type="button" @click="router.push({ name: 'admin-notice-edit', params: { noticeId } })">수정</button>
-        <button class="danger" type="button">삭제</button>
+        <button class="danger" type="button" @click="showDeleteConfirm = true">삭제</button>
       </div>
     </header>
 
@@ -45,6 +56,7 @@ const notice = {
         </dl>
       </aside>
     </div>
+    <AdminConfirmModal v-if="showDeleteConfirm" title="공지사항을 삭제할까요?" :message="`'${notice.title}' 공지사항은 삭제 후 복구할 수 없습니다.`" confirm-label="삭제" danger @cancel="showDeleteConfirm = false" @confirm="deleteNotice" />
   </section>
 </template>
 

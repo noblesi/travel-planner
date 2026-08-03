@@ -1,6 +1,11 @@
 <script setup>
 import { RouterLink, useRouter } from 'vue-router'
 
+import logoSymbol from '@/assets/branding/travel-planner-logo-symbol.png'
+
+defineProps({ open: Boolean })
+defineEmits(['close'])
+
 const router = useRouter()
 
 // 공통 사이드바 메뉴입니다. path는 adminRouter.js의 경로와 일치해야 합니다.
@@ -35,9 +40,12 @@ const logout = () => {
 </script>
 
 <template>
-  <aside class="admin-sidebar">
+  <aside :class="['admin-sidebar', { 'admin-sidebar--open': open }]">
     <header class="sidebar-header">
-      <strong class="logo">WithTrip</strong>
+      <div class="logo">
+        <img :src="logoSymbol" alt="" />
+        <strong>WithTrip</strong>
+      </div>
       <span class="console-name">ADMIN CONSOLE</span>
     </header>
 
@@ -58,6 +66,7 @@ const logout = () => {
         :key="item.path"
         :to="item.path"
         class="navigation-item"
+        @click="$emit('close')"
       >
         {{ item.name }}
       </RouterLink>
@@ -93,6 +102,18 @@ const logout = () => {
 }
 
 .logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.logo img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.logo strong {
   font-size: 19px;
   font-weight: 900;
   letter-spacing: -0.5px;
@@ -201,8 +222,17 @@ const logout = () => {
 
 @media (max-width: 800px) {
   .admin-sidebar {
-    width: 200px;
-    min-width: 200px;
+    position: fixed;
+    z-index: 30;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 240px;
+    min-width: 240px;
+    transform: translateX(-100%);
+    transition: transform .2s ease;
   }
+
+  .admin-sidebar--open { transform: translateX(0); }
 }
 </style>
