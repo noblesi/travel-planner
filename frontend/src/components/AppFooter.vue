@@ -15,7 +15,7 @@ const currentYear = new Date().getFullYear()
       <nav class="footer__navigation" aria-label="푸터 메뉴">
         <RouterLink :to="{ name: 'home' }">홈</RouterLink>
         <RouterLink :to="{ name: 'plan-search' }">일정 탐색</RouterLink>
-        <RouterLink :to="{ name: 'announcements-list' }">공지사항</RouterLink>
+        <RouterLink :to="{ name: 'notice-list' }">공지사항</RouterLink>
       </nav>
 
       <div class="footer__meta">
