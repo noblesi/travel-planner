@@ -108,6 +108,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - TourAPI와 Kakao 외부 API 환경변수 계약, 설정 객체와 설정 검증 Test를 추가했다.
 - `GET /api/places/search`와 `TourApiClient`를 구현하고 TourAPI 오류를 공통 API 오류로 변환하도록 구성했다.
 - 플랜 설정 Form의 필수 입력·서버 오류·중복 제출 처리를 보완하고 지역 선택을 사이트 스타일의 하단 고정 커스텀 드롭다운으로 교체했다.
+- 플랜 생성 성공과 제작 화면 이동 실패를 분리해 생성 완료 후에는 중복 생성 없이 이동만 재시도하도록 보완했다. 제작 화면은 일정·제목·공개범위·날짜 저장을 하나의 대기 상태로 추적하고, 저장 실패 이탈 확인·브라우저 종료 경고·홈 복귀 경로를 적용했다.
 - 원격 Oracle Application Schema에 전체 DDL을 적용하고 시·도 Seed 17건을 입력했으며, `/api/health`와 `/api/regions`를 실제 Oracle 연결로 확인했다.
 - 실제 접속정보와 인증키는 Git에서 제외되는 루트 `.env.local`에 보관하고, Windows 실행용 `scripts/run-backend.ps1`과 팀 실행 절차를 추가했다.
 - `frontend/src/api/places.js`와 장소 검색 Panel·상세 Card를 추가하고 검색어 검증, Loading·Empty·Error, Pagination과 결과 선택 상태를 구현했다.
@@ -160,7 +161,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 | 실제 인증 | 부분 완료 | Spring Security session·CSRF와 Oracle `MEMBER` 이메일 로그인 완료. 회원가입·비밀번호 재설정·Google OIDC 필요 |
 | 외부 API | 부분 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 검증 완료. Kakao Map·Marker 자동 Test 통과, 실제 Browser 렌더링은 localhost 보안 정책으로 미검증 |
 | Backend 자동 Test | 준비 완료 | 전체 80건 통과, `bootJar` 성공 |
-| Frontend Test | 준비 완료 | 28개 Test File, 전체 106건 통과, Production Build 성공. ESLint·Oxlint 통과 |
+| Frontend Test | 준비 완료 | 28개 Test File, 전체 116건 통과, Production Build 성공. ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -174,6 +175,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - Root `.env.example`에는 Oracle·TourAPI·Kakao REST 변수명이 있으며 실제 값은 `.env.local`과 팀 보안 채널에서만 관리한다.
 - Vue SPA에서 사용하지 않던 JSP header/footer, legacy `layout.css`, `/testView` 개발 라우트는 2026-08-04 정리했다.
 - 공개 플랜 검색은 `page`/`size` 서버 페이지네이션을 사용하며, 기존 `limit` Parameter도 호환을 위해 유지한다.
+- 공개 플랜 검색은 5분 Pinia 캐시로 검색어·페이지·카드 목록을 복원하며, 새 검색·초기화·더 보기 사이의 늦은 응답을 무시한다. 썸네일 기본값과 로딩 실패 대체 이미지는 외부 임시 서비스가 아닌 로컬 SVG를 사용한다.
 - 설정 화면의 지역 선택기는 `RegionSelect`, 제작 화면의 제목·공개범위·날짜 설정은 `PlanEditorSettings`로 분리했다.
 - Root README의 JUnit·MockMvc와 `src/test/java` 안내에 맞춰 Backend 통합 테스트 구성을 복구했다.
 
