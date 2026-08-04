@@ -161,7 +161,10 @@ class TourApiClientTest {
 						Duration.ofSeconds(2)
 				)
 		);
-		return new TourApiClient(properties, new ObjectMapper());
+		return new TourApiClient(
+				new TourApiHttpClient(properties),
+				new TourApiResponseParser(new ObjectMapper())
+		);
 	}
 
 	private void handleRequest(HttpExchange exchange) throws IOException {
