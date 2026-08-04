@@ -86,7 +86,7 @@ const editor = {
   ],
 }
 
-function mountView(planId = '101') {
+function mountView(planId = '101', mountOptions = {}) {
   return mount(PlanEditorView, {
     props: { planId },
     global: {
@@ -100,6 +100,7 @@ function mountView(planId = '101') {
         },
       },
     },
+    ...mountOptions,
   })
 }
 
@@ -582,6 +583,45 @@ describe('PlanEditorView', () => {
     })
     expect(wrapper.find('[role="alertdialog"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('1일')
+  })
+
+  it('날짜 삭제 확인창의 포커스를 가두고 Escape 후 저장 버튼으로 복귀한다', async () => {
+    updateTravelPlanDatesMock.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          code: 'PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED',
+          message: '변경 범위에서 제외되는 날짜에 일정이 있습니다.',
+        },
+      },
+    })
+    const wrapper = mountView('101', { attachTo: document.body })
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-11')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-11')
+    await wrapper.get('.date-editor__form').trigger('submit')
+    await flushPromises()
+
+    const dialog = wrapper.get('[role="alertdialog"]')
+    const buttons = wrapper.findAll('.confirmation-dialog__actions button')
+    expect(document.activeElement).toBe(buttons[0].element)
+
+    buttons[1].element.focus()
+    await dialog.trigger('keydown', { key: 'Tab' })
+    expect(document.activeElement).toBe(buttons[0].element)
+
+    await dialog.trigger('keydown', { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(buttons[1].element)
+
+    await dialog.trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+
+    expect(wrapper.find('[role="alertdialog"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(wrapper.get('.date-editor__actions button[type="submit"]').element)
+
+    wrapper.unmount()
   })
 
   it('14일을 초과한 날짜 변경은 API를 호출하지 않는다', async () => {

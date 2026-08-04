@@ -1,8 +1,9 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import { usePlanEditorStore } from '@/stores/planEditor'
+import { addDaysToDate, inclusiveDayCount, todayInKorea } from '@/utils/travelDate'
 
 const emit = defineEmits(['busy-change'])
 const editorStore = usePlanEditorStore()
@@ -15,6 +16,9 @@ const editStartDate = ref('')
 const editEndDate = ref('')
 const removalConfirmationOpen = ref(false)
 const pendingDatePayload = ref(null)
+const confirmationDialog = ref(null)
+const confirmationCancelButton = ref(null)
+const dateSubmitButton = ref(null)
 const editingMetadata = ref(false)
 const metadataSubmitting = ref(false)
 const metadataError = ref('')
@@ -34,26 +38,8 @@ const isOngoingPlan = computed(() =>
 
 const maxEditableEndDate = computed(() => {
   if (!editStartDate.value) return undefined
-  const date = new Date(`${editStartDate.value}T00:00:00`)
-  date.setDate(date.getDate() + 13)
-  return toDateInputValue(date)
+  return addDaysToDate(editStartDate.value, 13)
 })
-
-function toDateInputValue(date) {
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
-  return localDate.toISOString().slice(0, 10)
-}
-
-function todayInKorea(date = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date)
-  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
-  return `${values.year}-${values.month}-${values.day}`
-}
 
 function syncDateForm(planValue = plan.value) {
   editStartDate.value = planValue?.startDate ?? ''
@@ -144,6 +130,48 @@ function closeDateEditor() {
   syncDateForm()
 }
 
+function openRemovalConfirmation(payload) {
+  pendingDatePayload.value = payload
+  removalConfirmationOpen.value = true
+  nextTick(() => confirmationCancelButton.value?.focus())
+}
+
+function closeRemovalConfirmation({ restoreFocus = true } = {}) {
+  removalConfirmationOpen.value = false
+  if (restoreFocus) nextTick(() => dateSubmitButton.value?.focus())
+}
+
+function handleConfirmationKeydown(event) {
+  if (event.key === 'Escape') {
+    if (!dateSubmitting.value) closeRemovalConfirmation()
+    event.preventDefault()
+    return
+  }
+  if (event.key !== 'Tab') return
+
+  const focusableElements = Array.from(
+    confirmationDialog.value?.querySelectorAll('button:not(:disabled)') ?? [],
+  )
+  if (focusableElements.length === 0) {
+    event.preventDefault()
+    return
+  }
+
+  const firstElement = focusableElements[0]
+  const lastElement = focusableElements.at(-1)
+  const activeElement = document.activeElement
+  if (
+    event.shiftKey &&
+    (activeElement === firstElement || !confirmationDialog.value.contains(activeElement))
+  ) {
+    lastElement.focus()
+    event.preventDefault()
+  } else if (!event.shiftKey && activeElement === lastElement) {
+    firstElement.focus()
+    event.preventDefault()
+  }
+}
+
 function validateDates() {
   if (!editStartDate.value || !editEndDate.value) return '시작일과 종료일을 모두 선택해 주세요.'
   if (isCompletedPlan.value) return '종료된 여행 플랜의 날짜는 변경할 수 없습니다.'
@@ -158,9 +186,7 @@ function validateDates() {
   }
   if (editStartDate.value > editEndDate.value) return '종료일은 시작일보다 빠를 수 없습니다.'
 
-  const start = Date.parse(`${editStartDate.value}T00:00:00Z`)
-  const end = Date.parse(`${editEndDate.value}T00:00:00Z`)
-  if (Math.floor((end - start) / 86_400_000) + 1 > 14) {
+  if (inclusiveDayCount(editStartDate.value, editEndDate.value) > 14) {
     return '여행 기간은 최대 14일까지 설정할 수 있습니다.'
   }
   return ''
@@ -201,10 +227,9 @@ async function submitDateChange(force = false) {
     pendingDatePayload.value = null
   } catch (error) {
     if (error?.response?.data?.code === 'PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED') {
-      pendingDatePayload.value = payload
-      removalConfirmationOpen.value = true
+      openRemovalConfirmation(payload)
     } else {
-      removalConfirmationOpen.value = false
+      closeRemovalConfirmation({ restoreFocus: removalConfirmationOpen.value })
       pendingDatePayload.value = null
       dateError.value = dateApiErrorMessage(error)
     }
@@ -347,7 +372,12 @@ onBeforeUnmount(() => emit('busy-change', false))
         <p v-if="dateError" class="date-editor__error" role="alert">{{ dateError }}</p>
         <div class="date-editor__actions">
           <button type="button" :disabled="dateSubmitting" @click="closeDateEditor">취소</button>
-          <button type="submit" :disabled="dateSubmitting" :aria-busy="dateSubmitting">
+          <button
+            ref="dateSubmitButton"
+            type="submit"
+            :disabled="dateSubmitting"
+            :aria-busy="dateSubmitting"
+          >
             {{ dateSubmitting ? '변경 중...' : '날짜 저장' }}
           </button>
         </div>
@@ -357,14 +387,17 @@ onBeforeUnmount(() => emit('busy-change', false))
     <div
       v-if="removalConfirmationOpen"
       class="confirmation-backdrop"
-      @click.self="removalConfirmationOpen = false"
+      @click.self="!dateSubmitting && closeRemovalConfirmation()"
     >
       <section
+        ref="confirmationDialog"
         class="confirmation-dialog"
         role="alertdialog"
+        tabindex="-1"
         aria-modal="true"
         aria-labelledby="date-removal-title"
         aria-describedby="date-removal-description"
+        @keydown="handleConfirmationKeydown"
       >
         <span class="confirmation-dialog__icon" aria-hidden="true">!</span>
         <h2 id="date-removal-title">일정이 포함된 날짜를 제외할까요?</h2>
@@ -373,7 +406,12 @@ onBeforeUnmount(() => emit('busy-change', false))
           수 없습니다.
         </p>
         <div class="confirmation-dialog__actions">
-          <button type="button" :disabled="dateSubmitting" @click="removalConfirmationOpen = false">
+          <button
+            ref="confirmationCancelButton"
+            type="button"
+            :disabled="dateSubmitting"
+            @click="closeRemovalConfirmation()"
+          >
             다시 확인
           </button>
           <button type="button" :disabled="dateSubmitting" @click="submitDateChange(true)">

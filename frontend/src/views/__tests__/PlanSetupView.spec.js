@@ -190,6 +190,51 @@ describe('PlanSetupView', () => {
     expect(wrapper.get('#endDate').attributes('max')).toBe(dateFromToday(16))
   })
 
+  it('시작일이 기존 종료일보다 늦어지면 종료일을 초기화하고 이유를 안내한다', async () => {
+    const wrapper = mount(PlanSetupForm, {
+      props: { regions },
+    })
+
+    await wrapper.get('#startDate').setValue(dateFromToday(2))
+    await wrapper.get('#endDate').setValue(dateFromToday(5))
+    await wrapper.get('#startDate').setValue(dateFromToday(6))
+
+    expect(wrapper.get('#endDate').element.value).toBe('')
+    expect(wrapper.get('[role="status"]').text()).toContain(
+      '시작 날짜가 기존 종료 날짜보다 늦어 종료 날짜를 초기화했습니다.',
+    )
+  })
+
+  it('시작일 변경으로 14일을 초과하면 종료일을 초기화하고 이유를 안내한다', async () => {
+    const wrapper = mount(PlanSetupForm, {
+      props: { regions },
+    })
+
+    await wrapper.get('#startDate').setValue(dateFromToday(2))
+    await wrapper.get('#endDate').setValue(dateFromToday(15))
+    await wrapper.get('#startDate').setValue(dateFromToday(1))
+
+    expect(wrapper.get('#endDate').element.value).toBe('')
+    expect(wrapper.get('[role="status"]').text()).toContain(
+      '여행 기간이 14일을 초과해 종료 날짜를 초기화했습니다.',
+    )
+  })
+
+  it('로컬 검증 오류를 서버 필드 오류보다 우선 표시한다', async () => {
+    const wrapper = mount(PlanSetupForm, {
+      props: {
+        regions,
+        serverFieldErrors: { endDate: '서버에서 전달한 종료 날짜 오류' },
+      },
+    })
+
+    await wrapper.get('#startDate').setValue(dateFromToday(2))
+    await wrapper.get('form').trigger('submit')
+
+    expect(wrapper.get('#endDate-error').text()).toBe('종료 날짜를 선택해 주세요.')
+    expect(wrapper.text()).not.toContain('서버에서 전달한 종료 날짜 오류')
+  })
+
   it('플랜 생성 API의 필드 오류를 입력 항목에 표시하고 수정 시 제거한다', async () => {
     createTravelPlanMock.mockRejectedValueOnce({
       response: {

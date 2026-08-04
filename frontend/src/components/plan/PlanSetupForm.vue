@@ -1,6 +1,7 @@
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import RegionSelect from '@/components/plan/RegionSelect.vue'
+import { addDaysToDate, inclusiveDayCount, todayInKorea } from '@/utils/travelDate'
 
 const props = defineProps({
   regions: {
@@ -24,6 +25,7 @@ const props = defineProps({
 const emit = defineEmits(['field-change', 'submit'])
 
 const formElement = ref(null)
+const dateAdjustmentMessage = ref('')
 
 const form = reactive({
   regionCode: '',
@@ -38,29 +40,10 @@ const errors = reactive({
   endDate: '',
 })
 
-function toDateInputValue(date) {
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
-  return localDate.toISOString().slice(0, 10)
-}
-
-function todayInKorea(date = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date)
-  const values = Object.fromEntries(parts.map(({ type, value }) => [type, value]))
-  return `${values.year}-${values.month}-${values.day}`
-}
-
 const today = todayInKorea()
 const maxEndDate = computed(() => {
   if (!form.startDate) return undefined
-
-  const date = new Date(`${form.startDate}T00:00:00`)
-  date.setDate(date.getDate() + 13)
-  return toDateInputValue(date)
+  return addDaysToDate(form.startDate, 13)
 })
 
 const tripDayCount = computed(() => {
@@ -74,7 +57,9 @@ const tripDateSummary = computed(() => {
 })
 
 function fieldError(field) {
-  return errors[field] || props.serverFieldErrors[field] || ''
+  const localError = errors[field]
+  if (localError) return localError
+  return props.serverFieldErrors[field] || ''
 }
 
 function clearError(field) {
@@ -87,14 +72,29 @@ function clearDateErrors() {
   clearError('endDate')
 }
 
-function notifyVisibilityChange() {
-  emit('field-change', 'visibility')
+function handleStartDateChange() {
+  clearDateErrors()
+  dateAdjustmentMessage.value = ''
+  if (!form.startDate || !form.endDate) return
+
+  if (form.endDate < form.startDate) {
+    form.endDate = ''
+    dateAdjustmentMessage.value =
+      '시작 날짜가 기존 종료 날짜보다 늦어 종료 날짜를 초기화했습니다. 다시 선택해 주세요.'
+  } else if (inclusiveDayCount(form.startDate, form.endDate) > 14) {
+    form.endDate = ''
+    dateAdjustmentMessage.value =
+      '변경한 시작 날짜를 기준으로 여행 기간이 14일을 초과해 종료 날짜를 초기화했습니다. 다시 선택해 주세요.'
+  }
 }
 
-function inclusiveDayCount(startDate, endDate) {
-  const start = Date.parse(`${startDate}T00:00:00Z`)
-  const end = Date.parse(`${endDate}T00:00:00Z`)
-  return Math.floor((end - start) / 86_400_000) + 1
+function handleEndDateChange() {
+  clearError('endDate')
+  dateAdjustmentMessage.value = ''
+}
+
+function notifyVisibilityChange() {
+  emit('field-change', 'visibility')
 }
 
 function validate() {
@@ -182,7 +182,7 @@ watch(
               :min="today"
               :aria-describedby="fieldError('startDate') ? 'startDate-error' : undefined"
               :aria-invalid="Boolean(fieldError('startDate'))"
-              @input="clearDateErrors"
+              @input="handleStartDateChange"
             />
             <p v-if="fieldError('startDate')" id="startDate-error" class="field-error" role="alert">
               {{ fieldError('startDate') }}
@@ -201,7 +201,7 @@ watch(
               :max="maxEndDate"
               :aria-describedby="fieldError('endDate') ? 'endDate-error' : undefined"
               :aria-invalid="Boolean(fieldError('endDate'))"
-              @input="clearError('endDate')"
+              @input="handleEndDateChange"
             />
             <p v-if="fieldError('endDate')" id="endDate-error" class="field-error" role="alert">
               {{ fieldError('endDate') }}
@@ -211,6 +211,9 @@ watch(
 
         <p v-if="tripDateSummary" class="date-summary" aria-live="polite">
           {{ tripDateSummary }}
+        </p>
+        <p v-if="dateAdjustmentMessage" class="date-adjustment" role="status">
+          {{ dateAdjustmentMessage }}
         </p>
       </div>
 
@@ -326,11 +329,20 @@ watch(
   line-height: 1.5;
 }
 
-.date-summary {
+.date-summary,
+.date-adjustment {
   margin: 0;
-  color: var(--color-brand);
   font-size: 13px;
+  line-height: 1.5;
+}
+
+.date-summary {
+  color: var(--color-brand);
   font-weight: 700;
+}
+
+.date-adjustment {
+  color: #92400e;
 }
 
 .visibility-card {
