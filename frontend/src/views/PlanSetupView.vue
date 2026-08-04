@@ -23,6 +23,7 @@ const businessFieldErrors = {
   REGION_NOT_FOUND: ['regionCode', '선택한 여행지역을 사용할 수 없습니다. 다시 선택해 주세요.'],
   INVALID_TRAVEL_DATE_RANGE: ['endDate', '종료 날짜는 시작 날짜보다 빠를 수 없습니다.'],
   TRAVEL_PLAN_DURATION_EXCEEDED: ['endDate', '여행 기간은 최대 14일까지 설정할 수 있습니다.'],
+  PAST_TRAVEL_START_DATE: ['startDate', '오늘 이후의 시작 날짜를 선택해 주세요.'],
 }
 
 function apiErrorMessage(error, fallbackMessage) {

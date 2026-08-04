@@ -70,7 +70,7 @@
 <script setup>
 import { reactive, ref } from 'vue'
 
-import mainLogo from '@/assets/branding/travel-planner-logo-header.png'
+import mainLogo from '@/assets/branding/travel-planner-logo-header.webp'
 
 const loginForm = reactive({
   adminId: '',

@@ -151,6 +151,8 @@ describe('PlanSetupView', () => {
     await wrapper.get('#visibility').setValue(false)
 
     expect(wrapper.text()).toContain('3일 여행으로 계획을 시작합니다.')
+    expect(wrapper.text()).toContain('비공개 여행')
+    expect(wrapper.text()).toContain('초대한 동행자만 이 여행을 볼 수 있어요.')
 
     await wrapper.get('form').trigger('submit')
 

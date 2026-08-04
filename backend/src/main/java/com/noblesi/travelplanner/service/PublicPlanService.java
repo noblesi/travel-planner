@@ -41,16 +41,26 @@ public class PublicPlanService {
 	}
 
 	@Transactional(readOnly = true)
-	public PublicPlanSearchResponse search(String keywordValue, int requestedLimit) {
+	public PublicPlanSearchResponse search(String keywordValue, int requestedPage, int requestedSize) {
 		String keyword = keywordValue == null ? "" : keywordValue.strip();
-		int limit = Math.min(Math.max(requestedLimit, 1), MAX_SEARCH_LIMIT);
-		List<PublicPlanSummaryResponse> plans = travelPlanMapper.findPublicPlans(keyword, limit)
+		int page = Math.max(requestedPage, 1);
+		int size = Math.min(Math.max(requestedSize, 1), MAX_SEARCH_LIMIT);
+		long offset = (long) (page - 1) * size;
+		int totalCount = travelPlanMapper.countPublicPlans(keyword);
+		int totalPages = totalCount == 0
+				? 0
+				: (int) ((totalCount + (long) size - 1) / size);
+		List<PublicPlanSummaryResponse> plans = travelPlanMapper.findPublicPlans(keyword, offset, size)
 				.stream()
 				.map(PublicPlanSummaryResponse::from)
 				.toList();
 		return new PublicPlanSearchResponse(
 				keyword,
-				travelPlanMapper.countPublicPlans(keyword),
+				page,
+				size,
+				totalCount,
+				totalPages,
+				page < totalPages,
 				plans
 		);
 	}

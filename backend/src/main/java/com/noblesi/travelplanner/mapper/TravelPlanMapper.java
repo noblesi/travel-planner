@@ -37,7 +37,8 @@ public interface TravelPlanMapper {
 
 	List<PublicTravelPlan> findPublicPlans(
 			@Param("keyword") String keyword,
-			@Param("limit") int limit
+			@Param("offset") long offset,
+			@Param("size") int size
 	);
 
 	int countPublicPlans(@Param("keyword") String keyword);

@@ -97,7 +97,7 @@ VITE_KAKAO_MAP_KEY=javascript-key
 배포 전 확인:
 
 1. `GET /api/health`가 `UP`인지 확인
-2. `GET /api/plans?limit=100`이 데모 플랜을 반환하는지 확인
+2. `GET /api/plans?page=1&size=24`가 데모 플랜과 페이지 메타데이터를 반환하는지 확인
 3. 공개 상세에서 날짜·장소·조회수가 표시되는지 확인
 4. `e2e.*@withtrip.test` 임시 회원이 0건인지 확인
 

@@ -159,8 +159,8 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 | Oracle | 일정 범위 검증 완료 | `005` 적용, 시·도 Seed 17건 복구, Schema 검증, 임시 회원 기반 플랜 생성·일정 CRUD·정렬·멱등 재시도 완료 |
 | 실제 인증 | 부분 완료 | Spring Security session·CSRF와 Oracle `MEMBER` 이메일 로그인 완료. 회원가입·비밀번호 재설정·Google OIDC 필요 |
 | 외부 API | 부분 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 검증 완료. Kakao Map·Marker 자동 Test 통과, 실제 Browser 렌더링은 localhost 보안 정책으로 미검증 |
-| Backend 자동 Test | 준비 완료 | 전체 74건 통과, `bootJar` 성공 |
-| Frontend Test | 준비 완료 | 22개 Test File, 전체 85건 통과, Production Build 성공. 변경 대상 ESLint·Oxlint 통과 |
+| Backend 자동 Test | 준비 완료 | 전체 80건 통과, `bootJar` 성공 |
+| Frontend Test | 준비 완료 | 28개 Test File, 전체 106건 통과, Production Build 성공. ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -172,7 +172,9 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - `TourApiClient`, 장소 검색 Controller·Service·DTO·Frontend API Module·검색 Panel·상세 Card와 자동 Test를 추가했다.
 - `frontend/src/components/map/KakaoMap.vue`를 공용 지도 Component로 사용하며 제작 화면과 공개 플랜 상세 화면이 함께 참조한다.
 - Root `.env.example`에는 Oracle·TourAPI·Kakao REST 변수명이 있으며 실제 값은 `.env.local`과 팀 보안 채널에서만 관리한다.
-- Vue SPA 전환 전에 사용하던 `backend/src/main/webapp/WEB-INF/jsp/common/`과 `backend/src/main/resources/static/css/layout.css`가 남아 있다. 현재 코드에서 사용 여부를 확인한 뒤 별도 정리 Commit으로 제거 여부를 결정한다.
+- Vue SPA에서 사용하지 않던 JSP header/footer, legacy `layout.css`, `/testView` 개발 라우트는 2026-08-04 정리했다.
+- 공개 플랜 검색은 `page`/`size` 서버 페이지네이션을 사용하며, 기존 `limit` Parameter도 호환을 위해 유지한다.
+- 설정 화면의 지역 선택기는 `RegionSelect`, 제작 화면의 제목·공개범위·날짜 설정은 `PlanEditorSettings`로 분리했다.
 - Root README의 JUnit·MockMvc와 `src/test/java` 안내에 맞춰 Backend 통합 테스트 구성을 복구했다.
 
 ## 담당 개발 범위
@@ -258,7 +260,7 @@ CurrentMemberProvider
 
 주요 ERD 제약:
 
-- 여행 기간은 최대 14일이다.
+- 여행 기간은 최대 14일이며 날짜 정책의 오늘 기준은 `Asia/Seoul`이다. 신규·출발 전 플랜은 오늘 이후만 허용하고, 진행 중 플랜은 시작일을 유지한 채 종료일만 변경하며, 종료된 플랜은 날짜 변경을 금지한다.
 - `START_DATE <= END_DATE`여야 한다.
 - 공개 범위는 `PUBLIC` 또는 `PRIVATE`다.
 - 일정 시간대는 `MORNING` 또는 `AFTERNOON`이다.

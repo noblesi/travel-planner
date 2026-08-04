@@ -100,12 +100,26 @@ class PublicPlanControllerIntegrationTest {
 	void searchesOnlyActivePublicPlansWithoutAuthentication() throws Exception {
 		mockMvc.perform(get("/api/plans").queryParam("limit", "1"))
 				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.page").value(1))
+				.andExpect(jsonPath("$.data.size").value(1))
 				.andExpect(jsonPath("$.data.totalCount").value(1))
+				.andExpect(jsonPath("$.data.totalPages").value(1))
+				.andExpect(jsonPath("$.data.hasNext").value(false))
 				.andExpect(jsonPath("$.data.plans[0].planId").value(Long.toString(PUBLIC_PLAN_ID)))
 				.andExpect(jsonPath("$.data.plans[0].regionName").value("서울특별시"))
 				.andExpect(jsonPath("$.data.plans[0].dayCount").value(2))
 				.andExpect(jsonPath("$.data.plans[0].likeCount").value(2))
 				.andExpect(jsonPath("$.data.plans[0].viewCount").value(41));
+	}
+
+	@Test
+	void returnsAnEmptyPageWhenTheRequestedPageIsPastTheLastPage() throws Exception {
+		mockMvc.perform(get("/api/plans").queryParam("page", "2").queryParam("size", "1"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.page").value(2))
+				.andExpect(jsonPath("$.data.totalCount").value(1))
+				.andExpect(jsonPath("$.data.hasNext").value(false))
+				.andExpect(jsonPath("$.data.plans").isEmpty());
 	}
 
 	@Test

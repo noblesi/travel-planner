@@ -1,6 +1,6 @@
 import { createPinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlanEditorView from '@/views/PlanEditorView.vue'
 
@@ -88,6 +88,8 @@ function mountView(planId = '101') {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-08-04T00:00:00+09:00'))
   getTravelPlanEditorMock.mockReset().mockResolvedValue(editor)
   searchPlacesMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
@@ -97,6 +99,8 @@ beforeEach(() => {
   deleteScheduleItemMock.mockReset()
   reorderScheduleItemsMock.mockReset()
 })
+
+afterEach(() => vi.useRealTimers())
 
 describe('PlanEditorView', () => {
   it('라우트로 전달된 플랜 ID를 조회하고 제작 화면 정보를 표시한다', async () => {
@@ -498,11 +502,53 @@ describe('PlanEditorView', () => {
     await flushPromises()
 
     await wrapper.get('.date-editor__open').trigger('click')
-    await wrapper.get('[name="editStartDate"]').setValue('2026-08-01')
-    await wrapper.get('[name="editEndDate"]').setValue('2026-08-15')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-05')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-19')
     await wrapper.get('.date-editor__form').trigger('submit')
 
     expect(updateTravelPlanDatesMock).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('여행 기간은 최대 14일까지 설정할 수 있습니다.')
+  })
+
+  it('진행 중인 여행은 시작일을 고정하고 종료일만 변경한다', async () => {
+    const ongoingEditor = {
+      ...editor,
+      plan: { ...editor.plan, startDate: '2026-08-01', endDate: '2026-08-06' },
+    }
+    updateTravelPlanDatesMock.mockResolvedValueOnce({
+      ...ongoingEditor,
+      plan: { ...ongoingEditor.plan, endDate: '2026-08-07', versionNo: 1 },
+    })
+    getTravelPlanEditorMock.mockResolvedValueOnce(ongoingEditor)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+
+    expect(wrapper.get('[name="editStartDate"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[name="editEndDate"]').attributes('min')).toBe('2026-08-04')
+
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-07')
+    await wrapper.get('.date-editor__form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTravelPlanDatesMock).toHaveBeenCalledWith('101', {
+      startDate: '2026-08-01',
+      endDate: '2026-08-07',
+      versionNo: 0,
+      force: false,
+    })
+  })
+
+  it('종료된 여행은 날짜 변경을 비활성화하고 이유를 안내한다', async () => {
+    getTravelPlanEditorMock.mockResolvedValueOnce({
+      ...editor,
+      plan: { ...editor.plan, startDate: '2026-07-01', endDate: '2026-07-02' },
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('.date-editor__open').attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('종료된 여행은 날짜를 변경할 수 없습니다.')
   })
 })

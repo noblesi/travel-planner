@@ -19,6 +19,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("local")
@@ -73,15 +74,26 @@ class TravelPlanControllerIntegrationTest {
 	void createsFourteenDayTravelPlan() throws Exception {
 		mockMvc.perform(post("/api/plans")
 				.contentType(MediaType.APPLICATION_JSON)
-				.content(createRequest("6", "2026-08-01", "2026-08-14", "PUBLIC")))
+				.content(createRequest("6", "2026-08-04", "2026-08-17", "PUBLIC")))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.data.days", hasSize(14)))
 				.andExpect(jsonPath("$.data.days[13].dayNo").value(14))
-				.andExpect(jsonPath("$.data.days[13].travelDate").value("2026-08-14"));
+				.andExpect(jsonPath("$.data.days[13].travelDate").value("2026-08-17"));
 
 		assertRowCount("TRAVEL_PLAN", 1);
 		assertRowCount("PLAN_MEMBER", 1);
 		assertRowCount("PLAN_DAY", 14);
+	}
+
+	@Test
+	void rejectsTravelPlanStartingBeforeTodayInKorea() throws Exception {
+		mockMvc.perform(post("/api/plans")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(createRequest("1", "2026-08-03", "2026-08-04", "PRIVATE")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("PAST_TRAVEL_START_DATE"));
+
+		assertAllPlanTablesEmpty();
 	}
 
 	@Test

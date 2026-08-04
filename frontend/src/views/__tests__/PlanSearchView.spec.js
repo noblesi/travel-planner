@@ -46,7 +46,11 @@ beforeEach(() => {
   route.query = {}
   searchPublicPlansMock.mockResolvedValue({
     keyword: '',
+    page: 1,
+    size: 8,
     totalCount: 1,
+    totalPages: 1,
+    hasNext: false,
     plans: [publicPlan],
   })
 })
@@ -56,7 +60,7 @@ describe('PlanSearchView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(searchPublicPlansMock).toHaveBeenCalledWith({ keyword: '', limit: 100 })
+    expect(searchPublicPlansMock).toHaveBeenCalledWith({ keyword: '', page: 1, size: 8 })
     expect(wrapper.text()).toContain('서울 미식 여행')
 
     await wrapper.get('.card').trigger('click')
@@ -75,7 +79,41 @@ describe('PlanSearchView', () => {
     await flushPromises()
 
     expect(replaceMock).toHaveBeenCalledWith({ query: { keyword: '서울' } })
-    expect(searchPublicPlansMock).toHaveBeenCalledWith({ keyword: '서울', limit: 100 })
+    expect(searchPublicPlansMock).toHaveBeenCalledWith({ keyword: '서울', page: 1, size: 8 })
+
+    wrapper.unmount()
+  })
+
+  it('더 보기를 누르면 다음 서버 페이지를 이어 붙인다', async () => {
+    searchPublicPlansMock
+      .mockResolvedValueOnce({
+        keyword: '',
+        page: 1,
+        size: 8,
+        totalCount: 2,
+        totalPages: 2,
+        hasNext: true,
+        plans: [publicPlan],
+      })
+      .mockResolvedValueOnce({
+        keyword: '',
+        page: 2,
+        size: 8,
+        totalCount: 2,
+        totalPages: 2,
+        hasNext: false,
+        plans: [{ ...publicPlan, planId: '102', title: '부산 바다 여행' }],
+      })
+
+    const wrapper = mountView()
+    await flushPromises()
+    await wrapper.get('.more-btn').trigger('click')
+    await flushPromises()
+
+    expect(searchPublicPlansMock).toHaveBeenLastCalledWith({ keyword: '', page: 2, size: 8 })
+    expect(wrapper.text()).toContain('서울 미식 여행')
+    expect(wrapper.text()).toContain('부산 바다 여행')
+    expect(replaceMock).toHaveBeenLastCalledWith({ query: { page: 2 } })
 
     wrapper.unmount()
   })

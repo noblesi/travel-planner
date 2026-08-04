@@ -20,6 +20,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("local")
@@ -394,6 +395,42 @@ class TravelPlanEditorControllerIntegrationTest {
 	}
 
 	@Test
+	void rejectsChangingTheStartDateOfAnOngoingTravelPlan() throws Exception {
+		insertActivePlan(PLAN_ID, 1L, "2026-08-01", "2026-08-06");
+
+		mockMvc.perform(patch("/api/plans/{planId}/dates", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{
+							  "startDate": "2026-08-02",
+							  "endDate": "2026-08-07",
+							  "versionNo": 3,
+							  "force": false
+							}
+							"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("ONGOING_TRAVEL_START_DATE_LOCKED"));
+	}
+
+	@Test
+	void rejectsChangingDatesOfACompletedTravelPlan() throws Exception {
+		insertActivePlan(PLAN_ID, 1L, "2026-07-01", "2026-07-02");
+
+		mockMvc.perform(patch("/api/plans/{planId}/dates", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{
+							  "startDate": "2026-08-10",
+							  "endDate": "2026-08-11",
+							  "versionNo": 3,
+							  "force": false
+							}
+							"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("COMPLETED_TRAVEL_DATES_LOCKED"));
+	}
+
+	@Test
 	void returnsPlanNotFoundForAnotherMembersPlan() throws Exception {
 		insertPlan(PLAN_ID, 2L, "ACTIVE");
 
@@ -440,6 +477,21 @@ class TravelPlanEditorControllerIntegrationTest {
 				) VALUES (?, ?, '서울특별시 여행', '1', DATE '2026-08-10',
 				          DATE '2026-08-11', 'PRIVATE', 'ACTIVE', 3)
 				""", planId, ownerMemberId);
+	}
+
+	private void insertActivePlan(
+			long planId,
+			long ownerMemberId,
+			String startDate,
+			String endDate
+	) {
+		jdbcTemplate.update("""
+				INSERT INTO TRAVEL_PLAN (
+				    PLAN_ID, OWNER_MEMBER_ID, TITLE, REGION_CODE,
+				    START_DATE, END_DATE, VISIBILITY, PLAN_STATUS, VERSION_NO
+				) VALUES (?, ?, '서울특별시 여행', '1', CAST(? AS DATE),
+				          CAST(? AS DATE), 'PRIVATE', 'ACTIVE', 3)
+				""", planId, ownerMemberId, startDate, endDate);
 	}
 
 	private void insertPlanDay(

@@ -144,7 +144,7 @@
 		   )
 		</if>
 		 ORDER BY P.UPDATED_AT DESC, P.PLAN_ID DESC
-		 FETCH FIRST #{limit} ROWS ONLY
+		 OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
 	</select>
 
 	<select id="countPublicPlans" resultType="int">

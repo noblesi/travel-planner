@@ -408,6 +408,10 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     saveMessage.value = '자동 저장 준비'
   }
 
+  async function waitForPendingSaves() {
+    await queueTail
+  }
+
   return {
     status,
     errorMessage,
@@ -442,5 +446,6 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     moveScheduleItemPosition,
     retryLastSave,
     discardFailedSave,
+    waitForPendingSaves,
   }
 })

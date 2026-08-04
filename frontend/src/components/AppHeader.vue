@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
-import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.png'
+import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.webp'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()

@@ -43,9 +43,12 @@ public class TravelPlanController {
 	@GetMapping
 	public ApiResponse<PublicPlanSearchResponse> searchPublicPlans(
 			@RequestParam(defaultValue = "") String keyword,
-			@RequestParam(defaultValue = "24") int limit
+			@RequestParam(defaultValue = "1") int page,
+			@RequestParam(defaultValue = "24") int size,
+			@RequestParam(required = false) Integer limit
 	) {
-		return ApiResponse.success(publicPlanService.search(keyword, limit));
+		int requestedSize = limit == null ? size : limit;
+		return ApiResponse.success(publicPlanService.search(keyword, page, requestedSize));
 	}
 
 	@GetMapping("/{planId}")

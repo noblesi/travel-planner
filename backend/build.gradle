@@ -40,4 +40,5 @@ tasks.named('bootJar') {
 
 tasks.named('test') {
 	useJUnitPlatform()
+	systemProperty 'app.travel.fixed-clock-instant', '2026-08-03T15:00:00Z'
 }

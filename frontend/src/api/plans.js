@@ -1,7 +1,9 @@
 import http from './http'
 
-export async function searchPublicPlans({ keyword = '', limit = 100 } = {}) {
-  const response = await http.get('/plans', { params: { keyword, limit } })
+export async function searchPublicPlans({ keyword = '', page = 1, size = 24, limit } = {}) {
+  const params = { keyword, page, size }
+  if (limit != null) params.limit = limit
+  const response = await http.get('/plans', { params })
   return response.data.data
 }
 

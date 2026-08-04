@@ -149,6 +149,7 @@ public class TravelPlanService {
 				&& plan.endDate().equals(request.endDate())) {
 			return buildPlanEditorResponse(planId, plan);
 		}
+		requestValidator.validateDateChangePolicy(plan, request.startDate(), request.endDate());
 
 		List<PlanDay> existingDays = planDayMapper.findByPlanIdOrderByDayNo(planId);
 		long oldDuration = ChronoUnit.DAYS.between(plan.startDate(), plan.endDate()) + 1;
