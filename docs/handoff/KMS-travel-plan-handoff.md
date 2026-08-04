@@ -1,6 +1,6 @@
 # KMS 여행 플랜 개발 인수인계
 
-최종 정리일: 2026-08-03
+최종 정리일: 2026-08-04
 
 ## 저장소 상태
 
@@ -109,6 +109,10 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - `GET /api/places/search`와 `TourApiClient`를 구현하고 TourAPI 오류를 공통 API 오류로 변환하도록 구성했다.
 - 플랜 설정 Form의 필수 입력·서버 오류·중복 제출 처리를 보완하고 지역 선택을 사이트 스타일의 하단 고정 커스텀 드롭다운으로 교체했다.
 - 플랜 생성 성공과 제작 화면 이동 실패를 분리해 생성 완료 후에는 중복 생성 없이 이동만 재시도하도록 보완했다. 제작 화면은 일정·제목·공개범위·날짜 저장을 하나의 대기 상태로 추적하고, 저장 실패 이탈 확인·브라우저 종료 경고·홈 복귀 경로를 적용했다.
+- 날짜 변경 확인창에 초기 포커스·Escape 닫기·Tab 순환·저장 버튼 포커스 복귀를 적용했다. 플랜 설정은 시작일 변경으로 기존 종료일이 역전되거나 14일을 초과하면 종료일을 초기화하고 이유를 안내하며, 로컬 검증 오류를 서버 필드 오류보다 우선 표시한다. 기본 공개 범위는 제품 정책에 따라 `PUBLIC`을 유지한다.
+- 한국 시간 오늘 계산·날짜 덧셈·포맷·포함 일수 계산을 `frontend/src/utils/travelDate.js`로 통합하고 한국 시간 자정 경계·윤년 회귀 Test를 추가했다. Backend의 `Clock`·`Asia/Seoul` 날짜 계약과 같은 기준을 유지한다.
+- `PlanEditorView`를 Toolbar·일정 Panel·지도 작업 영역으로, `PlanDetailView`를 Header·일정·DAY 요약·지도로 분리했다. `PlanScheduleService`는 외부 API를 유지하는 Facade로 축소하고 추가·수정·삭제·정렬 Transaction Service와 공통 Mutation 지원 객체로 책임을 나눴다.
+- 실제 Memory Router를 사용하는 전체 흐름 회귀 Test를 추가해 로그인 → 플랜 설정 → 생성 → 제작 진입, 제목·날짜 변경 → 장소 추가·자동 저장, 공개 상세 복귀 후 검색 Cache 복원, 진행 중·종료 플랜 날짜 제한을 검증했다.
 - 원격 Oracle Application Schema에 전체 DDL을 적용하고 시·도 Seed 17건을 입력했으며, `/api/health`와 `/api/regions`를 실제 Oracle 연결로 확인했다.
 - 실제 접속정보와 인증키는 Git에서 제외되는 루트 `.env.local`에 보관하고, Windows 실행용 `scripts/run-backend.ps1`과 팀 실행 절차를 추가했다.
 - `frontend/src/api/places.js`와 장소 검색 Panel·상세 Card를 추가하고 검색어 검증, Loading·Empty·Error, Pagination과 결과 선택 상태를 구현했다.
@@ -161,7 +165,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 | 실제 인증 | 부분 완료 | Spring Security session·CSRF와 Oracle `MEMBER` 이메일 로그인 완료. 회원가입·비밀번호 재설정·Google OIDC 필요 |
 | 외부 API | 부분 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 검증 완료. Kakao Map·Marker 자동 Test 통과, 실제 Browser 렌더링은 localhost 보안 정책으로 미검증 |
 | Backend 자동 Test | 준비 완료 | 전체 80건 통과, `bootJar` 성공 |
-| Frontend Test | 준비 완료 | 28개 Test File, 전체 116건 통과, Production Build 성공. ESLint·Oxlint 통과 |
+| Frontend Test | 준비 완료 | 30개 Test File, 전체 127건 통과, Production Build 성공. ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -177,6 +181,8 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - 공개 플랜 검색은 `page`/`size` 서버 페이지네이션을 사용하며, 기존 `limit` Parameter도 호환을 위해 유지한다.
 - 공개 플랜 검색은 5분 Pinia 캐시로 검색어·페이지·카드 목록을 복원하며, 새 검색·초기화·더 보기 사이의 늦은 응답을 무시한다. 썸네일 기본값과 로딩 실패 대체 이미지는 외부 임시 서비스가 아닌 로컬 SVG를 사용한다.
 - 설정 화면의 지역 선택기는 `RegionSelect`, 제작 화면의 제목·공개범위·날짜 설정은 `PlanEditorSettings`로 분리했다.
+- 제작 화면은 `PlanEditorToolbar`, `PlanEditorSchedulePanel`, `PlanEditorMapWorkspace`, 공개 상세 화면은 `PublicPlanDetailHeader`, `PublicPlanSchedule`, `PublicPlanDaySummary`, `PublicPlanDayMap`으로 분리했다.
+- 일정 변경 Backend는 `PlanScheduleService` Facade 뒤에서 `PlanScheduleAddService`, `PlanScheduleUpdateService`, `PlanScheduleDeleteService`, `PlanScheduleReorderService`가 작업별 Transaction을 담당한다.
 - Root README의 JUnit·MockMvc와 `src/test/java` 안내에 맞춰 Backend 통합 테스트 구성을 복구했다.
 
 ## 담당 개발 범위
