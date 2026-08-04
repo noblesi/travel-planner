@@ -82,9 +82,12 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
   const saveStatus = ref('idle')
   const saveMessage = ref('자동 저장 준비')
   const saveErrorMessage = ref('')
-  const pendingSaveCount = ref(0)
+  const schedulePendingSaveCount = ref(0)
+  const directPendingSaveCount = ref(0)
+  const directSaveFailed = ref(false)
 
   let queueTail = Promise.resolve()
+  const directSavePromises = new Set()
   const lastFailedOperation = ref(null)
   let saveGeneration = 0
 
@@ -92,9 +95,15 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
   const isEmpty = computed(() => status.value === 'empty')
   const hasError = computed(() => status.value === 'error')
   const isReady = computed(() => status.value === 'success' || status.value === 'empty')
-  const isSaving = computed(() => saveStatus.value === 'saving')
+  const pendingSaveCount = computed(
+    () => schedulePendingSaveCount.value + directPendingSaveCount.value,
+  )
+  const isSaving = computed(() => pendingSaveCount.value > 0)
   const hasSaveError = computed(
     () => saveStatus.value === 'error' || saveStatus.value === 'conflict',
+  )
+  const hasUnsavedChanges = computed(
+    () => hasSaveError.value || lastFailedOperation.value != null || directSaveFailed.value,
   )
   const canRetrySave = computed(() => lastFailedOperation.value != null)
 
@@ -126,8 +135,11 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
   function resetSaveState() {
     saveGeneration += 1
     queueTail = Promise.resolve()
+    directSavePromises.clear()
     lastFailedOperation.value = null
-    pendingSaveCount.value = 0
+    schedulePendingSaveCount.value = 0
+    directPendingSaveCount.value = 0
+    directSaveFailed.value = false
     saveStatus.value = 'idle'
     saveMessage.value = '자동 저장 준비'
     saveErrorMessage.value = ''
@@ -180,30 +192,84 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     return data
   }
 
-  async function savePlanDates(payload) {
-    const preferredDayId = selectedDayId.value
-    const data = await updateTravelPlanDates(plan.value.planId, payload)
-    applyEditorData(data, preferredDayId)
-    return data
+  function trackDirectSave(label, operation) {
+    const generation = saveGeneration
+    const previousScheduleFailure = lastFailedOperation.value
+      ? {
+          status: saveStatus.value,
+          message: saveMessage.value,
+        }
+      : null
+    directPendingSaveCount.value += 1
+    directSaveFailed.value = false
+    saveStatus.value = 'saving'
+    saveMessage.value = label
+
+    const task = Promise.resolve().then(operation)
+    directSavePromises.add(task)
+
+    return task
+      .then((result) => {
+        if (generation === saveGeneration) {
+          if (previousScheduleFailure && lastFailedOperation.value) {
+            saveStatus.value = previousScheduleFailure.status
+            saveMessage.value = previousScheduleFailure.message
+          } else {
+            saveStatus.value = 'saved'
+            saveMessage.value = '모든 변경사항이 저장되었습니다.'
+          }
+        }
+        return result
+      })
+      .catch((error) => {
+        if (generation === saveGeneration) {
+          directSaveFailed.value = true
+          if (previousScheduleFailure && lastFailedOperation.value) {
+            saveStatus.value = previousScheduleFailure.status
+            saveMessage.value = previousScheduleFailure.message
+          } else {
+            saveStatus.value = 'idle'
+            saveMessage.value = '저장되지 않은 변경사항이 있습니다.'
+          }
+        }
+        throw error
+      })
+      .finally(() => {
+        directSavePromises.delete(task)
+        if (generation === saveGeneration) {
+          directPendingSaveCount.value = Math.max(0, directPendingSaveCount.value - 1)
+        }
+      })
   }
 
-  async function savePlanMetadata(payload) {
-    const preferredDayId = selectedDayId.value
-
-    try {
-      const data = await updateTravelPlanMetadata(plan.value.planId, payload)
+  function savePlanDates(payload) {
+    return trackDirectSave('여행 날짜를 저장하고 있습니다.', async () => {
+      const preferredDayId = selectedDayId.value
+      const data = await updateTravelPlanDates(plan.value.planId, payload)
       applyEditorData(data, preferredDayId)
       return data
-    } catch (error) {
-      if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
-        try {
-          await refreshPlanEditor(preferredDayId)
-        } catch {
-          // 원래 충돌 응답을 유지해 호출자가 정확한 원인을 표시하게 합니다.
+    })
+  }
+
+  function savePlanMetadata(payload) {
+    return trackDirectSave('플랜 정보를 저장하고 있습니다.', async () => {
+      const preferredDayId = selectedDayId.value
+
+      try {
+        const data = await updateTravelPlanMetadata(plan.value.planId, payload)
+        applyEditorData(data, preferredDayId)
+        return data
+      } catch (error) {
+        if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
+          try {
+            await refreshPlanEditor(preferredDayId)
+          } catch {
+            // 원래 충돌 응답을 유지해 호출자가 정확한 원인을 표시하게 합니다.
+          }
         }
+        throw error
       }
-      throw error
-    }
+    })
   }
 
   function currentDay(planDayId) {
@@ -262,9 +328,9 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
 
   function enqueueScheduleOperation(operation) {
     const generation = saveGeneration
-    pendingSaveCount.value += 1
+    schedulePendingSaveCount.value += 1
     saveStatus.value = 'saving'
-    saveMessage.value = `자동 저장 대기 · ${pendingSaveCount.value}건`
+    saveMessage.value = `자동 저장 대기 · ${schedulePendingSaveCount.value}건`
 
     const task = queueTail.then(() => executeScheduleOperation(operation, generation))
     queueTail = task.catch(() => undefined)
@@ -272,10 +338,10 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     return task.finally(() => {
       if (generation !== saveGeneration) return
 
-      pendingSaveCount.value = Math.max(0, pendingSaveCount.value - 1)
-      if (pendingSaveCount.value > 0) {
+      schedulePendingSaveCount.value = Math.max(0, schedulePendingSaveCount.value - 1)
+      if (schedulePendingSaveCount.value > 0) {
         saveStatus.value = 'saving'
-        saveMessage.value = `자동 저장 대기 · ${pendingSaveCount.value}건`
+        saveMessage.value = `자동 저장 대기 · ${schedulePendingSaveCount.value}건`
       } else if (lastFailedOperation.value) {
         if (saveStatus.value !== 'conflict') {
           saveStatus.value = 'error'
@@ -409,7 +475,10 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
   }
 
   async function waitForPendingSaves() {
-    await queueTail
+    while (schedulePendingSaveCount.value > 0 || directPendingSaveCount.value > 0) {
+      await Promise.allSettled([queueTail, ...directSavePromises])
+    }
+    return !hasUnsavedChanges.value
   }
 
   return {
@@ -428,6 +497,7 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     isReady,
     isSaving,
     hasSaveError,
+    hasUnsavedChanges,
     canRetrySave,
     selectedDay,
     scheduleItems,

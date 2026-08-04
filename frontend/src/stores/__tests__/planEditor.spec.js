@@ -162,6 +162,72 @@ describe('planEditor store', () => {
 
     expect(getTravelPlanEditorMock).toHaveBeenCalledTimes(2)
     expect(store.plan).toEqual(latest.plan)
+    expect(store.hasUnsavedChanges).toBe(true)
+  })
+
+  it('메타정보 저장도 pending 저장으로 추적하고 완료될 때까지 기다린다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const updated = {
+      plan: { ...plan, title: '서울 맛집 여행', versionNo: 1 },
+      days,
+    }
+    let resolveSave
+    updateTravelPlanMetadataMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const saveRequest = store.savePlanMetadata({
+      title: '서울 맛집 여행',
+      visibility: 'PRIVATE',
+      versionNo: 0,
+    })
+    await Promise.resolve()
+
+    expect(store.isSaving).toBe(true)
+    expect(store.pendingSaveCount).toBe(1)
+
+    let waitFinished = false
+    const waitRequest = store.waitForPendingSaves().then((result) => {
+      waitFinished = true
+      return result
+    })
+    await Promise.resolve()
+    expect(waitFinished).toBe(false)
+
+    resolveSave(updated)
+    await expect(saveRequest).resolves.toEqual(updated)
+    await expect(waitRequest).resolves.toBe(true)
+    expect(store.isSaving).toBe(false)
+    expect(store.pendingSaveCount).toBe(0)
+    expect(store.hasUnsavedChanges).toBe(false)
+  })
+
+  it('직접 저장 실패를 이탈 확인이 필요한 변경으로 유지하고 재저장 시 해제한다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const failure = new Error('metadata save failed')
+    const updated = {
+      plan: { ...plan, title: '서울 맛집 여행', versionNo: 1 },
+      days,
+    }
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    updateTravelPlanMetadataMock.mockRejectedValueOnce(failure).mockResolvedValueOnce(updated)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const payload = { title: '서울 맛집 여행', visibility: 'PRIVATE', versionNo: 0 }
+    await expect(store.savePlanMetadata(payload)).rejects.toBe(failure)
+
+    expect(store.hasUnsavedChanges).toBe(true)
+    await expect(store.waitForPendingSaves()).resolves.toBe(false)
+
+    await expect(store.savePlanMetadata(payload)).resolves.toEqual(updated)
+    expect(store.hasUnsavedChanges).toBe(false)
   })
 
   it('조회 실패 메시지를 저장하고 기존 편집 데이터를 비운다', async () => {

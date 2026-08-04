@@ -257,6 +257,28 @@ describe('PlanSetupView', () => {
     expect(wrapper.text()).toContain('여행 계획을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.')
   })
 
+  it('플랜 생성 후 화면 이동만 실패하면 중복 생성 없이 다시 이동한다', async () => {
+    routerPushMock.mockResolvedValueOnce({ type: 4 }).mockResolvedValueOnce(undefined)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await selectRegion(wrapper)
+    await wrapper.get('#startDate').setValue(dateFromToday(7))
+    await wrapper.get('#endDate').setValue(dateFromToday(9))
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(createTravelPlanMock).toHaveBeenCalledOnce()
+    expect(wrapper.text()).toContain('여행 계획은 만들어졌지만 제작 화면으로 이동하지 못했습니다.')
+    expect(wrapper.find('form').exists()).toBe(false)
+
+    await wrapper.get('.created-plan-recovery button').trigger('click')
+    await flushPromises()
+
+    expect(routerPushMock).toHaveBeenCalledTimes(2)
+    expect(createTravelPlanMock).toHaveBeenCalledOnce()
+  })
+
   it('생성 요청이 진행 중일 때 중복 제출을 차단한다', async () => {
     let resolveCreatePlan
     createTravelPlanMock.mockReturnValueOnce(

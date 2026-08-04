@@ -13,6 +13,7 @@ const {
   updateScheduleItemMock,
   updateTravelPlanDatesMock,
   updateTravelPlanMetadataMock,
+  routeLeaveState,
 } = vi.hoisted(() => ({
   addScheduleItemMock: vi.fn(),
   deleteScheduleItemMock: vi.fn(),
@@ -22,7 +23,18 @@ const {
   updateScheduleItemMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
   updateTravelPlanMetadataMock: vi.fn(),
+  routeLeaveState: { guard: null },
 }))
+
+vi.mock('vue-router', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    onBeforeRouteLeave: (guard) => {
+      routeLeaveState.guard = guard
+    },
+  }
+})
 
 vi.mock('@/api/plans', () => ({
   addScheduleItem: addScheduleItemMock,
@@ -81,7 +93,11 @@ function mountView(planId = '101') {
       plugins: [createPinia()],
       stubs: {
         KakaoMap: KakaoMapStub,
-        RouterLink: { template: '<a><slot /></a>' },
+        RouterLink: {
+          name: 'RouterLink',
+          props: ['to'],
+          template: '<a><slot /></a>',
+        },
       },
     },
   })
@@ -98,9 +114,13 @@ beforeEach(() => {
   updateScheduleItemMock.mockReset()
   deleteScheduleItemMock.mockReset()
   reorderScheduleItemsMock.mockReset()
+  routeLeaveState.guard = null
 })
 
-afterEach(() => vi.useRealTimers())
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.useRealTimers()
+})
 
 describe('PlanEditorView', () => {
   it('라우트로 전달된 플랜 ID를 조회하고 제작 화면 정보를 표시한다', async () => {
@@ -210,6 +230,73 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('서울 맛집 여행')
     expect(wrapper.text()).toContain('공개')
     expect(wrapper.find('.metadata-editor__form').exists()).toBe(false)
+  })
+
+  it('뒤로가기 링크는 새 플랜 설정이 아니라 홈으로 이동한다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const backLink = wrapper
+      .findAllComponents({ name: 'RouterLink' })
+      .find((link) => link.classes().includes('back-button'))
+
+    expect(backLink.props('to')).toEqual({ name: 'home' })
+    expect(backLink.attributes('aria-label')).toBe('홈으로 돌아가기')
+  })
+
+  it('메타정보 저장 중 이탈 요청은 저장 완료 후 진행한다', async () => {
+    const updatedEditor = {
+      ...editor,
+      plan: { ...editor.plan, title: '서울 맛집 여행', versionNo: 1 },
+    }
+    let resolveSave
+    updateTravelPlanMetadataMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.metadata-editor__open').trigger('click')
+    await wrapper.get('[name="editTitle"]').setValue('서울 맛집 여행')
+    await wrapper.get('.metadata-editor__form').trigger('submit')
+    await Promise.resolve()
+
+    let leaveFinished = false
+    const leaveRequest = routeLeaveState.guard().then((result) => {
+      leaveFinished = true
+      return result
+    })
+    await Promise.resolve()
+
+    expect(leaveFinished).toBe(false)
+    expect(wrapper.get('.exit-button').text()).toContain('저장 후 나가기')
+
+    resolveSave(updatedEditor)
+    await expect(leaveRequest).resolves.toBe(true)
+    expect(confirmSpy).not.toHaveBeenCalled()
+  })
+
+  it('저장 실패 후 이탈과 브라우저 종료를 경고한다', async () => {
+    updateTravelPlanMetadataMock.mockRejectedValueOnce(new Error('metadata save failed'))
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.metadata-editor__open').trigger('click')
+    await wrapper.get('[name="editTitle"]').setValue('서울 맛집 여행')
+    await wrapper.get('.metadata-editor__form').trigger('submit')
+    await flushPromises()
+
+    await expect(routeLeaveState.guard()).resolves.toBe(false)
+    expect(confirmSpy).toHaveBeenCalledOnce()
+
+    const unloadEvent = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(unloadEvent)
+    expect(unloadEvent.defaultPrevented).toBe(true)
   })
 
   it('빈 플랜 제목은 API를 호출하지 않고 Validation 오류를 표시한다', async () => {

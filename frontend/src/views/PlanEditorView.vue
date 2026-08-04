@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { onBeforeRouteLeave, RouterLink } from 'vue-router'
 
@@ -32,6 +32,7 @@ const {
   isReady,
   isSaving,
   hasSaveError,
+  hasUnsavedChanges,
   canRetrySave,
   saveStatus,
   saveMessage,
@@ -139,12 +140,28 @@ function retryScheduleSave() {
   return runScheduleOperation(editorStore.retryLastSave())
 }
 
+function handleBeforeUnload(event) {
+  if (!isSaving.value && !hasUnsavedChanges.value) return
+
+  event.preventDefault()
+  event.returnValue = ''
+}
+
 watch(() => props.planId, retryLoad, { immediate: true })
 onBeforeRouteLeave(async () => {
-  if (pendingSaveCount.value > 0) await editorStore.waitForPendingSaves()
+  if (isSaving.value) await editorStore.waitForPendingSaves()
+  if (hasUnsavedChanges.value) {
+    return window.confirm(
+      '저장되지 않은 변경사항이 있습니다. 이 화면을 나가면 입력한 내용이 사라질 수 있습니다. 그래도 나갈까요?',
+    )
+  }
   return true
 })
-onBeforeUnmount(editorStore.resetEditor)
+onMounted(() => window.addEventListener('beforeunload', handleBeforeUnload))
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+  editorStore.resetEditor()
+})
 </script>
 
 <template>
@@ -153,11 +170,8 @@ onBeforeUnmount(editorStore.resetEditor)
       <div class="editor-toolbar__inner">
         <RouterLink
           class="back-button"
-          to="/plans/new"
-          aria-label="여행 계획 설정으로 돌아가기"
-          :aria-disabled="isSaving"
-          :tabindex="isSaving ? -1 : undefined"
-          @click="isSaving && $event.preventDefault()"
+          :to="{ name: 'home' }"
+          aria-label="홈으로 돌아가기"
         >
           <span aria-hidden="true">←</span>
         </RouterLink>
@@ -191,12 +205,9 @@ onBeforeUnmount(editorStore.resetEditor)
           </span>
           <RouterLink
             class="exit-button"
-            to="/"
-            :aria-disabled="isSaving"
-            :tabindex="isSaving ? -1 : undefined"
-            @click="isSaving && $event.preventDefault()"
+            :to="{ name: 'home' }"
           >
-            {{ isSaving ? '저장 중' : '나가기' }}
+            {{ isSaving ? '저장 후 나가기' : '나가기' }}
           </RouterLink>
         </div>
       </div>
@@ -212,7 +223,7 @@ onBeforeUnmount(editorStore.resetEditor)
       <section v-else-if="status === 'error'" class="editor-state editor-state--error" role="alert">
         <span class="editor-state__icon" aria-hidden="true">!</span>
         <strong>{{ errorMessage }}</strong>
-        <p>잠시 후 다시 시도하거나 여행 계획 설정으로 돌아가 주세요.</p>
+        <p>잠시 후 다시 시도하거나 홈으로 돌아가 주세요.</p>
         <button type="button" @click="retryLoad">다시 시도</button>
       </section>
 
@@ -511,12 +522,6 @@ onBeforeUnmount(editorStore.resetEditor)
 .exit-button {
   padding: 0 18px;
   color: #334155;
-}
-
-.back-button[aria-disabled='true'],
-.exit-button[aria-disabled='true'] {
-  cursor: wait;
-  opacity: 0.55;
 }
 
 .editor-main {
