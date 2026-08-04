@@ -60,7 +60,12 @@
             @click="goToDetail(plan.id)"
           >
             <div class="card-img-wrap">
-              <div class="card-img" :style="{ backgroundImage: `url(${plan.thumbImage})` }"></div>
+              <img
+                class="card-img"
+                :src="plan.thumbImage"
+                alt=""
+                @error="useDefaultThumbnail"
+              />
               <div class="badge-days">{{ plan.days }}일</div>
             </div>
             <div class="card-body">
@@ -191,39 +196,61 @@
 </template>
 
 <script setup>
-import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
 import { searchPublicPlans } from '@/api/plans'
+import defaultPlanThumbnail from '@/assets/plan/default-plan-thumbnail.svg'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import { usePlanSearchStore } from '@/stores/planSearch'
 
 const router = useRouter()
 const route = useRoute()
-
-// 카드를 클릭하면 상세 페이지로 이동
-function goToDetail(planId) {
-  router.push({ name: 'plan-detail', params: { id: planId } })
-}
+const planSearchStore = usePlanSearchStore()
 
 const suggestedCities = ['서울', '제주', '부산', '경주', '전주']
 const pageSize = 8
-const plans = ref([])
+const initialKeyword = typeof route.query.keyword === 'string' ? route.query.keyword : ''
+const legacyPage = Math.ceil((Number(route.query.count) || pageSize) / pageSize)
+const initialPage = Math.max(Number(route.query.page) || legacyPage, 1)
+const cachedSearch = planSearchStore.restoreSearch({
+  searchedKeyword: initialKeyword,
+  currentPage: initialPage,
+})
+
+const plans = ref(cachedSearch?.plans ?? [])
 const loading = ref(false)
 const loadingMore = ref(false)
 const errorMessage = ref('')
-const totalCount = ref(0)
-const hasNextPage = ref(false)
-let loadSequence = 0
+const totalCount = ref(cachedSearch?.totalCount ?? 0)
+const hasNextPage = ref(cachedSearch?.hasNextPage ?? false)
+const keyword = ref(cachedSearch?.keyword ?? initialKeyword)
+const searchedKeyword = ref(cachedSearch?.searchedKeyword ?? initialKeyword)
+const hasSearched = ref(cachedSearch?.hasSearched ?? Boolean(initialKeyword))
+const currentPage = ref(cachedSearch?.currentPage ?? initialPage)
+let requestSequence = 0
 
-// ── URL 쿼리에서 검색 상태 복원 (뒤로가기로 돌아왔을 때 검색어/더보기 개수 유지) ──
-const keyword = ref(route.query.keyword || '') // 입력받은 키워드 (사용자가 이미 검색했을 시 검색한 키워드 할당)
-const searchedKeyword = ref(route.query.keyword || '') // 사용자가 실제로 검색한 키워드
-const hasSearched = ref(!!route.query.keyword) // 사용자가 검색했는지 여부
-const legacyPage = Math.ceil((Number(route.query.count) || pageSize) / pageSize)
-const currentPage = ref(Math.max(Number(route.query.page) || legacyPage, 1))
+// 카드를 클릭하면 상세 페이지로 이동
+function goToDetail(planId) {
+  cacheCurrentSearch()
+  router.push({ name: 'plan-detail', params: { id: planId } })
+}
 
 const filteredPlans = computed(() => plans.value)
 
 const hasMore = computed(() => hasNextPage.value)
+
+function cacheCurrentSearch() {
+  planSearchStore.cacheSearch({
+    keyword: keyword.value,
+    searchedKeyword: searchedKeyword.value,
+    hasSearched: hasSearched.value,
+    currentPage: currentPage.value,
+    plans: plans.value,
+    totalCount: totalCount.value,
+    hasNextPage: hasNextPage.value,
+  })
+}
 
 // 검색 상태가 바뀔 때마다 URL 쿼리에 반영한다.
 // push가 아니라 replace를 쓰는 이유: 검색어를 입력하거나 "더 보기"를 누를 때마다
@@ -249,15 +276,26 @@ function mapPlan(plan) {
       .join(''),
     authorName: plan.authorName,
     authorAvatar: plan.authorProfileImageUrl,
-    thumbImage:
-      plan.thumbnailImageUrl || `https://picsum.photos/seed/withtrip-${plan.planId}/640/440`,
+    thumbImage: plan.thumbnailImageUrl || defaultPlanThumbnail,
   }
 }
 
+function useDefaultThumbnail(event) {
+  const image = event.currentTarget
+  if (image.dataset.fallbackApplied === 'true') return
+
+  image.dataset.fallbackApplied = 'true'
+  image.src = defaultPlanThumbnail
+}
+
 async function loadPlans(searchKeyword = '', targetPage = 1) {
-  const sequence = ++loadSequence
+  const sequence = ++requestSequence
   loading.value = true
+  loadingMore.value = false
   errorMessage.value = ''
+  plans.value = []
+  totalCount.value = 0
+  hasNextPage.value = false
 
   try {
     const restoredPlans = []
@@ -267,7 +305,7 @@ async function loadPlans(searchKeyword = '', targetPage = 1) {
 
     for (let page = 1; page <= requestedTarget; page += 1) {
       result = await searchPublicPlans({ keyword: searchKeyword, page, size: pageSize })
-      if (sequence !== loadSequence) return
+      if (sequence !== requestSequence) return
       restoredPlans.push(...result.plans.map(mapPlan))
       loadedPage = page
       if (!result.hasNext) break
@@ -277,14 +315,15 @@ async function loadPlans(searchKeyword = '', targetPage = 1) {
     currentPage.value = loadedPage || 1
     totalCount.value = result?.totalCount || 0
     hasNextPage.value = Boolean(result?.hasNext)
+    cacheCurrentSearch()
   } catch {
-    if (sequence !== loadSequence) return
+    if (sequence !== requestSequence) return
     plans.value = []
     totalCount.value = 0
     hasNextPage.value = false
     errorMessage.value = '공개 일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
   } finally {
-    if (sequence === loadSequence) loading.value = false
+    if (sequence === requestSequence) loading.value = false
   }
 }
 
@@ -315,32 +354,44 @@ async function resetSearch() {
 async function loadMore() {
   if (loadingMore.value || !hasNextPage.value) return
 
+  const sequence = ++requestSequence
+  const requestKeyword = searchedKeyword.value
   loadingMore.value = true
   errorMessage.value = ''
   try {
     const nextPage = currentPage.value + 1
     const result = await searchPublicPlans({
-      keyword: searchedKeyword.value,
+      keyword: requestKeyword,
       page: nextPage,
       size: pageSize,
     })
+    if (sequence !== requestSequence) return
+
     plans.value.push(...result.plans.map(mapPlan))
     currentPage.value = result.page
     totalCount.value = result.totalCount
     hasNextPage.value = result.hasNext
     syncUrl()
+    cacheCurrentSearch()
   } catch {
+    if (sequence !== requestSequence) return
     errorMessage.value = '다음 일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
   } finally {
-    loadingMore.value = false
+    if (sequence === requestSequence) loadingMore.value = false
   }
 }
 
 // 헤더의 "일정 탐색"을 이미 이 페이지에 있는 상태에서 다시 클릭하면
 // 라우트가 바뀌지 않아 컴포넌트가 재마운트되지 않으므로, AppHeader가 쏘는
 // 커스텀 이벤트를 받아 검색 상태를 새로고침한 것처럼 초기화한다.
-onMounted(() => window.addEventListener('plan-search:reset', resetSearch))
-onUnmounted(() => window.removeEventListener('plan-search:reset', resetSearch))
+onMounted(() => {
+  window.addEventListener('plan-search:reset', resetSearch)
+  if (!cachedSearch) loadPlans(searchedKeyword.value, currentPage.value)
+})
+onUnmounted(() => {
+  requestSequence += 1
+  window.removeEventListener('plan-search:reset', resetSearch)
+})
 
 function formatCount(n) {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
@@ -361,7 +412,6 @@ function regionColorKey(region) {
   return REGION_COLOR_KEYS[hash]
 }
 
-onMounted(() => loadPlans(searchedKeyword.value, currentPage.value))
 </script>
 
 <style scoped>
@@ -570,10 +620,10 @@ onMounted(() => loadPlans(searchedKeyword.value, currentPage.value))
 }
 
 .card-img {
+  display: block;
   width: 100%;
   height: 100%;
-  background-size: cover;
-  background-position: center;
+  object-fit: cover;
   background-color: #f0f0f0;
   /* 이미지 로딩 전/실패 시 대체 배경 */
   transition: transform 0.35s ease;
