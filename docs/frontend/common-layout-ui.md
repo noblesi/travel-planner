@@ -220,10 +220,10 @@ npm run build
 - Desktop 신고 Modal과 Mobile 일정 가져오기 Modal 시각 검증 완료
 - Modal focus, ESC 종료, body scroll 복원 확인
 - Mobile 공통 ErrorState viewport 내부 배치 확인
+- `PlanDetailView`를 `320px`, `390 × 844`, `760px`에서 검증하고 페이지 가로 overflow가 없음을 확인
 
 ## 9. 남은 작업
 
-- `PlanDetailView` 본문의 Mobile 가로 overflow 제거
 - 기존 화면의 개별 button·input을 공통 Component로 점진적 전환
 - API 연동 완료 후 성공 Toast와 실제 server error 흐름에 대한 E2E 보강
 - 공통 select, textarea가 두 화면 이상에서 반복될 때 Component 후보 재검토

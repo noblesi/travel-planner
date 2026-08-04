@@ -1,105 +1,77 @@
-# 인증 방식 결정
+# 회원 인증 방식 결정
 
-- 결정일: `2026-07-24`
-- 상태: session 기반과 local 개발 로그인 구현, DB Credential·Google OIDC 연동 대기
-- 대상: Vue SPA, Spring Boot REST API
+- 결정일: `2026-08-03`
+- 상태: Oracle `MEMBER` 기반 이메일 로그인 구현 완료, Google OIDC 연동 대기
+- 기준 스키마: `WITHTRIP_DEV`
 
-## 결정 사항
+## 결정 요약
 
-- 인증 상태는 Spring Security의 서버 세션으로 관리합니다.
-- 로그인 수단은 로컬 계정과 Google OpenID Connect(OIDC)를 지원합니다.
-- 두 로그인 수단은 별도 회원을 의미하지 않으며 하나의 `MEMBER.MEMBER_ID`에 연결할 수 있습니다.
-- Backend 업무 기능은 로그인 수단을 직접 확인하지 않고 `CurrentMemberProvider`를 통해 현재 `MEMBER_ID`만 사용합니다.
-- 운영 환경의 Session Cookie는 `HttpOnly`, `Secure`, `SameSite=Lax`로 설정하고 CSRF 보호를 유지합니다.
-- Google Client Secret과 기타 인증 비밀값은 환경변수로 관리하며 Git에 Commit하지 않습니다.
+- 서비스 회원의 기준 식별자는 `MEMBER.MEMBER_ID`입니다.
+- 이메일 로그인은 기존 `MEMBER.EMAIL`과 `MEMBER.PASSWORD_HASH`를 사용합니다.
+- Google 로그인은 기존 `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT`를 사용합니다.
+- 별도 `LOCAL_CREDENTIAL`, `SOCIAL_IDENTITY` 테이블은 추가하지 않습니다.
+- 업무 서비스는 로그인 방식을 직접 확인하지 않고 `CurrentMemberProvider`로 현재 회원 ID만 조회합니다.
+- 인증 성공 후에는 Spring Security 서버 세션을 사용하며 상태 변경 요청은 CSRF 토큰을 요구합니다.
 
-## 회원과 로그인 수단
-
-`MEMBER`는 서비스 회원의 기준 Entity입니다. 로그인 수단은 회원과 분리해 관리합니다.
+## 물리 구조
 
 ```text
 MEMBER
-├── LOCAL_CREDENTIAL       0..1
-└── SOCIAL_IDENTITY       0..N
+├── MEMBER_ID              PK
+├── EMAIL                  UK, 이메일 로그인 ID
+├── PASSWORD_HASH          nullable, BCrypt
+├── NICKNAME
+├── MEMBER_STATUS          ACTIVE | WITHDRAWN
+└── ...
+
+GOOGLE_ACCOUNT_LINK
+├── MEMBER_ID              FK -> MEMBER.MEMBER_ID
+├── GOOGLE_SUBJECT         Google OIDC sub
+└── ...
 ```
 
-논리적인 책임은 다음과 같습니다. 실제 Table과 Column 이름은 인증 담당 구현에서 확정하되 이 관계와 식별 규칙을 유지합니다.
+`PASSWORD_HASH IS NULL`인 회원은 이메일 로그인을 사용할 수 없습니다. 데모 전용 회원은 이 특성을 이용해 화면 데이터의 작성자로만 사용합니다.
 
-| 영역 | 책임 |
-| --- | --- |
-| `MEMBER` | 서비스 내부 회원, `MEMBER_ID` 발급 |
-| `LOCAL_CREDENTIAL` | 로그인 ID와 단방향 Password Hash 저장 |
-| `SOCIAL_IDENTITY` | Provider와 Provider 고유 사용자 ID 저장 |
+## 이메일 로그인 규칙
 
-Google 계정의 고유 식별자는 Email이 아니라 OIDC ID Token의 `sub` Claim을 사용합니다. Provider 식별값은 `GOOGLE`로 통일합니다.
+1. 이메일 앞뒤 공백을 제거하고 소문자로 정규화합니다.
+2. `LOWER(MEMBER.EMAIL)`로 회원을 조회합니다.
+3. `MEMBER_STATUS = 'ACTIVE'`이고 `PASSWORD_HASH IS NOT NULL`인 회원만 인증 후보입니다.
+4. `BCryptPasswordEncoder.matches()`로 비밀번호를 비교합니다.
+5. 실패 원인과 관계없이 `401 INVALID_LOGIN_CREDENTIALS`를 반환해 회원 존재 여부를 노출하지 않습니다.
+6. 성공 시 `MemberPrincipal`을 만들고 세션 ID와 CSRF 토큰을 회전합니다.
 
-## 가입과 계정 연결
+비밀번호 원문은 DB, 로그, 응답에 저장하지 않습니다. 신규 비밀번호 저장 시에도 BCrypt만 사용합니다.
 
-### Google 가입 후 같은 Email로 로컬 가입
+## Google 로그인 규칙
 
-새 `MEMBER`를 만들지 않습니다. Google로 다시 인증한 후 기존 회원에 로컬 Credential을 추가합니다.
+Google OIDC 연동 시 이메일이 아닌 ID Token의 `sub`를 `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT`와 비교합니다.
 
-### 로컬 가입 후 같은 Email로 Google 로그인
+- 이미 연결된 `sub`이면 해당 `MEMBER_ID`로 `MemberPrincipal`을 생성합니다.
+- 이메일이 같다는 이유만으로 기존 회원과 자동 연결하지 않습니다.
+- 계정 연결은 기존 계정 재인증을 거친 명시적 흐름에서 수행합니다.
+- 로그인만 제공하는 단계에서는 Google Access Token과 Refresh Token을 애플리케이션 DB에 저장하지 않습니다.
+- Google 전용 회원은 `PASSWORD_HASH = NULL`을 유지할 수 있습니다.
 
-Email이 같다는 이유만으로 자동 연결하지 않습니다. 기존 로컬 계정으로 재인증한 후 Google Identity를 연결합니다.
+Google Client ID·Secret과 Redirect URI는 환경변수로 관리하고 Git에 커밋하지 않습니다.
 
-### 서로 다른 Email
+## 세션과 CSRF
 
-기본적으로 서로 다른 회원으로 처리합니다. 이름, 전화번호, 주소 등 Profile 정보가 같아도 자동으로 병합하지 않습니다. 계정 연결이나 병합을 제공할 경우 사용자가 양쪽 계정의 소유권을 모두 증명해야 합니다.
+- 인증 상태는 Spring Security 서버 세션으로 유지합니다.
+- 브라우저 JavaScript에서 세션 쿠키를 읽지 못하도록 `HttpOnly`를 사용합니다.
+- 배포 HTTPS 환경에서는 `SESSION_COOKIE_SECURE=true`를 사용합니다.
+- 로그인·로그아웃 후에는 `/api/auth/csrf`를 다시 호출해 새 토큰을 받아야 합니다.
+- Frontend는 `credentials: include` 또는 Axios `withCredentials: true`를 사용합니다.
 
-### 중복 판단에 사용하지 않는 정보
+## 개발·테스트 데이터
 
-- 이름
-- 전화번호
-- 주소
-- Profile Image
+- 영구 데모 회원: `demo.*@withtrip.example`, `PASSWORD_HASH = NULL`, 로그인 불가
+- 임시 E2E 회원: `e2e.*@withtrip.test`, P2/P3 검증 후 정리
+- 시드와 정리 절차: `docs/database/testdata/README.md`
 
-위 정보는 변경되거나 다른 사람과 중복될 수 있으므로 회원 식별자 또는 자동 병합 기준으로 사용하지 않습니다.
+## 남은 작업
 
-## Backend 연동 계약
-
-여행 플랜을 포함한 업무 Service는 Spring Session, JWT, Google Claim을 직접 참조하지 않습니다.
-
-```text
-TravelPlanService
-└── CurrentMemberProvider
-    └── 현재 인증된 MEMBER_ID 반환
-```
-
-- 현재 회원을 확인할 수 없으면 `401 CURRENT_MEMBER_NOT_AVAILABLE`을 반환합니다.
-- 회원 ID를 Request Body, Query Parameter 또는 임시 상수로 전달하지 않습니다.
-- 인증 구현이 완료되기 전 Mock Provider가 필요하면 개발 Profile에서만 활성화합니다.
-- 운영 Profile에는 기본 회원 ID나 Fallback 값을 두지 않습니다.
-
-## 로컬 Password 원칙
-
-- Password 원문과 복호화 가능한 값은 저장하지 않습니다.
-- Spring Security `PasswordEncoder`의 적응형 단방향 Hash를 사용합니다.
-- Google 로그인만 사용하는 회원에게 임의의 로컬 Password를 생성하지 않습니다.
-- 로컬 로그인을 추가할 때는 기존 계정 재인증 후 사용자가 직접 Password를 설정합니다.
-
-## Google 로그인 범위
-
-- Spring Security OAuth2 Client의 Authorization Code 방식과 OIDC를 사용합니다.
-- 최초 Scope는 `openid`, `profile`, `email`로 제한합니다.
-- 로그인만 제공하는 단계에서는 Google Access Token과 Refresh Token을 Application DB에 저장하지 않습니다.
-- 추후 Google API 접근이 필요해지면 목적, Scope, Token 암호화 및 폐기 정책을 별도로 결정합니다.
-
-## 후속 작업
-
-### 2026-08-01 구현 완료
-
-- Spring Security 서버 session과 CSRF 보호를 추가했습니다.
-- `MemberPrincipal`과 `SecurityCurrentMemberProvider`를 구현했습니다.
-- session 조회·로그아웃과 `local` Profile 환경변수 Credential 로그인을 구현했습니다.
-- local 로그인 성공 시 session fixation 방어와 CSRF token rotation을 적용했습니다.
-- Vue 인증 API·Pinia Store·로그인 redirect·Header 로그아웃을 연결했습니다.
-- DB Schema가 확정되지 않은 상태에서 Oracle 회원 Table을 추측해 변경하지 않았습니다.
-
-### 남은 작업
-
-1. 인증 담당자가 `MEMBER`, `LOCAL_CREDENTIAL`, `SOCIAL_IDENTITY`의 실제 Schema를 확정합니다.
-2. 환경변수 기반 local 개발 Provider를 DB 기반 local Credential Provider로 교체합니다.
-3. `oauth2Login()`에서 Google `sub`를 조회해 같은 `MemberPrincipal`을 생성합니다.
-4. 회원가입과 안전한 계정 연결·재인증 흐름을 구현합니다.
-5. 실제 Oracle 회원으로 플랜과 초대 기능을 통합 검증합니다.
+1. Google OAuth Client 설정과 `oauth2Login()` 연결
+2. `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT` 조회 Mapper 및 계정 연결 정책 구현
+3. 이메일 회원가입·비밀번호 재설정 시 BCrypt 저장 흐름 구현
+4. 배포 환경 HTTPS·Secure Cookie·세션 저장소 설정 검증

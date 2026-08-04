@@ -306,6 +306,8 @@ VITE_KAKAO_MAP_KEY=change-me
 
 TourAPI와 Kakao REST API의 Backend 환경변수 및 Kakao JavaScript SDK 도메인 등록 방법은 [`docs/api/external-api-setup.md`](docs/api/external-api-setup.md)를 따릅니다.
 
+실제 배포 전에는 [`docs/deployment/release-checklist.md`](docs/deployment/release-checklist.md)의 환경 검증, HTTPS Reverse Proxy, Kakao 허용 도메인, Oracle 데모 데이터 점검 항목을 확인합니다.
+
 ## 5. 최초 설치
 
 프론트엔드:

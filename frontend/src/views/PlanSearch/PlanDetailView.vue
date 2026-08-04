@@ -1,7 +1,14 @@
 <template>
   <DefaultLayout>
     <div class="detail-page">
-      <div class="app-container detail-card">
+      <div v-if="loading" class="app-container detail-status" role="status">
+        공개 일정을 불러오는 중이에요.
+      </div>
+      <div v-else-if="errorMessage" class="app-container detail-status detail-status--error" role="alert">
+        <span>{{ errorMessage }}</span>
+        <button type="button" @click="loadPlan">다시 시도</button>
+      </div>
+      <div v-else-if="plan" class="app-container detail-card">
         <div class="detail-head">
           <button class="back-link" title="여행플랜 상세페이지로 돌아가기" @click="goBack">
             <i class="ti ti-arrow-left" aria-hidden="true"></i>
@@ -89,28 +96,31 @@
         </div>
       </div>
 
-      <ReportModal v-if="showReportModal" @close="showReportModal = false" @submit="handleReportSubmit" />
-      <ImportModal v-if="showImportModal" :plan="plan" @close="showImportModal = false" />
+      <ReportModal v-if="plan && showReportModal" @close="showReportModal = false" @submit="handleReportSubmit" />
+      <ImportModal v-if="plan && showImportModal" :plan="plan" @close="showImportModal = false" />
     </div>
   </DefaultLayout>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { getPublicTravelPlan } from '@/api/plans'
 import KakaoMap from '@/components/map/KakaoMap.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import ReportModal from './ReportModal.vue'
 import ImportModal from './ImportModal.vue'
 
-// 라우터가 plan-detail 경로(/plans/:id)에 props: true로 연결돼 있어 id를 prop으로 받는다.
-// TODO: 백엔드 연동 시 이 id로 GET /plans/{id}를 호출해 plan 데이터를 채운다.
 const props = defineProps({
   id: { type: [String, Number], required: false, default: null },
 })
 
 const router = useRouter()
 const route = useRoute()
+const plan = ref(null)
+const loading = ref(false)
+const errorMessage = ref('')
+const selectedDay = ref(1)
 
 function goBack() {
   // 브라우저 히스토리를 한 칸 뒤로 이동한다.
@@ -120,86 +130,78 @@ function goBack() {
   router.back()
 }
 
-// ── mock 데이터: 백엔드 연동 시 props.id로 GET /plans/{id}를 호출하는 형태로 교체 ──
-// DAY 2에는 장소를 많이 넣어서 "일정 카드가 넘칠 때" 스크롤 동작을 확인할 수 있게 했고,
-// DAY도 8개까지 늘려서 "사이드바가 넘칠 때" 스크롤 동작을 확인할 수 있게 했다.
-const plan = ref({
-  id: props.id ?? 101,
-  title: '부산 여행',
-  authorName: '김민준',
-  periodLabel: '07.20 - 07.27 (8일)',
-  likeCount: 128,
-  viewCount: 1200,
-  liked: false,
-  days: [
-    {
-      dayNumber: 1, dateLabel: '7/20(토)', fullDateLabel: '7월 20일 (토)',
-      places: [
-        { id: 1, timeSlot: '오전', name: '부산역 도착', description: 'KTX로 부산역 도착 후 짐 보관', lat: 35.1152, lng: 129.0415 },
-        { id: 2, timeSlot: '오후', name: '자갈치시장', description: '싱싱한 회와 해산물, 부산의 대표 재래시장', lat: 35.0968, lng: 129.0306 },
-      ],
-    },
-    {
-      dayNumber: 2, dateLabel: '7/21(일)', fullDateLabel: '7월 21일 (일)',
-      places: [
-        { id: 3, timeSlot: '오전', name: '해운대해수욕장', description: '부산 대표 해변, 산책과 구경을 즐길 수 있는 곳', lat: 35.1587, lng: 129.1604 },
-        { id: 4, timeSlot: '오전', name: '해운대 블루라인파크', description: '해안선을 따라 달리는 스카이캡슐과 해변열차', lat: 35.1569, lng: 129.1904 },
-        { id: 5, timeSlot: '오후', name: '해운대암소갈비집', description: '30년 전통의 암소갈비, 부드럽고 진한 맛', lat: 35.1631, lng: 129.1636 },
-        { id: 6, timeSlot: '오후', name: '더베이101', description: '요트가 정박된 마리나에서 즐기는 노을과 야경', lat: 35.1584, lng: 129.1512 },
-        { id: 7, timeSlot: '오후', name: '동백섬 누리마루', description: 'APEC 정상회의가 열렸던 전망대, 산책로가 아름다움', lat: 35.1533, lng: 129.1560 },
-        { id: 8, timeSlot: '오후', name: '광안리 포장마차촌', description: '광안대교 야경을 보며 즐기는 해산물 포장마차', lat: 35.1533, lng: 129.1186 },
-        { id: 9, timeSlot: '오후', name: 'SUP 야간 체험', description: '광안리 앞바다에서 즐기는 야간 패들보드 투어', lat: 35.1531, lng: 129.1187 },
-      ],
-    },
-    {
-      dayNumber: 3, dateLabel: '7/22(월)', fullDateLabel: '7월 22일 (월)',
-      places: [
-        { id: 10, timeSlot: '오전', name: '감천문화마을', description: '알록달록 계단식 마을, 부산의 산토리니', lat: 35.0975, lng: 129.0106 },
-        { id: 11, timeSlot: '오후', name: '광안리해수욕장', description: '광안대교 야경이 아름다운 해변', lat: 35.1532, lng: 129.1187 },
-      ],
-    },
-    {
-      dayNumber: 4, dateLabel: '7/23(화)', fullDateLabel: '7월 23일 (화)',
-      places: [
-        { id: 12, timeSlot: '오전', name: '태종대', description: '기암절벽과 등대, 부산 대표 자연경관', lat: 35.0511, lng: 129.0868 },
-      ],
-    },
-    {
-      dayNumber: 5, dateLabel: '7/24(수)', fullDateLabel: '7월 24일 (수)',
-      places: [
-        { id: 13, timeSlot: '오전', name: '용궁구름다리', description: '바다 위를 걷는 스릴 만점 출렁다리', lat: 35.1783, lng: 129.2223 },
-        { id: 14, timeSlot: '오후', name: '흰여울문화마을', description: '영화 촬영지로 유명한 절벽 마을', lat: 35.0765, lng: 129.0334 },
-      ],
-    },
-    {
-      dayNumber: 6, dateLabel: '7/25(목)', fullDateLabel: '7월 25일 (목)',
-      places: [
-        { id: 15, timeSlot: '오전', name: '송정해수욕장', description: '서핑으로 유명한 조용한 해변', lat: 35.1786, lng: 129.2003 },
-        { id: 16, timeSlot: '오후', name: '기장 대변항', description: '멸치회로 유명한 어촌 포구', lat: 35.2280, lng: 129.2264 },
-      ],
-    },
-    {
-      dayNumber: 7, dateLabel: '7/26(금)', fullDateLabel: '7월 26일 (금)',
-      places: [
-        { id: 17, timeSlot: '오전', name: '을숙도 생태공원', description: '낙동강 하구의 철새 도래지', lat: 35.0983, lng: 128.9317 },
-        { id: 18, timeSlot: '오후', name: '몰운대', description: '낙동강과 바다가 만나는 절경', lat: 35.0508, lng: 128.9666 },
-      ],
-    },
-    {
-      dayNumber: 8, dateLabel: '7/27(토)', fullDateLabel: '7월 27일 (토)',
-      places: [
-        { id: 19, timeSlot: '오전', name: '부산역 귀가', description: '기념품 구매 후 KTX 탑승', lat: 35.1152, lng: 129.0415 },
-      ],
-    },
-  ],
-})
+async function loadPlan() {
+  const planId = props.id ?? route.params.id
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const detail = await getPublicTravelPlan(planId)
+    plan.value = mapPlanDetail(detail)
+    const queryDay = Number(route.query.day)
+    selectedDay.value = plan.value.days.some((day) => day.dayNumber === queryDay)
+      ? queryDay
+      : (plan.value.days[0]?.dayNumber ?? 1)
+  } catch {
+    plan.value = null
+    errorMessage.value = '공개 일정을 찾을 수 없거나 불러오지 못했어요.'
+  } finally {
+    loading.value = false
+  }
+}
 
-// 새로고침해도 보고 있던 DAY가 유지되도록 URL 쿼리(day)에서 초기값을 복원한다.
-// 쿼리가 없거나 plan에 없는 dayNumber면 1일차로 되돌아간다.
-const queryDay = Number(route.query.day)
-const initialDay = plan.value.days.some((d) => d.dayNumber === queryDay) ? queryDay : 1
-const selectedDay = ref(initialDay)
-const currentDay = computed(() => plan.value.days.find((d) => d.dayNumber === selectedDay.value))
+function mapPlanDetail(detail) {
+  const summary = detail.plan
+  return {
+    id: summary.planId,
+    title: summary.title,
+    authorName: summary.authorName,
+    periodLabel: `${formatPeriodDate(summary.startDate)} - ${formatPeriodDate(summary.endDate)} (${summary.dayCount}일)`,
+    likeCount: summary.likeCount,
+    viewCount: summary.viewCount,
+    liked: false,
+    days: detail.days.map((day) => ({
+      dayNumber: day.dayNo,
+      dateLabel: formatShortDate(day.travelDate),
+      fullDateLabel: formatFullDate(day.travelDate),
+      places: day.items.map((item) => ({
+        id: item.scheduleItemId,
+        timeSlot: item.timeSlot === 'MORNING' ? '오전' : '오후',
+        name: item.placeName,
+        description: item.description || item.address || item.categoryName || '장소 설명이 없습니다.',
+        lat: item.latitude == null ? null : Number(item.latitude),
+        lng: item.longitude == null ? null : Number(item.longitude),
+      })),
+    })),
+  }
+}
+
+function parseLocalDate(value) {
+  return new Date(`${value}T00:00:00`)
+}
+
+function formatPeriodDate(value) {
+  const date = parseLocalDate(value)
+  return `${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`
+}
+
+function formatShortDate(value) {
+  const date = parseLocalDate(value)
+  const weekday = new Intl.DateTimeFormat('ko-KR', { weekday: 'short' }).format(date)
+  return `${date.getMonth() + 1}/${date.getDate()}(${weekday.replace('요일', '')})`
+}
+
+function formatFullDate(value) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+    weekday: 'short',
+  }).format(parseLocalDate(value))
+}
+
+const currentDay = computed(() => (
+  plan.value?.days.find((day) => day.dayNumber === selectedDay.value)
+  ?? { dayNumber: 1, dateLabel: '', fullDateLabel: '', places: [] }
+))
 
 function selectDay(dayNumber) {
   selectedDay.value = dayNumber
@@ -240,6 +242,8 @@ function formatCount(n) {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
   return String(n)
 }
+
+watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 </script>
 
 <style scoped>
@@ -260,6 +264,32 @@ function formatCount(n) {
   padding: 2rem 3rem;
   display: flex;
   align-items: flex-start;
+  min-width: 0;
+}
+
+.detail-status {
+  min-height: 320px;
+  border-radius: 20px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #777;
+}
+
+.detail-status--error {
+  flex-direction: column;
+  color: #8a4c45;
+}
+
+.detail-status button {
+  border: 1px solid var(--color-brand-border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: #fff;
+  color: var(--color-brand);
+  cursor: pointer;
 }
 
 .detail-card {
@@ -272,6 +302,7 @@ function formatCount(n) {
   padding: 2rem 2.5rem;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .detail-head {
@@ -280,6 +311,7 @@ function formatCount(n) {
   gap: 14px;
   margin-bottom: 1.5rem;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 /* 뒤로가기는 텍스트 없이 아이콘만 보여주는 원형 버튼으로 컴팩트하게 */
@@ -309,6 +341,7 @@ function formatCount(n) {
   color: #1a1a1a;
   flex-shrink: 0;
   white-space: nowrap;
+  min-width: 0;
 }
 
 /* 작성자/날짜 정보를 제목 옆에 나란히 배치. margin-left는 주지 않고 gap으로만 간격을 준다. */
@@ -411,13 +444,14 @@ function formatCount(n) {
 
 .detail-body {
   display: grid;
-  grid-template-columns: 180px 1fr 320px;
+  grid-template-columns: 180px minmax(0, 1fr) 320px;
   gap: 20px;
   /* detail-card가 이제 고정 height를 가지므로, 헤더(detail-head)를 제외한
      나머지 공간을 정확히 차지한다. min-height: 0은 grid 자식이 내용 크기만큼
      늘어나 버리는(overflow가 무시되는) 문제를 막기 위해 필요하다. */
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 .day-sidebar {
@@ -720,5 +754,121 @@ function formatCount(n) {
   font-size: 12px;
   color: #1a1a1a;
   font-weight: 600;
+}
+
+@media (max-width: 760px) {
+  .detail-page {
+    padding: 16px 12px 24px;
+  }
+
+  .detail-card {
+    height: auto;
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .detail-head {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 6px 12px;
+    margin-bottom: 20px;
+  }
+
+  .back-link {
+    grid-row: 1 / span 2;
+  }
+
+  .plan-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .plan-author {
+    grid-column: 2;
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .head-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-left: 0;
+    padding-top: 6px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .import-btn {
+    margin-left: auto;
+    padding: 8px 14px;
+  }
+
+  .detail-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .day-sidebar {
+    min-height: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 0 8px;
+    scroll-snap-type: x proximity;
+  }
+
+  .day-sidebar::-webkit-scrollbar {
+    width: auto;
+    height: 6px;
+  }
+
+  .day-item {
+    flex: 0 0 104px;
+    padding: 12px 14px;
+    scroll-snap-align: start;
+  }
+
+  .day-content {
+    min-height: auto;
+    padding: 18px 16px;
+    overflow: visible;
+  }
+
+  .day-content-head {
+    position: static;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+
+  .day-content-num {
+    font-size: 18px;
+  }
+
+  .place-card {
+    padding: 14px;
+  }
+
+  .place-name,
+  .place-desc {
+    overflow-wrap: anywhere;
+  }
+
+  .day-map {
+    min-height: auto;
+    padding: 16px;
+    overflow: visible;
+  }
+
+  .map-canvas {
+    aspect-ratio: 16 / 10;
+  }
+}
+
+@media (max-width: 360px) {
+  .import-btn {
+    width: 100%;
+    margin-left: 0;
+  }
 }
 </style>

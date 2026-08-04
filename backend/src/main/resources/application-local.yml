@@ -14,11 +14,6 @@ app:
   auth:
     enforce-security: ${AUTH_ENFORCE_SECURITY:false}
     local-member-id: ${LOCAL_MEMBER_ID:1}
-    local-login:
-      member-id: ${LOCAL_AUTH_MEMBER_ID:${LOCAL_MEMBER_ID:1}}
-      email: ${LOCAL_AUTH_EMAIL:}
-      password: ${LOCAL_AUTH_PASSWORD:}
-      display-name: ${LOCAL_AUTH_DISPLAY_NAME:Local Member}
 
 server:
   servlet:
