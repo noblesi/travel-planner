@@ -1,136 +1,217 @@
 <template>
-  <div class="nickname-wrapper">
-    <!-- 1. 읽기 모드 (텍스트 + 연필 아이콘) -->
-    <div v-if="!isEditing" class="read-container">
-      <span class="nickname-text">{{ nickname }}</span>
-      <button @click="startEdit" class="edit-icon-btn" aria-label="닉네임 수정">
-        <!-- Lucide-react나 FontAwesome의 연필 아이콘 SVG 대체 가능 -->
-        <svg xmlns="http://w3.org" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="pencil-icon"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+  <div class="my-info-container">
+    <!-- 타이틀 영역 -->
+    <div class="title-section">
+      <h2 class="title">나의 정보</h2>
+      <button class="action-btn" @click="isEditMode = !isEditMode">
+        {{ isEditMode ? '취소' : '수정하기' }}
       </button>
     </div>
 
-    <!-- 2. 편집 모드 (인라인 인풋창 + 미니 버튼) -->
-    <div v-else class="edit-container">
-      <input 
-        v-model="newNickname" 
-        ref="nicknameInput"
-        type="text"
-        class="inline-input"
-        placeholder="닉네임 입력"
-        @keyup.enter="saveNickname"
-        @keyup.esc="cancelEdit"
-      />
-      <div class="inline-btn-group">
-        <button @click="saveNickname" class="inline-btn save">확인</button>
-        <button @click="cancelEdit" class="inline-btn cancel">취소</button>
+    <!-- 정보 표시 / 수정 폼 영역 -->
+    <div class="info-content">
+      <!-- 1. 이름 (전체 너비) -->
+      <div class="form-group full-width">
+        <label>이름</label>
+        <div v-if="!isEditMode" class="value-text">{{ userInfo.name }}</div>
+        <input v-else v-model="userInfo.name" type="text" class="info-input" placeholder="이름을 입력하세요" />
       </div>
+
+      <!-- 2. 성별 & 3. 생년월일 (2열 배치로 공간 절약) -->
+      <div class="grid-row">
+        <div class="form-group">
+          <label>성별</label>
+          <div v-if="!isEditMode" class="value-text">{{ userInfo.gender }}</div>
+          <select v-else v-model="userInfo.gender" class="info-input select-box">
+            <option value="선택 안함">선택 안함</option>
+            <option value="남성">남성</option>
+            <option value="여성">여성</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>생년월일</label>
+          <div v-if="!isEditMode" class="value-text">{{ userInfo.birthdate }}</div>
+          <input v-else v-model="userInfo.birthdate" type="date" class="info-input" />
+        </div>
+      </div>
+
+      <!-- 4. 이메일 (전체 너비) -->
+      <div class="form-group full-width">
+        <label>이메일 주소</label>
+        <div v-if="!isEditMode" class="value-text">{{ userInfo.email }}</div>
+        <input v-else v-model="userInfo.email" type="email" class="info-input" placeholder="example@email.com" />
+      </div>
+    </div>
+
+    <!-- 수정 모드일 때만 나타나는 저장 버튼 -->
+    <div v-if="isEditMode" class="button-section">
+      <button class="save-btn" @click="saveInfo">변경사항 저장</button>
     </div>
   </div>
 </template>
 
+<script setup>
+import { ref } from 'vue'
+
+// 수정 모드 상태 토글
+const isEditMode = ref(false)
+
+// 사용자 정보 데이터 상태 관리
+const userInfo = ref({
+  name: '홍길동',
+  gender: '남성',
+  birthdate: '1998-04-02',
+  email: 'hong@example.com'
+})
+
+// 저장 함수
+const saveInfo = () => {
+  // 백엔드 API 연동이 필요할 경우 이곳에 요청 코드를 작성합니다.
+  alert('정보가 성공적으로 수정되었습니다.')
+  isEditMode.value = false
+}
+</script>
+
 <style scoped>
-/* 전체 정렬을 중앙으로 배치 */
-.nickname-wrapper {
+/* 폰트 지정 및 컨테이너 내부 여백 설정 */
+.my-info-container {
+  font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+  width: 100%;
+  height: 100%;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 40px; /* 인풋창이 켜져도 높이가 유지되도록 설정 */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  flex-direction: column;
+  color: #ffffff;
 }
 
-/* 1. 읽기 모드 스타일 */
-.read-container {
+/* 상단 타이틀 및 버튼 정렬 */
+.title-section {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  margin-bottom: 2rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
 }
 
-.nickname-text {
-  font-size: 18px;
-  color: #1e293b;
-  font-weight: 500;
-  line-height: 1.2;
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
 }
 
-.edit-icon-btn {
-  background: none;
-  border: none;
-  padding: 4px;
+/* 상단 우측 수정/취소 버튼 */
+.action-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   cursor: pointer;
-  color: #94a3b8; /* 은은한 회색 아이콘 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
-/* 마우스를 올렸을 때만 아이콘이 선명해짐 */
-.edit-icon-btn:hover {
-  color: #475569;
-  background-color: #f1f5f9;
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
-/* 2. 편집 모드 스타일 */
-.edit-container {
+/* 정보 콘텐츠 배치 레이아웃 */
+.info-content {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  animation: fadeIn 0.15s ease-in-out;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.inline-input {
-  font-size: 16px;
+.grid-row {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.grid-row .form-group {
+  flex: 1;
+}
+
+/* 개별 입력/조회 그룹 스타일 */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* 라벨 디자인 (연한 브라운 톤) */
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fbe3d6;
+  opacity: 0.85;
+}
+
+/* 조회 모드일 때 텍스트 박스 */
+.value-text {
+  background-color: rgba(0, 0, 0, 0.08); /* 기존 박스 톤보다 아주 살짝 어둡게 내려앉는 깊이감 */
+  padding: 0.85rem 1.2rem;
+  border-radius: 12px;
+  font-size: 1.05rem;
   font-weight: 500;
-  color: #1e293b;
-  padding: 6px 12px;
-  width: 180px;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 수정 모드일 때 인풋 박스 디자인 */
+.info-input {
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  color: #2b2b2b; /* 텍스트 작성 시 잘 보이도록 어두운 컬러 채택 */
+  padding: 0.85rem 1.2rem;
+  border-radius: 12px;
+  font-size: 1.05rem;
   outline: none;
-  background-color: #ffffff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  width: 100%;
+  transition: border-color 0.2s ease;
 }
 
-.inline-input:focus {
-  border-color: #64748b; /* 너무 튀지 않는 차분한 다크그레이 */
-  box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.1);
+.info-input:focus {
+  border-color: #f47a42; /* 포커스 시 포인트 컬러 (기존 UI 주황색 계열 대비) */
+  box-shadow: 0 0 0 3px rgba(244, 122, 66, 0.2);
 }
 
-/* 저장/취소 미니 버튼 */
-.inline-btn-group {
+/* 셀렉트 박스 스타일 리셋 패딩 */
+.select-box {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://w3.org' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232b2b2b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2rem;
+}
+
+/* 변경사항 저장 하단 바 버튼 */
+.button-section {
+  margin-top: 2.5rem;
   display: flex;
-  gap: 4px;
+  justify-content: flex-end;
 }
 
-.inline-btn {
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 6px;
+.save-btn {
+  background-color: #ffffff;
+  color: #c85329; /* 기존 백그라운드 오렌지/브라운 계열과 대비를 이루는 텍스트 컬러 */
   border: none;
+  padding: 0.9rem 2rem;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
-.inline-btn.save {
-  background-color: #334155;
-  color: #ffffff;
-}
-.inline-btn.save:hover {
-  background-color: #1e293b;
+.save-btn:hover {
+  background-color: #fbe3d6;
+  transform: translateY(-1px);
 }
 
-.inline-btn.cancel {
-  background-color: #f1f5f9;
-  color: #64748b;
-}
-.inline-btn.cancel:hover {
-  background-color: #e2e8f0;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-2px); }
-  to { opacity: 1; transform: translateY(0); }
+.save-btn:active {
+  transform: translateY(1px);
 }
 </style>

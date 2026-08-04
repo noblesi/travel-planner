@@ -125,7 +125,7 @@ const handleContinue = async () => {
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
-  background-color: #f5c150;
+  background-color: #c2410c;
   padding: 60px 20px;
   //font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
   box-sizing: border-box;
@@ -136,7 +136,7 @@ const handleContinue = async () => {
 .login-box {
   width: 400px;
   height: 550px;
-  background-color: #eed8a8;
+  background-color: #ec8f6b;
   text-align: center;
   box-shadow: 0 10px 30px 5px rgba(0, 0, 0, 0.1), 
               0 4px 12px 2px rgba(0, 0, 0, 0.1);
