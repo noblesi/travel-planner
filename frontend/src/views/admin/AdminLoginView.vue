@@ -24,7 +24,7 @@
         <p>친구들과 함께 여행을 계획하다</p>
       </div>
 
-      <form class="login-card" @submit.prevent="handleLogin">
+      <form class="login-card" novalidate @submit.prevent="handleLogin">
         <h2>관리자 로그인</h2>
 
         <p class="login-description">
@@ -36,11 +36,19 @@
 
           <input
             id="adminId"
+            ref="adminIdInput"
             v-model="loginForm.adminId"
             type="text"
             placeholder="아이디 입력"
             autocomplete="username"
+            :aria-invalid="Boolean(fieldErrors.adminId)"
+            aria-describedby="adminIdError"
+            @input="clearFieldError('adminId')"
           />
+
+          <p v-if="fieldErrors.adminId" id="adminIdError" class="field-error">
+            {{ fieldErrors.adminId }}
+          </p>
         </div>
 
         <div class="form-field">
@@ -48,15 +56,23 @@
 
           <input
             id="password"
+            ref="passwordInput"
             v-model="loginForm.password"
             type="password"
             placeholder="비밀번호 입력"
             autocomplete="current-password"
+            :aria-invalid="Boolean(fieldErrors.password)"
+            aria-describedby="passwordError"
+            @input="clearFieldError('password')"
           />
+
+          <p v-if="fieldErrors.password" id="passwordError" class="field-error">
+            {{ fieldErrors.password }}
+          </p>
         </div>
 
-        <p v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
+        <p v-if="feedbackMessage" class="feedback-message" role="status">
+          {{ feedbackMessage }}
         </p>
 
         <button type="submit" class="login-button">
@@ -68,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
+import { nextTick, reactive, ref } from 'vue'
 
 import mainLogo from '@/assets/branding/travel-planner-logo-header.png'
 
@@ -82,28 +98,43 @@ const loginForm = reactive<AdminLoginForm>({
   password: '',
 })
 
-const errorMessage = ref('')
+const fieldErrors = reactive<AdminLoginForm>({
+  adminId: '',
+  password: '',
+})
+const feedbackMessage = ref('')
+const adminIdInput = ref<HTMLInputElement | null>(null)
+const passwordInput = ref<HTMLInputElement | null>(null)
 
-const handleLogin = () => {
-  errorMessage.value = ''
+const clearFieldError = (field: keyof AdminLoginForm) => {
+  fieldErrors[field] = ''
+  feedbackMessage.value = ''
+}
+
+const handleLogin = async () => {
+  fieldErrors.adminId = ''
+  fieldErrors.password = ''
+  feedbackMessage.value = ''
 
   if (!loginForm.adminId.trim()) {
-    errorMessage.value = '관리자 아이디를 입력해 주세요.'
-    return
+    fieldErrors.adminId = '관리자 아이디를 입력해 주세요.'
   }
 
   if (!loginForm.password.trim()) {
-    errorMessage.value = '비밀번호를 입력해 주세요.'
+    fieldErrors.password = '비밀번호를 입력해 주세요.'
+  }
+
+  if (fieldErrors.adminId || fieldErrors.password) {
+    await nextTick()
+    if (fieldErrors.adminId) {
+      adminIdInput.value?.focus()
+    } else {
+      passwordInput.value?.focus()
+    }
     return
   }
 
-  // 백엔드 연결 전 테스트
-  console.log('관리자 로그인 요청', {
-    adminId: loginForm.adminId,
-    password: loginForm.password,
-  })
-
-  alert('로그인 테스트 성공')
+  feedbackMessage.value = '입력값 확인이 완료되었습니다. 로그인 API 연결이 필요합니다.'
 }
 </script>
 
@@ -255,9 +286,19 @@ const handleLogin = () => {
   box-shadow: 0 0 0 3px rgba(255, 112, 18, 0.13);
 }
 
-.error-message {
-  margin: -2px 0 12px;
+.field-error {
+  margin: 0;
   color: #dc2626;
+  font-size: 12px;
+}
+
+.form-field input[aria-invalid='true'] {
+  border-color: #dc2626;
+}
+
+.feedback-message {
+  margin: -2px 0 12px;
+  color: #2563eb;
   font-size: 13px;
 }
 
