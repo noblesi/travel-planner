@@ -9,23 +9,42 @@ import com.noblesi.travelplanner.domain.plan.PlanScheduleItem;
 import com.noblesi.travelplanner.domain.plan.ScheduleOperationType;
 import com.noblesi.travelplanner.dto.plan.AddScheduleItemRequest;
 import com.noblesi.travelplanner.dto.plan.ScheduleMutationResponse;
+import com.noblesi.travelplanner.mapper.PlanScheduleItemMapper;
 
 @Service
 class PlanScheduleAddService {
 
 	private final PlanScheduleMutationSupport support;
+	private final PositiveIdParser idParser;
+	private final PlanAccessService planAccessService;
+	private final ScheduleOperationLedger operationLedger;
+	private final ScheduleMutationResponseFactory responseFactory;
+	private final PlanScheduleItemMapper planScheduleItemMapper;
 
-	PlanScheduleAddService(PlanScheduleMutationSupport support) {
+	PlanScheduleAddService(
+			PlanScheduleMutationSupport support,
+			PositiveIdParser idParser,
+			PlanAccessService planAccessService,
+			ScheduleOperationLedger operationLedger,
+			ScheduleMutationResponseFactory responseFactory,
+			PlanScheduleItemMapper planScheduleItemMapper
+	) {
 		this.support = support;
+		this.idParser = idParser;
+		this.planAccessService = planAccessService;
+		this.operationLedger = operationLedger;
+		this.responseFactory = responseFactory;
+		this.planScheduleItemMapper = planScheduleItemMapper;
 	}
 
 	@Transactional
 	ScheduleMutationResponse execute(String planIdValue, String planDayIdValue, AddScheduleItemRequest request) {
-		long planId = support.parsePositiveId(planIdValue, "planId");
-		long planDayId = support.parsePositiveId(planDayIdValue, "dayId");
-		long memberId = support.requireOwnedPlan(planId);
-		String operationId = support.normalizeOperationId(request.operationId());
-		String requestHash = support.requestHash(
+		long planId = idParser.parse(planIdValue, "planId");
+		long planDayId = idParser.parse(planDayIdValue, "dayId");
+		long memberId = planAccessService.currentMemberId();
+		planAccessService.requireAccessiblePlan(planId, memberId);
+		String operationId = operationLedger.normalizeOperationId(request.operationId());
+		String requestHash = operationLedger.requestHash(
 				request.scheduleVersion(),
 				request.timeSlot(),
 				request.placeProvider(),
@@ -39,22 +58,21 @@ class PlanScheduleAddService {
 				support.normalizeNullable(request.description())
 		);
 
-		ScheduleMutationResponse replay = support.replayIfProcessed(
+		PlanEditOperation replay = operationLedger.findReplay(
 				operationId,
 				planId,
 				memberId,
 				ScheduleOperationType.ADD,
 				request.scheduleVersion(),
-				requestHash,
-				planIdValue
+				requestHash
 		);
 		if (replay != null) {
-			return replay;
+			return responseFactory.fromReplay(replay, planIdValue);
 		}
 
 		PlanDay day = support.requireOwnedDay(planDayId, planId);
 		support.requireScheduleVersion(day, request.scheduleVersion());
-		int itemCount = support.planScheduleItemMapper.countByDayAndTimeSlot(planDayId, request.timeSlot());
+		int itemCount = planScheduleItemMapper.countByDayAndTimeSlot(planDayId, request.timeSlot());
 		if (itemCount >= PlanScheduleMutationSupport.MAX_ITEMS_PER_TIME_SLOT) {
 			throw support.scheduleItemLimitExceeded();
 		}
@@ -67,7 +85,7 @@ class PlanScheduleAddService {
 		);
 
 		support.incrementScheduleVersion(planDayId, planId, request.scheduleVersion());
-		long scheduleItemId = support.planScheduleItemMapper.nextScheduleItemId();
+		long scheduleItemId = planScheduleItemMapper.nextScheduleItemId();
 		PlanScheduleItem item = new PlanScheduleItem(
 				scheduleItemId,
 				planDayId,
@@ -84,10 +102,10 @@ class PlanScheduleAddService {
 				support.normalizeNullable(request.description()),
 				0
 		);
-		support.requireSingleRow(support.planScheduleItemMapper.insertScheduleItem(item));
+		support.requireSingleRow(planScheduleItemMapper.insertScheduleItem(item));
 
 		int resultVersion = request.scheduleVersion() + 1;
-		support.insertOperation(new PlanEditOperation(
+		operationLedger.record(new PlanEditOperation(
 				operationId,
 				planId,
 				memberId,
@@ -97,6 +115,6 @@ class PlanScheduleAddService {
 				resultVersion,
 				requestHash
 		));
-		return support.response(operationId, scheduleItemId, resultVersion, planIdValue);
+		return responseFactory.create(operationId, scheduleItemId, resultVersion, planIdValue);
 	}
 }

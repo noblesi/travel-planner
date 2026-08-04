@@ -20,22 +20,22 @@ import com.noblesi.travelplanner.dto.plan.PublicPlanSearchResponse;
 import com.noblesi.travelplanner.dto.plan.PublicPlanSummaryResponse;
 import com.noblesi.travelplanner.mapper.PlanDayMapper;
 import com.noblesi.travelplanner.mapper.PlanScheduleItemMapper;
-import com.noblesi.travelplanner.mapper.TravelPlanMapper;
+import com.noblesi.travelplanner.mapper.PublicPlanMapper;
 
 @Service
 public class PublicPlanService {
 	private static final int MAX_SEARCH_LIMIT = 100;
 
-	private final TravelPlanMapper travelPlanMapper;
+	private final PublicPlanMapper publicPlanMapper;
 	private final PlanDayMapper planDayMapper;
 	private final PlanScheduleItemMapper planScheduleItemMapper;
 
 	public PublicPlanService(
-			TravelPlanMapper travelPlanMapper,
+			PublicPlanMapper publicPlanMapper,
 			PlanDayMapper planDayMapper,
 			PlanScheduleItemMapper planScheduleItemMapper
 	) {
-		this.travelPlanMapper = travelPlanMapper;
+		this.publicPlanMapper = publicPlanMapper;
 		this.planDayMapper = planDayMapper;
 		this.planScheduleItemMapper = planScheduleItemMapper;
 	}
@@ -46,11 +46,11 @@ public class PublicPlanService {
 		int page = Math.max(requestedPage, 1);
 		int size = Math.min(Math.max(requestedSize, 1), MAX_SEARCH_LIMIT);
 		long offset = (long) (page - 1) * size;
-		int totalCount = travelPlanMapper.countPublicPlans(keyword);
+		int totalCount = publicPlanMapper.countPublicPlans(keyword);
 		int totalPages = totalCount == 0
 				? 0
 				: (int) ((totalCount + (long) size - 1) / size);
-		List<PublicPlanSummaryResponse> plans = travelPlanMapper.findPublicPlans(keyword, offset, size)
+		List<PublicPlanSummaryResponse> plans = publicPlanMapper.findPublicPlans(keyword, offset, size)
 				.stream()
 				.map(PublicPlanSummaryResponse::from)
 				.toList();
@@ -68,10 +68,10 @@ public class PublicPlanService {
 	@Transactional
 	public PublicPlanDetailResponse getDetail(String planIdValue) {
 		long planId = parsePlanId(planIdValue);
-		if (travelPlanMapper.incrementPublicPlanViewCount(planId) != 1) {
+		if (publicPlanMapper.incrementPublicPlanViewCount(planId) != 1) {
 			throw planNotFound();
 		}
-		PublicTravelPlan plan = travelPlanMapper.findPublicPlanById(planId);
+		PublicTravelPlan plan = publicPlanMapper.findPublicPlanById(planId);
 		if (plan == null) {
 			throw planNotFound();
 		}
