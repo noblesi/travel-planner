@@ -1,6 +1,7 @@
 <template>
   <DefaultLayout>
-    <div class="app-container search-page">
+    <div class="search-page">
+      <div class="app-container search-page__inner">
 
       <div class="pg-head">
         <div class="eyebrow">DISCOVER ITINERARIES</div>
@@ -9,24 +10,34 @@
       </div>
 
       <div class="search-wrap">
-        <i class="ti ti-search" aria-hidden="true"></i>
+        <i class="ti ti-search" aria-hidden="true" @click="handleSearch"></i>
         <input class="search-input" type="text" v-model="keyword" placeholder="목적지 검색 (예: 서울, 부산, 제주)"
           @keyup.enter="handleSearch" />
       </div>
 
       <div v-if="!hasSearched" class="suggested-tags">
         <span class="suggested-label">이런 여행지는 어때요?</span>
-        <button v-for="city in suggestedCities" :key="city" class="suggested-tag" @click="searchSuggested(city)">{{ city
-        }}</button>
+        <div class="suggested-tag-list">
+          <button v-for="city in suggestedCities" :key="city" class="suggested-tag" @click="searchSuggested(city)">{{ city
+          }}</button>
+        </div>
       </div>
 
-      <div v-if="hasSearched" class="result-meta">
+      <div v-if="loading" class="status-wrap" role="status">공개 일정을 불러오는 중이에요.</div>
+      <div v-else-if="errorMessage" class="status-wrap status-wrap--error" role="alert">
+        <span>{{ errorMessage }}</span>
+        <button type="button" @click="loadPlans(searchedKeyword)">다시 시도</button>
+      </div>
+
+      <div v-if="hasSearched && !loading" class="result-meta">
         <div class="result-count">
           "{{ searchedKeyword }}" 검색 결과
           <em v-if="filteredPlans.length > 0">{{ filteredPlans.length }}개</em>
           <span v-else class="zero">0개</span>
         </div>
       </div>
+
+      <div v-if="!hasSearched || filteredPlans.length > 0" class="divider"></div>
 
       <div v-if="!hasSearched || filteredPlans.length > 0" class="grid">
         <div v-for="plan in displayedPlans" :key="plan.id" class="card" @click="goToDetail(plan.id)">
@@ -52,14 +63,14 @@
               </div>
             </div>
           </div>
-        </div>
+        </button>
       </div>
 
       <div v-if="hasMore" class="more">
         <button class="more-btn" @click="loadMore">일정 더 보기</button>
       </div>
 
-      <div v-if="hasSearched && filteredPlans.length === 0" class="empty-wrap">
+      <div v-if="!loading && !errorMessage && hasSearched && filteredPlans.length === 0" class="empty-wrap">
         <div class="divider"></div>
         <div class="empty-illus" aria-hidden="true">
           <svg width="200" height="200" viewBox="0 0 148 148" xmlns="http://www.w3.org/2000/svg">
@@ -96,14 +107,16 @@
         <button class="browse-btn" @click="resetSearch">모든 일정 보기</button>
       </div>
 
+      </div>
     </div>
   </DefaultLayout>
 </template>
 
 <script setup>
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { searchPublicPlans } from '@/api/plans'
 
 const router = useRouter()
 const route = useRoute()
@@ -113,133 +126,12 @@ function goToDetail(planId) {
   router.push({ name: 'plan-detail', params: { id: planId } })
 }
 
-// ── mock 데이터: 백엔드 연동 시 이 부분을 API 호출로 교체 ──
-// 예: const plans = ref([]); onMounted(async () => { plans.value = await api.get('/plans') })
-const plans = ref([
-  {
-    id: 1, title: '남산에서 한강까지 서울 야경 코스', region: '서울',
-    description: 'N서울타워부터 반포 달빛무지개분수까지, 서울의 밤을 완성하는 루트',
-    days: 3, likeCount: 318, viewCount: 2100, authorInitials: 'YK', authorName: '여행하는광인', authorAvatar: 'https://i.pravatar.cc/80?u=YK1',
-    thumbImage: 'https://picsum.photos/seed/seoul-namsan/640/440',
-  },
-  {
-    id: 2, title: '경복궁 & 북촌 한옥마을 당일 코스', region: '서울',
-    description: '한복 입고 경복궁 거닐고 북촌 골목길 산책, 서울 속 조선 시대 여행',
-    days: 2, likeCount: 452, viewCount: 3000, authorInitials: 'HS', authorName: '한스랑산책', authorAvatar: 'https://i.pravatar.cc/80?u=HS2',
-    thumbImage: 'https://picsum.photos/seed/seoul-hanok/640/440',
-  },
-  {
-    id: 3, title: '성수동 카페 & 팝업 투어', region: '서울',
-    description: '서울에서 가장 힙한 동네, 성수동 핫플레이스를 반나절에 다 돌기',
-    days: 1, likeCount: 267, viewCount: 1700, authorInitials: 'MJ', authorName: '민지의하루', authorAvatar: 'https://i.pravatar.cc/80?u=MJ3',
-    thumbImage: 'https://picsum.photos/seed/seoul-cafe/640/440',
-  },
-  {
-    id: 4, title: '뚝섬 한강공원 피크닉 & 자전거', region: '서울',
-    description: '돗자리, 치맥, 자전거까지 한강을 200% 즐기는 도심 힐링 하루',
-    days: 1, likeCount: 389, viewCount: 2400, authorInitials: 'PL', authorName: '플랜러', authorAvatar: 'https://i.pravatar.cc/80?u=PL4',
-    thumbImage: 'https://picsum.photos/seed/seoul-han-river/640/440',
-  },
-  {
-    id: 5, title: '해운대 & 광안리 부산 바다 여행', region: '부산',
-    description: '해운대 해수욕장부터 광안대교 야경까지, 부산 바다의 정수만 담은 일정',
-    days: 2, likeCount: 521, viewCount: 3800, authorInitials: 'KW', authorName: '강원도사람', authorAvatar: 'https://i.pravatar.cc/80?u=KW5',
-    thumbImage: 'https://picsum.photos/seed/busan-beach/640/440',
-  },
-  {
-    id: 6, title: '한라산 등반 & 제주 동쪽 드라이브', region: '제주',
-    description: '한라산 정상부터 성산일출봉까지, 제주 자연을 깊게 경험하는 4일 코스',
-    days: 4, likeCount: 476, viewCount: 3200, authorInitials: 'SR', authorName: '설레는여행', authorAvatar: 'https://i.pravatar.cc/80?u=SR6',
-    thumbImage: 'https://picsum.photos/seed/jeju-mountain/640/440',
-  },
-  {
-    id: 7, title: '전주 한옥마을 & 비빔밥 미식 여행', region: '전주',
-    description: '700채 한옥이 모인 전주 한옥마을에서 먹고 걷고 쉬는 느린 여행',
-    days: 2, likeCount: 334, viewCount: 2000, authorInitials: 'JH', authorName: '진하게한잔', authorAvatar: 'https://i.pravatar.cc/80?u=JH7',
-    thumbImage: 'https://picsum.photos/seed/jeonju-hanok/640/440',
-  },
-  {
-    id: 8, title: '경주 천년 고도 역사 탐방 3일', region: '경주',
-    description: '불국사, 석굴암, 대릉원까지 신라 천년의 숨결을 따라가는 역사 여행',
-    days: 3, likeCount: 298, viewCount: 1900, authorInitials: 'TK', authorName: '탐구생활', authorAvatar: 'https://i.pravatar.cc/80?u=TK8',
-    thumbImage: 'https://picsum.photos/seed/gyeongju-history/640/440',
-  },
-  {
-    id: 9, title: '속초 산과 바다 힐링 여행', region: '속초',
-    description: '설악산과 바다를 하루씩 나눠 즐기는 2박3일 속초 투어',
-    days: 3, likeCount: 241, viewCount: 1500, authorInitials: 'WJ', authorName: '원정대장', authorAvatar: 'https://i.pravatar.cc/80?u=WJ9',
-    thumbImage: 'https://picsum.photos/seed/sokcho-nature/640/440',
-  },
-  {
-    id: 10, title: '강릉 바다와 커피 여행', region: '강릉',
-    description: '2025-2026년 베케이션으로 여름 붐빔을 위한 카페 투어',
-    days: 2, likeCount: 356, viewCount: 2400, authorInitials: 'DH', authorName: '동해바다', authorAvatar: 'https://i.pravatar.cc/80?u=DH10',
-    thumbImage: 'https://picsum.photos/seed/gangneung-coffee/640/440',
-  },
-  {
-    id: 11, title: '여수 밤바다 완벽 코스', region: '여수',
-    description: '4박5일 여수를 제대로 보러 낮과 밤 여행 코스로 오다',
-    days: 3, likeCount: 289, viewCount: 1700, authorInitials: 'YT', authorName: '여수밤바다', authorAvatar: 'https://i.pravatar.cc/80?u=YT11',
-    thumbImage: 'https://picsum.photos/seed/yeosu-night/640/440',
-  },
-  {
-    id: 12, title: '인천 차이나타운 & 송도 야경 투어', region: '인천',
-    description: '짜장면의 원조 차이나타운부터 송도 센트럴파크 야경까지',
-    days: 1, likeCount: 178, viewCount: 1100, authorInitials: 'IC', authorName: '인천사는사람', authorAvatar: 'https://i.pravatar.cc/80?u=IC12',
-    thumbImage: 'https://picsum.photos/seed/incheon-town/640/440',
-  },
-  {
-    id: 13, title: '통영 바다케이블카 & 동피랑 벽화마을', region: '통영',
-    description: '한려수도 절경을 케이블카로, 알록달록 벽화마을 산책까지',
-    days: 2, likeCount: 312, viewCount: 2000, authorInitials: 'TY', authorName: '통영투어러', authorAvatar: 'https://i.pravatar.cc/80?u=TY13',
-    thumbImage: 'https://picsum.photos/seed/tongyeong-cable/640/440',
-  },
-  {
-    id: 14, title: '춘천 닭갈비 & 남이섬 당일치기', region: '춘천',
-    description: '숯불 닭갈비 맛집 투어와 남이섬 메타세쿼이아 길 산책',
-    days: 1, likeCount: 203, viewCount: 1400, authorInitials: 'CC', authorName: '춘천치즈', authorAvatar: 'https://i.pravatar.cc/80?u=CC14',
-    thumbImage: 'https://picsum.photos/seed/chuncheon-food/640/440',
-  },
-  {
-    id: 15, title: '거제도 바람의 언덕 드라이브', region: '거제',
-    description: '해안도로를 따라 바람의 언덕, 외도 보타니아까지 이어지는 코스',
-    days: 2, likeCount: 267, viewCount: 1800, authorInitials: 'GJ', authorName: '거제도민', authorAvatar: 'https://i.pravatar.cc/80?u=GJ15',
-    thumbImage: 'https://picsum.photos/seed/geoje-drive/640/440',
-  },
-  {
-    id: 16, title: '안동 하회마을 전통문화 체험', region: '안동',
-    description: '유네스코 세계유산 하회마을에서 즐기는 조선시대 전통 문화 체험',
-    days: 2, likeCount: 156, viewCount: 980, authorInitials: 'AD', authorName: '안동선비', authorAvatar: 'https://i.pravatar.cc/80?u=AD16',
-    thumbImage: 'https://picsum.photos/seed/andong-culture/640/440',
-  },
-  {
-    id: 17, title: '목포 근대문화유산 골목 여행', region: '목포',
-    description: '일제강점기 건축물이 남아있는 근대문화거리를 걷는 느린 여행',
-    days: 1, likeCount: 134, viewCount: 890, authorInitials: 'MP', authorName: '목포항구', authorAvatar: 'https://i.pravatar.cc/80?u=MP17',
-    thumbImage: 'https://picsum.photos/seed/mokpo-history/640/440',
-  },
-  {
-    id: 18, title: '보성 녹차밭 힐링 산책', region: '보성',
-    description: '초록빛 녹차밭 사이를 걷는 초여름 힐링 코스',
-    days: 1, likeCount: 198, viewCount: 1200, authorInitials: 'BS', authorName: '보성녹차', authorAvatar: 'https://i.pravatar.cc/80?u=BS18',
-    thumbImage: 'https://picsum.photos/seed/boseong-tea/640/440',
-  },
-  {
-    id: 19, title: '군산 근대역사 & 이성당 빵지순례', region: '군산',
-    description: '일제강점기 건축물 탐방과 전국구 유명 빵집 투어까지',
-    days: 1, likeCount: 223, viewCount: 1500, authorInitials: 'GS', authorName: '군산빵순이', authorAvatar: 'https://i.pravatar.cc/80?u=GS19',
-    thumbImage: 'https://picsum.photos/seed/gunsan-bakery/640/440',
-  },
-  {
-    id: 20, title: '단양 패러글라이딩 & 도담삼봉', region: '단양',
-    description: '하늘에서 내려다보는 단양팔경과 도담삼봉 트레킹 코스',
-    days: 2, likeCount: 287, viewCount: 1900, authorInitials: 'DY', authorName: '단양패러', authorAvatar: 'https://i.pravatar.cc/80?u=DY20',
-    thumbImage: 'https://picsum.photos/seed/danyang-activity/640/440',
-  },
-])
-
 const suggestedCities = ['서울', '제주', '부산', '경주', '전주']
 const pageSize = 8
+const plans = ref([])
+const loading = ref(false)
+const errorMessage = ref('')
+let loadSequence = 0
 
 // ── URL 쿼리에서 검색 상태 복원 (뒤로가기로 돌아왔을 때 검색어/더보기 개수 유지) ──
 const keyword = ref(route.query.keyword || '') // 입력받은 키워드 (사용자가 이미 검색했을 시 검색한 키워드 할당)
@@ -247,15 +139,7 @@ const searchedKeyword = ref(route.query.keyword || '') // 사용자가 실제로
 const hasSearched = ref(!!route.query.keyword) // 사용자가 검색했는지 여부
 const visibleCount = ref(Number(route.query.count) || pageSize) // 화면에 보여줄 플랜 수
 
-// API에서 데이터를 얻어오는 방식으로 변경
-const filteredPlans = computed(() => {
-  if (!hasSearched.value) return plans.value
-  const kw = searchedKeyword.value.trim()
-  if (!kw) return plans.value
-  return plans.value.filter(
-    (p) => p.title.includes(kw) || p.region.includes(kw)
-  )
-})
+const filteredPlans = computed(() => plans.value)
 
 const displayedPlans = computed(() => filteredPlans.value.slice(0, visibleCount.value))
 const hasMore = computed(() => visibleCount.value < filteredPlans.value.length)
@@ -272,10 +156,13 @@ function syncUrl() {
 }
 
 function handleSearch() {
-  searchedKeyword.value = keyword.value.trim()
+  const trimmed = keyword.value.trim()
+  if (!trimmed) return
+  searchedKeyword.value = trimmed
   hasSearched.value = true
   visibleCount.value = pageSize
   syncUrl()
+  await loadPlans(searchedKeyword.value)
 }
 
 function searchSuggested(city) {
@@ -283,17 +170,25 @@ function searchSuggested(city) {
   handleSearch()
 }
 
-function resetSearch() {
+async function resetSearch() {
   keyword.value = ''
+  searchedKeyword.value = ''
   hasSearched.value = false
   visibleCount.value = pageSize
   syncUrl()
+  await loadPlans()
 }
 
 function loadMore() {
   visibleCount.value += pageSize
   syncUrl()
 }
+
+// 헤더의 "일정 탐색"을 이미 이 페이지에 있는 상태에서 다시 클릭하면
+// 라우트가 바뀌지 않아 컴포넌트가 재마운트되지 않으므로, AppHeader가 쏘는
+// 커스텀 이벤트를 받아 검색 상태를 새로고침한 것처럼 초기화한다.
+onMounted(() => window.addEventListener('plan-search:reset', resetSearch))
+onUnmounted(() => window.removeEventListener('plan-search:reset', resetSearch))
 
 function formatCount(n) {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
@@ -313,6 +208,8 @@ function regionColorKey(region) {
   }
   return REGION_COLOR_KEYS[hash]
 }
+
+onMounted(() => loadPlans(searchedKeyword.value))
 </script>
 
 <style scoped>
@@ -320,13 +217,28 @@ function regionColorKey(region) {
   box-sizing: border-box;
 }
 
+/* 배경은 이 바깥 래퍼가 뷰포트 전체 폭으로 칠하고,
+   폭 제한은 안쪽 .search-page__inner(app-container)가 맡는다.
+   AppHeader/AppFooter와 같은 패턴 — 이렇게 분리하지 않으면
+   app-container의 max-width 바깥으로 body의 --color-page(크림색)가 그대로 보인다. */
+/* 홈 화면과 같은 브랜드 글로우를 제목 뒤 한 군데가 아니라, 좌우 여백 곳곳에 비정형적으로 흩뿌린다.
+   검색 결과 카드 등 불투명한 콘텐츠에 자연히 가려지고, 카드가 없는 여백에서만 은은하게 드러난다. */
 .search-page {
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-  background: #ffffff;
+  background:
+    radial-gradient(circle at 4% 8%, rgb(249 115 22 / 8%) 0%, rgb(249 115 22 / 0%) 38%),
+    radial-gradient(circle at 97% 22%, rgb(249 115 22 / 6.5%) 0%, rgb(249 115 22 / 0%) 32%),
+    radial-gradient(circle at 2% 55%, rgb(249 115 22 / 6%) 0%, rgb(249 115 22 / 0%) 35%),
+    radial-gradient(circle at 96% 68%, rgb(249 115 22 / 7%) 0%, rgb(249 115 22 / 0%) 34%),
+    radial-gradient(circle at 6% 90%, rgb(249 115 22 / 5%) 0%, rgb(249 115 22 / 0%) 28%),
+    var(--color-page);
   color: #1a1a1a;
-  /* 헤더/푸터가 레이아웃으로 감싸는 구조이므로,
-     페이지 자체는 아래쪽에 큰 여백을 두지 않고 다음 요소(푸터)에 맡긴다. */
-  padding-block: 0 1.5rem;
+}
+
+.search-page__inner {
+  /* app-container 기본 padding-inline(--layout-gutter, 20px)은 헤더/푸터 내비게이션 기준으로
+     좁게 잡힌 값이라, 카드 그리드가 있는 본문에는 좀 더 넉넉하게 덮어쓴다. */
+  padding-inline: clamp(20px, 5vw, 64px);
+  padding-block: 0 5rem;
 }
 
 .pg-head {
@@ -367,12 +279,13 @@ function regionColorKey(region) {
   transform: translateY(-50%);
   color: #aaa;
   font-size: 20px;
+  cursor: pointer;
 }
 
 .search-input {
   width: 100%;
   padding: 16px 22px 16px 52px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #c4c4c4;
   border-radius: 30px;
   font-size: 16px;
   color: #1a1a1a;
@@ -380,30 +293,39 @@ function regionColorKey(region) {
   outline: none;
 }
 
+.search-input::placeholder {
+  color: #999;
+}
+
 .search-input:focus {
   border-color: var(--color-brand-accent);
-  box-shadow: 0 0 0 3px var(--color-brand-focus);
 }
 
 .suggested-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2.5rem;
+}
+
+.suggested-tag-list {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 2.5rem;
 }
 
 .suggested-label {
   font-size: 13px;
-  color: #bbb;
-  margin-right: 4px;
+  color: #888;
 }
 
 .suggested-tag {
   padding: 7px 18px;
   border-radius: 20px;
-  border: 1px solid #eee;
+  border: 1px solid #c4c4c4;
   background: #fafafa;
   color: #666;
   font-size: 13.5px;
@@ -419,6 +341,30 @@ function regionColorKey(region) {
 
 .result-meta {
   margin-bottom: 1.25rem;
+}
+
+.status-wrap {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #777;
+  text-align: center;
+}
+
+.status-wrap--error {
+  flex-direction: column;
+  color: #8a4c45;
+}
+
+.status-wrap button {
+  border: 1px solid var(--color-brand-border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: #fff;
+  color: var(--color-brand);
+  cursor: pointer;
 }
 
 .result-count {
@@ -446,16 +392,19 @@ function regionColorKey(region) {
 .card {
   background: #fff;
   border-radius: 16px;
-  border: 1px solid #ebebeb;
   overflow: hidden;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
-  transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
+  transition: transform .2s ease, box-shadow .2s ease;
 }
 
 .card:hover {
   transform: translateY(-4px);
   box-shadow: 0 14px 32px rgba(0, 0, 0, .1);
-  border-color: #f0e0de;
 }
 
 /* 이미지를 감싸는 별도 wrap을 둬서, 카드 자체는 overflow: hidden으로 모서리를 유지하면서
@@ -609,12 +558,6 @@ function regionColorKey(region) {
   transition: color .15s;
 }
 
-/* 좋아요 수치는 카드 hover 시 브랜드 컬러로 살짝 강조해서 "인터랙션 대상"이라는 신호를 준다. */
-.card:hover .stat-like {
-  color: var(--color-brand);
-}
-
-
 .more {
   display: flex;
   justify-content: center;
@@ -624,7 +567,7 @@ function regionColorKey(region) {
 .more-btn {
   padding: 13px 40px;
   border-radius: 26px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #c4c4c4;
   background: #fff;
   color: #666;
   font-size: 15px;
@@ -632,7 +575,7 @@ function regionColorKey(region) {
 }
 
 .more-btn:hover {
-  border-color: #ccc;
+  border-color: #999;
 }
 
 .empty-wrap {
@@ -642,7 +585,7 @@ function regionColorKey(region) {
 
 .divider {
   height: 1px;
-  background: #f0f0f0;
+  background: #c4c4c4;
   margin: 0 0 3rem;
 }
 

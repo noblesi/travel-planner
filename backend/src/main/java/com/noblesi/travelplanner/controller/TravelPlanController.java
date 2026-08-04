@@ -9,15 +9,19 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanRequest;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorResponse;
+import com.noblesi.travelplanner.dto.plan.PublicPlanDetailResponse;
+import com.noblesi.travelplanner.dto.plan.PublicPlanSearchResponse;
 import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanDatesRequest;
 import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanMetadataRequest;
 import com.noblesi.travelplanner.service.TravelPlanService;
+import com.noblesi.travelplanner.service.PublicPlanService;
 
 import jakarta.validation.Valid;
 
@@ -26,9 +30,27 @@ import jakarta.validation.Valid;
 public class TravelPlanController {
 
 	private final TravelPlanService travelPlanService;
+	private final PublicPlanService publicPlanService;
 
-	public TravelPlanController(TravelPlanService travelPlanService) {
+	public TravelPlanController(
+			TravelPlanService travelPlanService,
+			PublicPlanService publicPlanService
+	) {
 		this.travelPlanService = travelPlanService;
+		this.publicPlanService = publicPlanService;
+	}
+
+	@GetMapping
+	public ApiResponse<PublicPlanSearchResponse> searchPublicPlans(
+			@RequestParam(defaultValue = "") String keyword,
+			@RequestParam(defaultValue = "24") int limit
+	) {
+		return ApiResponse.success(publicPlanService.search(keyword, limit));
+	}
+
+	@GetMapping("/{planId}")
+	public ApiResponse<PublicPlanDetailResponse> getPublicPlan(@PathVariable String planId) {
+		return ApiResponse.success(publicPlanService.getDetail(planId));
 	}
 
 	@PostMapping

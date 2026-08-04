@@ -1,7 +1,8 @@
 <template>
   <DefaultLayout>
-    <div class="app-container announce-page">
-    <div class="announce-head">
+    <div class="notice-page">
+    <div class="app-container notice-page__inner">
+    <div class="notice-head">
       <div class="eyebrow">NOTICE</div>
       <h1 class="notice-title">공지사항</h1>
       <p class="notice-sub">WithTrip의 새로운 기능 업데이트와 서비스 소식을 전해드립니다.</p>
@@ -57,6 +58,7 @@
         @click="currentPage = p"
       >{{ p }}</button>
       <button class="page-arrow" :disabled="currentPage === totalPages" @click="currentPage++">&gt;</button>
+    </div>
     </div>
     </div>
   </DefaultLayout>
@@ -126,16 +128,31 @@ function isNew(createdAt) {
 <style scoped>
 * { box-sizing: border-box; }
 
+/* 배경은 이 바깥 래퍼가 뷰포트 전체 폭으로 칠하고, 폭 제한은 안쪽 .notice-page__inner(app-container)가 맡는다.
+   합쳐놓으면 app-container의 max-width 바깥으로 body의 --color-page(크림색)가 그대로 보인다. */
+/* 홈 화면과 같은 브랜드 글로우를 좌우 여백 곳곳에 비정형적으로 흩뿌린다.
+   공지 카드(.notice-card)는 자체 흰 배경이라 카드가 없는 여백에서만 은은하게 드러난다. */
 .notice-page {
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
-  background: #fff;
+  min-height: calc(100vh - var(--layout-header-height));
+  background:
+    radial-gradient(circle at 4% 8%, rgb(249 115 22 / 8%) 0%, rgb(249 115 22 / 0%) 38%),
+    radial-gradient(circle at 97% 22%, rgb(249 115 22 / 6.5%) 0%, rgb(249 115 22 / 0%) 32%),
+    radial-gradient(circle at 2% 55%, rgb(249 115 22 / 6%) 0%, rgb(249 115 22 / 0%) 35%),
+    radial-gradient(circle at 96% 68%, rgb(249 115 22 / 7%) 0%, rgb(249 115 22 / 0%) 34%),
+    radial-gradient(circle at 6% 90%, rgb(249 115 22 / 5%) 0%, rgb(249 115 22 / 0%) 28%),
+    var(--color-page);
+}
+
+.notice-page__inner {
+  /* 본문 컨텐츠 영역은 app-container 기본 gutter(20px)보다 넉넉하게 덮어쓴다. */
+  padding-inline: clamp(20px, 5vw, 64px);
   padding-block: 3rem 4rem;
 }
 
-.announce-head { text-align: center; margin-bottom: 2.5rem; }
+.notice-head { text-align: center; margin-bottom: 2.5rem; }
 .eyebrow { font-size: 13px; letter-spacing: .14em; color: var(--color-brand); margin-bottom: .6rem; text-transform: uppercase; }
-.announce-title { font-size: 34px; font-weight: 700; color: #1a1a1a; margin-bottom: .75rem; }
-.announce-sub { font-size: 15px; color: #999; }
+.notice-title { font-size: 34px; font-weight: 700; color: #1a1a1a; margin-bottom: .75rem; }
+.notice-sub { font-size: 15px; color: #999; }
 
 .filter-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 2rem; }
 .filter-chip {
@@ -190,11 +207,20 @@ function isNew(createdAt) {
 .empty-title { font-size: 16px; font-weight: 600; color: #666; margin-bottom: 5px; }
 .empty-sub { font-size: 13px; color: #bbb; }
 
-.pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 2rem; }
+.pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 2rem; }
 .page-arrow, .page-num {
-  width: 32px; height: 32px; border-radius: 8px; border: none; background: none;
-  color: #999; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 50%; border: none; background: none;
+  color: #666; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
 }
-.page-arrow:disabled { color: #ddd; cursor: not-allowed; }
-.page-num.active { color: #1a1a1a; font-weight: 700; text-decoration: underline; text-underline-offset: 4px; }
+.page-arrow:hover:not(:disabled), .page-num:hover:not(.active) {
+  background: #f0f0f0;
+  color: #1a1a1a;
+}
+.page-arrow:disabled { color: #ccc; cursor: not-allowed; }
+.page-num.active {
+  background: var(--color-brand);
+  color: var(--color-brand-on);
+  font-weight: 700;
+}
 </style>

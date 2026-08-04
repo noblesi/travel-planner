@@ -9,5 +9,6 @@
 - [인증 방식 결정](auth/authentication-decision.md): 로컬·Google 로그인과 회원 계정 연결 원칙
 - [공통 레이아웃·UI Component](frontend/common-layout-ui.md): 사용자·관리자 layout, orange design token, 공통 Component API와 적용 규칙
 - [KMS 여행 플랜 개발 인수인계](handoff/KMS-travel-plan-handoff.md): 확정 요구사항과 다음 개발 순서
+- [배포·시연 체크리스트](deployment/release-checklist.md): Release 검증, HTTPS Reverse Proxy, Kakao 허용 도메인, Oracle 데모 점검
 
 ERD 파일은 eXERD에서 열어 확인하고, 변경 시 원본 파일명과 형식을 유지합니다.

@@ -2,12 +2,17 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AdminConfirmModal from '@/components/admin/AdminConfirmModal.vue'
+import { useToastStore } from '@/stores/toast'
+
 const route = useRoute()
 const router = useRouter()
+const toast = useToastStore()
 
 const reportId = computed(() => route.params.reportId)
 const selectedAction = ref('warning')
 const processingNote = ref('')
+const showReviewConfirm = ref(false)
 
 const report = {
   tripId: 'P-7788',
@@ -26,7 +31,8 @@ const openReportedTrip = () => {
 }
 
 const completeReview = () => {
-  alert(`${selectedAction.value} 처리로 검토를 완료했습니다.`)
+  toast.success('신고 검토 처리가 완료되었습니다.')
+  showReviewConfirm.value = false
 }
 </script>
 
@@ -81,10 +87,11 @@ const completeReview = () => {
           </div>
 
           <textarea v-model="processingNote" placeholder="처리 사유 입력" />
-          <button class="complete-button" type="button" @click="completeReview">검토 완료</button>
+          <button class="complete-button" type="button" @click="showReviewConfirm = true">검토 완료</button>
         </section>
       </aside>
     </div>
+    <AdminConfirmModal v-if="showReviewConfirm" title="신고 검토를 완료할까요?" message="선택한 처리 상태와 관리자 메모가 저장됩니다." confirm-label="검토 완료" @cancel="showReviewConfirm = false" @confirm="completeReview" />
   </section>
 </template>
 

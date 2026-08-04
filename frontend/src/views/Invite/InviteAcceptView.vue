@@ -147,7 +147,6 @@ onMounted(verifyToken)
 * { box-sizing: border-box; }
 
 .accept-page {
-  font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
   min-height: 100vh;
   background:
     linear-gradient(rgba(255, 245, 235, .55), rgba(255, 235, 220, .7)),
@@ -221,7 +220,7 @@ onMounted(verifyToken)
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background-color: #1DA97C;
+  background-color: var(--color-brand);
   background-size: cover;
   background-position: center;
   color: #fff;
@@ -269,26 +268,6 @@ onMounted(verifyToken)
   font-size: 13.5px;
   color: #333;
   font-weight: 600;
-}
-
-.participant-avatars {
-  display: flex;
-}
-.participant-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid #fafafa;
-  margin-left: -8px;
-}
-.participant-avatar:first-child {
-  margin-left: 0;
 }
 
 .accept-btn {

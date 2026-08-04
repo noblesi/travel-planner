@@ -1,5 +1,20 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
+import AdminAsyncState from '@/components/admin/AdminAsyncState.vue'
+import AdminConfirmModal from '@/components/admin/AdminConfirmModal.vue'
+import AdminPagination from '@/components/admin/AdminPagination.vue'
+import AdminStatusBadge from '@/components/admin/AdminStatusBadge.vue'
+import { useToastStore } from '@/stores/toast'
+
+const router = useRouter()
+const toast = useToastStore()
+const page = ref(1)
+const pageSize = 2
+const pendingStatusChange = ref(null)
+const isLoading = ref(false)
+const hasError = ref(false)
 
 // 탭, 검색어, 기간, 상태 필터의 현재 선택값입니다.
 const selectedTab = ref('all')
@@ -71,6 +86,10 @@ const filteredMembers = computed(() => {
   })
 })
 
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredMembers.value.length / pageSize)))
+const paginatedMembers = computed(() => filteredMembers.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+watch([selectedTab, keyword, joinPeriod, memberStatus], () => { page.value = 1 })
+
 const statusText = (status) => {
   // 백엔드 상태 코드를 화면에 표시할 한글 명칭으로 변환합니다.
   const statusMap = {
@@ -82,14 +101,17 @@ const statusText = (status) => {
   return statusMap[status] || status
 }
 
-const suspendMember = (member) => {
-  // 회원 정지 API 성공 후 상태를 갱신하도록 변경합니다.
-  member.status = 'suspended'
+const requestStatusChange = (member) => {
+  pendingStatusChange.value = member
 }
 
-const activateMember = (member) => {
-  // 회원 정지 해제 API 성공 후 상태를 갱신하도록 변경합니다.
-  member.status = 'active'
+const confirmStatusChange = () => {
+  const member = pendingStatusChange.value
+  if (!member) return
+  const activating = member.status === 'suspended'
+  member.status = activating ? 'active' : 'suspended'
+  toast.success(`회원 상태가 ${activating ? '정상' : '정지'}으로 변경되었습니다.`)
+  pendingStatusChange.value = null
 }
 </script>
 
@@ -150,10 +172,10 @@ const activateMember = (member) => {
         <table>
           <thead>
             <tr>
-              <th>아이디</th>
-              <th>이름</th>
-              <th>닉네임</th>
-              <th>이메일</th>
+              <th class="text-column">아이디</th>
+              <th class="text-column">이름</th>
+              <th class="text-column">닉네임</th>
+              <th class="text-column">이메일</th>
               <th>가입일</th>
               <th>여행 플랜</th>
               <th>신고 누적</th>
@@ -164,27 +186,26 @@ const activateMember = (member) => {
 
           <tbody>
             <tr
-              v-for="member in filteredMembers"
+              v-for="member in paginatedMembers"
               :key="member.id"
+              class="member-row"
+              tabindex="0"
+              @click="router.push({ name: 'admin-member-detail', params: { memberId: member.id } })"
+              @keydown.enter="router.push({ name: 'admin-member-detail', params: { memberId: member.id } })"
             >
-              <td>{{ member.id }}</td>
-              <td>{{ member.name }}</td>
-              <td>{{ member.nickname }}</td>
-              <td class="member-email">{{ member.email }}</td>
+              <td class="text-column member-id">{{ member.id }}</td>
+              <td class="text-column member-name">{{ member.name }}</td>
+              <td class="text-column member-nickname">{{ member.nickname }}</td>
+              <td class="text-column member-email">{{ member.email }}</td>
 
               <td>{{ member.joinDate }}</td>
               <td>{{ member.trips }}건</td>
               <td>{{ member.reports }}회</td>
 
               <td>
-                <span
-                  :class="[
-                    'status-badge',
-                    `status-badge--${member.status}`,
-                  ]"
-                >
+                <AdminStatusBadge :tone="member.status === 'active' ? 'success' : member.status === 'suspended' ? 'danger' : 'neutral'">
                   {{ statusText(member.status) }}
-                </span>
+                </AdminStatusBadge>
               </td>
 
               <td>
@@ -192,6 +213,7 @@ const activateMember = (member) => {
                   <button
                     class="detail-button"
                     type="button"
+                    @click.stop
                     @click="
                       $router.push({
                         name: 'admin-member-detail',
@@ -206,7 +228,7 @@ const activateMember = (member) => {
                     v-if="member.status === 'active'"
                     class="suspend-button"
                     type="button"
-                    @click="suspendMember(member)"
+                    @click.stop="requestStatusChange(member)"
                   >
                     정지
                   </button>
@@ -215,7 +237,7 @@ const activateMember = (member) => {
                     v-if="member.status === 'suspended'"
                     class="activate-button"
                     type="button"
-                    @click="activateMember(member)"
+                    @click.stop="requestStatusChange(member)"
                   >
                     해제
                   </button>
@@ -223,15 +245,28 @@ const activateMember = (member) => {
               </td>
             </tr>
 
-            <tr v-if="filteredMembers.length === 0">
+            <tr v-if="isLoading"><td colspan="9"><AdminAsyncState type="loading" title="회원 목록을 불러오는 중입니다." /></td></tr>
+            <tr v-else-if="hasError"><td colspan="9"><AdminAsyncState type="error" title="회원 목록을 불러오지 못했습니다." description="잠시 후 다시 시도해 주세요." action-label="다시 시도" @action="hasError = false" /></td></tr>
+            <tr v-else-if="filteredMembers.length === 0">
               <td class="empty-message" colspan="9">
-                조회된 회원이 없습니다.
+                <AdminAsyncState title="조회된 회원이 없습니다." description="검색어나 필터 조건을 변경해 보세요." />
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+      <AdminPagination v-model:page="page" :total-pages="totalPages" />
     </section>
+
+    <AdminConfirmModal
+      v-if="pendingStatusChange"
+      :title="pendingStatusChange.status === 'suspended' ? '회원 정지를 해제할까요?' : '회원을 정지할까요?'"
+      :message="`${pendingStatusChange.name} 회원의 계정 상태를 변경합니다.`"
+      :confirm-label="pendingStatusChange.status === 'suspended' ? '정지 해제' : '회원 정지'"
+      :danger="pendingStatusChange.status !== 'suspended'"
+      @cancel="pendingStatusChange = null"
+      @confirm="confirmStatusChange"
+    />
   </section>
 </template>
 
@@ -354,7 +389,7 @@ const activateMember = (member) => {
 .table-wrapper {
   min-height: 340px;
   overflow-x: auto;
-  border: 1px solid #d8dce2;
+  border: 1px solid var(--admin-border);
   border-radius: 4px;
 }
 
@@ -366,7 +401,7 @@ table {
 }
 
 thead {
-  background: #e2e5e9;
+  background: #f4eee9;
 }
 
 th {
@@ -379,15 +414,27 @@ th {
 td {
   height: 52px;
   padding: 8px 14px;
-  border-bottom: 1px solid #d8dce2;
+  border-bottom: 1px solid var(--admin-border);
   color: #464b52;
   font-size: 13px;
   text-align: center;
+  vertical-align: middle;
+}
+
+th.text-column,
+td.text-column {
+  text-align: left;
+}
+
+th.text-column {
+  padding: 0 14px;
 }
 
 th:nth-child(1) {
   width: 11%;
 }
+
+.member-row { cursor: pointer; }.member-row:hover { background: #fffaf6; }.member-row:focus-visible { outline: 3px solid rgb(243 136 59 / 22%); outline-offset: -3px; }
 
 th:nth-child(2) {
   width: 9%;
@@ -419,8 +466,12 @@ th:nth-child(9) {
 }
 
 .member-email {
-  text-align: left;
   word-break: break-all;
+}
+
+.member-id,
+.member-name {
+  font-weight: 700;
 }
 
 .status-badge {
@@ -453,27 +504,25 @@ th:nth-child(9) {
 .management-buttons {
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .management-buttons button {
-  min-width: 42px;
-  height: 25px;
+  height: 26px;
   padding: 0 8px;
   border-radius: 5px;
   background: #ffffff;
   font-size: 11px;
-  font-weight: 700;
   cursor: pointer;
 }
 
-.detail-button,
-.activate-button {
+.detail-button {
   border: 1px solid #aeb5be;
   color: #6c737c;
 }
 
-.suspend-button {
+.suspend-button,
+.activate-button {
   border: 1px solid #ff8a80;
   color: #f06860;
 }

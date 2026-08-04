@@ -2,13 +2,18 @@
 import { computed, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import AdminConfirmModal from '@/components/admin/AdminConfirmModal.vue'
+import { useToastStore } from '@/stores/toast'
+
 const route = useRoute()
 const router = useRouter()
+const toast = useToastStore()
 
 // /admin/members/:memberId의 동적 URL 값을 가져옵니다.
 const memberId = computed(() => route.params.memberId)
 const isEditingMemo = ref(false)
 const adminMemo = ref('특이 사항 없음')
+const showStatusConfirm = ref(false)
 
 // memberId를 전달한 회원 상세 API 응답으로 교체합니다.
 const member = reactive({
@@ -17,7 +22,6 @@ const member = reactive({
   status: 'active',
   role: 'member',
   joinedAt: '2026-07-07 14:21',
-  lastLoginAt: '2026-07-19 13:20',
   phone: '010-1111-1111',
   birthDate: '2001-01-01',
 })
@@ -42,11 +46,14 @@ const statusText = computed(() => {
 const toggleMemberStatus = () => {
   // 회원 정지/해제 API 성공 결과에 따라 상태를 변경합니다.
   member.status = member.status === 'suspended' ? 'active' : 'suspended'
+  toast.success(`회원 상태가 ${member.status === 'suspended' ? '정지' : '정상'}으로 변경되었습니다.`)
+  showStatusConfirm.value = false
 }
 
 const saveMemo = () => {
   // 관리자 메모 저장 API 호출 후 편집 상태를 종료합니다.
   isEditingMemo.value = false
+  toast.success('관리자 메모가 저장되었습니다.')
 }
 </script>
 
@@ -65,7 +72,7 @@ const saveMemo = () => {
         <button
           :class="['button', member.status === 'suspended' ? 'button--activate' : 'button--danger']"
           type="button"
-          @click="toggleMemberStatus"
+          @click="showStatusConfirm = true"
         >
           {{ member.status === 'suspended' ? '정지 해제' : '회원 정지' }}
         </button>
@@ -83,12 +90,11 @@ const saveMemo = () => {
           </div>
           <p>{{ member.email }}</p>
         </div>
-        <span class="member-number">{{ memberId }}</span>
       </div>
 
       <dl class="information-grid">
+        <div><dt>아이디</dt><dd class="member-id">{{ memberId }}</dd></div>
         <div><dt>가입일</dt><dd>{{ member.joinedAt }}</dd></div>
-        <div><dt>최근 로그인</dt><dd>{{ member.lastLoginAt }}</dd></div>
         <div><dt>휴대전화</dt><dd>{{ member.phone }}</dd></div>
         <div><dt>생년월일</dt><dd>{{ member.birthDate }}</dd></div>
       </dl>
@@ -134,6 +140,15 @@ const saveMemo = () => {
         </div>
       </aside>
     </div>
+    <AdminConfirmModal
+      v-if="showStatusConfirm"
+      :title="member.status === 'suspended' ? '회원 정지를 해제할까요?' : '회원을 정지할까요?'"
+      :message="`${member.name} 회원의 계정 상태를 변경합니다.`"
+      :confirm-label="member.status === 'suspended' ? '정지 해제' : '회원 정지'"
+      :danger="member.status !== 'suspended'"
+      @cancel="showStatusConfirm = false"
+      @confirm="toggleMemberStatus"
+    />
   </section>
 </template>
 
@@ -154,7 +169,6 @@ const saveMemo = () => {
 .name-row { display: flex; align-items: center; gap: 10px; }
 .name-row h2 { margin: 0; font-size: 21px; }
 .member-heading p { margin: 7px 0 0; color: #9298a1; font-size: 12px; }
-.member-number { color: #8e949d; font-size: 12px; }
 .status-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 0 9px; border-radius: 20px; font-size: 11px; font-weight: 800; }
 .status-badge--active { background: #ddf7e8; color: #2d9b64; }
 .status-badge--suspended { background: #ffe5e4; color: #ee6962; }
@@ -165,6 +179,7 @@ const saveMemo = () => {
 .information-grid > div:nth-child(even) { padding-left: 26px; }
 .information-grid dt { margin-bottom: 7px; color: #989ea7; font-size: 12px; }
 .information-grid dd { margin: 0; color: #363b42; font-size: 14px; }
+.information-grid .member-id { font-weight: 700; }
 .detail-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, .75fr); gap: 28px; margin-top: 28px; }
 .management-card, .activity-card { min-height: 285px; padding: 24px 28px; }
 .management-card h2, .activity-card h2 { margin: 0; font-size: 17px; }
