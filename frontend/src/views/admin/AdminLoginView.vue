@@ -83,7 +83,7 @@
   </main>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nextTick, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -95,16 +95,16 @@ const loginForm = reactive({
   password: '',
 })
 
-const fieldErrors = reactive<AdminLoginForm>({
+const fieldErrors = reactive({
   adminId: '',
   password: '',
 })
 const feedbackMessage = ref('')
 const router = useRouter()
-const adminIdInput = ref<HTMLInputElement | null>(null)
-const passwordInput = ref<HTMLInputElement | null>(null)
+const adminIdInput = ref(null)
+const passwordInput = ref(null)
 
-const clearFieldError = (field: keyof AdminLoginForm) => {
+const clearFieldError = (field) => {
   fieldErrors[field] = ''
   feedbackMessage.value = ''
 }
