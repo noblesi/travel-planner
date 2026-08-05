@@ -88,7 +88,7 @@ import { nextTick, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { loginAdmin } from '@/api/adminAuth'
-import mainLogo from '@/assets/branding/travel-planner-logo-header.png'
+import mainLogo from '@/assets/branding/travel-planner-logo-header.webp'
 
 const loginForm = reactive({
   adminId: '',
