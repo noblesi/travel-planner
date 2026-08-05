@@ -20,9 +20,15 @@
       </button>
     </div>
 
-    <div class="notice-list">
+    <div v-if="loading" class="status-wrap" role="status">공지사항을 불러오는 중이에요.</div>
+    <div v-else-if="errorMessage" class="status-wrap status-wrap--error" role="alert">
+      <span>{{ errorMessage }}</span>
+      <button type="button" @click="fetchNotices">다시 시도</button>
+    </div>
+
+    <div v-else class="notice-list">
       <button
-        v-for="item in pagedNotices"
+        v-for="item in displayedNotices"
         :key="item.id"
         class="notice-card"
         @click="goToDetail(item.id)"
@@ -33,7 +39,7 @@
         <div class="card-body">
           <div class="card-top">
             <span class="cat-badge" :class="'badge-' + item.category.toLowerCase()">{{ item.categoryLabel }}</span>
-            <span v-if="isNew(item.createdAt)" class="new-badge">NEW</span>
+            <span v-if="isNew(item.rawCreatedAt)" class="new-badge">NEW</span>
           </div>
           <div class="card-title">{{ item.title }}</div>
         </div>
@@ -41,14 +47,14 @@
         <i class="ti ti-chevron-right card-arrow" aria-hidden="true"></i>
       </button>
 
-      <div v-if="pagedNotices.length === 0" class="empty-state">
+      <div v-if="displayedNotices.length === 0" class="empty-state">
         <i class="ti ti-file-off empty-icon" aria-hidden="true"></i>
         <div class="empty-title">해당하는 공지사항이 없어요</div>
         <div class="empty-sub">다른 분류를 선택해보세요.</div>
       </div>
     </div>
 
-    <div class="pagination">
+    <div v-if="!loading && !errorMessage" class="pagination">
       <button class="page-arrow" :disabled="currentPage === 1" @click="currentPage--">&lt;</button>
       <button
         v-for="p in totalPages"
@@ -65,26 +71,17 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import { getNoticeList } from '@/api/notices'
+import { NOTICE_CATEGORY_LABELS, formatNoticeDate } from '@/utils/noticeCategory'
 
 const router = useRouter()
 
 function goToDetail(noticeId) {
   router.push({ name: 'notice-detail', params: { id: noticeId } })
 }
-
-// ── mock 데이터: 백엔드 연동 시 API 호출로 교체 ──
-const notices = ref([
-  { id: 1, category: 'GUIDE', categoryLabel: '안내', title: '카카오맵을 이용한 동선 최적화 알고리즘 개선 안내', createdAt: '2026.07.15' },
-  { id: 2, category: 'MAINTENANCE', categoryLabel: '점검', title: '데이터베이스 서버 이중화 작업을 위한 시스템 정기 점검 안내 (02:00 ~ 06:00)', createdAt: '2026.07.10' },
-  { id: 3, category: 'GUIDE', categoryLabel: '안내', title: '서버 안정성을 개선하고 원활한 이용 가능 안내', createdAt: '2026.07.01' },
-  { id: 4, category: 'GUIDE', categoryLabel: '안내', title: 'Wanderlog 친구 초대 및 이메일 동시 편집 기능 안정성 개선 완료', createdAt: '2026.06.25' },
-  { id: 5, category: 'GUIDE', categoryLabel: '안내', title: '개인정보 처리방침 및 사용자 서비스 이용약관 일부 개정 안내', createdAt: '2026.06.18' },
-  { id: 6, category: 'GUIDE', categoryLabel: '안내', title: '"내가 만든 인생 코스는?" 최고의 여름 휴가 가이드북 투표 이벤트 오픈', createdAt: '2026.06.10' },
-  { id: 7, category: 'GUIDE', categoryLabel: '안내', title: '구글 맵 트래픽 실시간 연동 및 동선 최적화 알고리즘 업데이트 완료', createdAt: '2026.06.02' },
-])
 
 const categories = [
   { value: 'ALL', label: '전체' },
@@ -96,19 +93,43 @@ const selectedCategory = ref('ALL')
 const currentPage = ref(1)
 const pageSize = 5
 
-const filteredNotices = computed(() => {
-  if (selectedCategory.value === 'ALL') return notices.value
-  return notices.value.filter((a) => a.category === selectedCategory.value)
-})
+const noticePage = ref({ content: [], pagination: null })
+const loading = ref(false)
+const errorMessage = ref('')
+let loadSequence = 0
 
-const totalPages = computed(() => Math.max(1, Math.ceil(filteredNotices.value.length / pageSize)))
+const displayedNotices = computed(() => noticePage.value.content.map((notice) => ({
+  id: notice.noticeId,
+  category: notice.category,
+  categoryLabel: NOTICE_CATEGORY_LABELS[notice.category] ?? notice.category,
+  title: notice.title,
+  createdAt: formatNoticeDate(notice.createdAt),
+  rawCreatedAt: notice.createdAt,
+})))
 
-const pagedNotices = computed(() => {
-  const start = (currentPage.value - 1) * pageSize
-  return filteredNotices.value.slice(start, start + pageSize)
-})
+const totalPages = computed(() => noticePage.value.pagination?.totalPages ?? 1)
+
+async function fetchNotices() {
+  const sequence = ++loadSequence
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    const category = selectedCategory.value === 'ALL' ? undefined : selectedCategory.value
+    const result = await getNoticeList({ category, page: currentPage.value, size: pageSize })
+    if (sequence !== loadSequence) return
+    noticePage.value = result
+  } catch {
+    if (sequence !== loadSequence) return
+    noticePage.value = { content: [], pagination: null }
+    errorMessage.value = '공지사항을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    if (sequence === loadSequence) loading.value = false
+  }
+}
 
 watch(selectedCategory, () => { currentPage.value = 1 })
+watch([selectedCategory, currentPage], fetchNotices)
+onMounted(fetchNotices)
 
 // 카테고리별 아이콘 매핑. 나중에 카테고리가 추가되면 여기에 케이스만 늘리면 된다.
 function categoryIcon(category) {
@@ -117,11 +138,10 @@ function categoryIcon(category) {
 }
 
 // 작성일 기준 3일 이내 게시물을 "최신"으로 표시한다.
-// mock 데이터의 createdAt은 고정 문자열이라, 데모 목적으로 목록의 첫 두 항목만 최신 취급한다.
-// TODO: 백엔드 연동 시 실제 오늘 날짜와 createdAt을 비교하는 로직으로 교체.
-function isNew(createdAt) {
-  const NEW_THRESHOLD_DATES = ['2026.07.15', '2026.07.10']
-  return NEW_THRESHOLD_DATES.includes(createdAt)
+function isNew(isoCreatedAt) {
+  const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000
+  const createdAtMs = new Date(isoCreatedAt).getTime()
+  return Number.isFinite(createdAtMs) && Date.now() - createdAtMs <= THREE_DAYS_MS
 }
 </script>
 
@@ -160,6 +180,25 @@ function isNew(createdAt) {
   background: #fff; color: #666; font-size: 14px; cursor: pointer; transition: all .15s;
 }
 .filter-chip.active { background: var(--color-brand); border-color: var(--color-brand); color: var(--color-brand-on); }
+
+.status-wrap {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #777;
+  text-align: center;
+}
+.status-wrap--error { flex-direction: column; color: #8a4c45; }
+.status-wrap button {
+  border: 1px solid var(--color-brand-border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: #fff;
+  color: var(--color-brand);
+  cursor: pointer;
+}
 
 .notice-list { display: flex; flex-direction: column; gap: 10px; }
 
