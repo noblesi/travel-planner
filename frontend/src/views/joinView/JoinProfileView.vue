@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
+import { postMemberJoin } from '@/api/users'
 
 const router = useRouter()
 
@@ -11,7 +12,6 @@ const gender = ref('')
 const phone = ref('')
 const userStore = useUserStore()
 
-const joinFlag = ref(true)
 ////////////////////////////////////가데이터
 const testname = "테스터"
 const testbirth = "20001010"
@@ -21,12 +21,12 @@ name.value = testname
 birth.value = testbirth
 phone.value = testphone
 
-console.log("email : " + userStore.tempUserInfo.email)
-console.log("password : " + userStore.tempUserInfo.password)
-console.log("birth : " + userStore.tempUserInfo.birth)
-console.log("name : " + userStore.tempUserInfo.name)
-console.log("gender : " + userStore.tempUserInfo.gender)
-console.log("phone : " + userStore.tempUserInfo.phone)
+console.log("email : " + userStore.tempUserInfo.tempEmail)
+console.log("password : " + userStore.tempUserInfo.tempPassword)
+console.log("birth : " + userStore.tempUserInfo.tempBirth)
+console.log("name : " + userStore.tempUserInfo.tempName)
+console.log("gender : " + userStore.tempUserInfo.tempGender)
+console.log("phone : " + userStore.tempUserInfo.tempPhone)
 
 /////////////////////////////////////
 
@@ -41,25 +41,24 @@ const handleContinue = () => {
   }
   userStore.setStep2Data(birth.value, name.value, gender.value, phone.value)
 
-  const userInfo = {
-    email: userStore.tempUserInfo.email,
-    password: userStore.tempUserInfo.password,
-    birth: userStore.tempUserInfo.birth,
-    name: userStore.tempUserInfo.name,
-    gender: userStore.tempUserInfo.gender,
-    phone: userStore.tempUserInfo.phone
-  }
+ const userInfo = {
+  email: userStore.tempUserInfo.tempEmail,
+  password: userStore.tempUserInfo.tempPassword,
+  birth: userStore.tempUserInfo.tempBirth,
+  name: userStore.tempUserInfo.tempName,
+  gender: userStore.tempUserInfo.tempGender, // 백엔드 DTO에 맞춤
+  phone: userStore.tempUserInfo.tempPhone
+}
 
-  
-
-  if(joinFlag){
-    alert('정상 가입되었습니다.')
-    userStore.clearData()
-    router.push('/joinComplete')
-  } else {
-    alert('가입이 정상적으로 이루어지지 않았습니다. 조금 뒤에 다시 시도해주세요')
-    userStore.clearData()
-  }
+  postMemberJoin(userInfo).then(response => {
+  alert('정상 가입되었습니다.')
+  console.log('서버 응답:', response)
+  userStore.clearData()
+  router.push('/joinComplete')
+  }).catch(error => {
+    console.log('가입 에러 발생:', error)
+    alert('가입이 정상적으로 이루어지지 않았습니다.')
+  })
 }
 
 </script>

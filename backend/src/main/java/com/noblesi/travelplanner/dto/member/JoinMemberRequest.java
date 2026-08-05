@@ -14,7 +14,7 @@ public record JoinMemberRequest(
     @NotBlank(message = "이름이 올바르지 않습니다.") 
     String name,
     
-    String userGender,
+    String gender,
     String birth,
     
     @NotBlank(message = "전화번호가 올바르지 않습니다.")

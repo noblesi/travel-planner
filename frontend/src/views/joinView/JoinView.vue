@@ -3,10 +3,6 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
-import { createPinia } from 'pinia'
-import { createPersistedStatePlugin } from 'pinia-plugin-persistedstate'
-
-
 
 const email = ref('')
 const password = ref('')
@@ -77,8 +73,6 @@ const checkedId = () => {
       return false
     }else{
       userStore.setStep1Data(email.value, password.value)
-      const pinia = createPinia()
-      pinia.use(createPersistedStatePlugin())
       router.push({name:"joinProfile"})
     }
   } else {
