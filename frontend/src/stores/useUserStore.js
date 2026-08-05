@@ -30,5 +30,15 @@ export const useUserStore = defineStore('user', () => {
     tempPhone.value = ''
   }
 
-  return { tempEmail, tempPassword, setStep1Data, clearData }
+  return {
+    tempEmail,
+    tempPassword,
+    tempBirth,
+    tempName,
+    tempGender,
+    tempPhone,
+    setStep1Data,
+    setStep2Data,
+    clearData,
+  }
 })

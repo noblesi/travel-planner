@@ -1,6 +1,6 @@
 # KMS 여행 플랜 개발 인수인계
 
-최종 정리일: 2026-08-03
+최종 정리일: 2026-08-04
 
 ## 저장소 상태
 
@@ -108,6 +108,13 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - TourAPI와 Kakao 외부 API 환경변수 계약, 설정 객체와 설정 검증 Test를 추가했다.
 - `GET /api/places/search`와 `TourApiClient`를 구현하고 TourAPI 오류를 공통 API 오류로 변환하도록 구성했다.
 - 플랜 설정 Form의 필수 입력·서버 오류·중복 제출 처리를 보완하고 지역 선택을 사이트 스타일의 하단 고정 커스텀 드롭다운으로 교체했다.
+- 플랜 생성 성공과 제작 화면 이동 실패를 분리해 생성 완료 후에는 중복 생성 없이 이동만 재시도하도록 보완했다. 제작 화면은 일정·제목·공개범위·날짜 저장을 하나의 대기 상태로 추적하고, 저장 실패 이탈 확인·브라우저 종료 경고·홈 복귀 경로를 적용했다.
+- 날짜 변경 확인창에 초기 포커스·Escape 닫기·Tab 순환·저장 버튼 포커스 복귀를 적용했다. 플랜 설정은 시작일 변경으로 기존 종료일이 역전되거나 14일을 초과하면 종료일을 초기화하고 이유를 안내하며, 로컬 검증 오류를 서버 필드 오류보다 우선 표시한다. 기본 공개 범위는 제품 정책에 따라 `PUBLIC`을 유지한다.
+- 한국 시간 오늘 계산·날짜 덧셈·포맷·포함 일수 계산을 `frontend/src/utils/travelDate.js`로 통합하고 한국 시간 자정 경계·윤년 회귀 Test를 추가했다. Backend의 `Clock`·`Asia/Seoul` 날짜 계약과 같은 기준을 유지한다.
+- `PlanEditorView`를 Toolbar·일정 Panel·지도 작업 영역으로, `PlanDetailView`를 Header·일정·DAY 요약·지도로 분리했다. `PlanScheduleService`는 외부 API를 유지하는 Facade로 축소하고 추가·수정·삭제·정렬 Transaction Service와 공통 Mutation 지원 객체로 책임을 나눴다.
+- Backend 서비스 책임을 추가로 정리해 `TravelPlanService`는 생성·에디터 조회·Metadata·날짜 변경 Facade로, `PlanInvitationService`는 초대 생성·조회·수락 Facade로 축소했다. 플랜 접근 검증·양수 ID Parsing·DAY 범위 동기화·일정 작업 원장·초대 Token 생성/Hash/만료 계산은 각각 전용 Component가 담당한다.
+- 기존 `TravelPlanMapper`는 플랜 명령·접근 조회·참여자·공개 조회 Mapper와 XML로 분리했다. 제작 화면 장소 검색의 `TourApiClient`는 Facade만 유지하고 HTTP 요청·통신 오류는 `TourApiHttpClient`, JSON·공급자 응답 해석과 장소 정규화는 `TourApiResponseParser`가 담당한다.
+- 실제 Memory Router를 사용하는 전체 흐름 회귀 Test를 추가해 로그인 → 플랜 설정 → 생성 → 제작 진입, 제목·날짜 변경 → 장소 추가·자동 저장, 공개 상세 복귀 후 검색 Cache 복원, 진행 중·종료 플랜 날짜 제한을 검증했다.
 - 원격 Oracle Application Schema에 전체 DDL을 적용하고 시·도 Seed 17건을 입력했으며, `/api/health`와 `/api/regions`를 실제 Oracle 연결로 확인했다.
 - 실제 접속정보와 인증키는 Git에서 제외되는 루트 `.env.local`에 보관하고, Windows 실행용 `scripts/run-backend.ps1`과 팀 실행 절차를 추가했다.
 - `frontend/src/api/places.js`와 장소 검색 Panel·상세 Card를 추가하고 검색어 검증, Loading·Empty·Error, Pagination과 결과 선택 상태를 구현했다.
@@ -159,8 +166,8 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 | Oracle | 일정 범위 검증 완료 | `005` 적용, 시·도 Seed 17건 복구, Schema 검증, 임시 회원 기반 플랜 생성·일정 CRUD·정렬·멱등 재시도 완료 |
 | 실제 인증 | 부분 완료 | Spring Security session·CSRF와 Oracle `MEMBER` 이메일 로그인 완료. 회원가입·비밀번호 재설정·Google OIDC 필요 |
 | 외부 API | 부분 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 검증 완료. Kakao Map·Marker 자동 Test 통과, 실제 Browser 렌더링은 localhost 보안 정책으로 미검증 |
-| Backend 자동 Test | 준비 완료 | 전체 74건 통과, `bootJar` 성공 |
-| Frontend Test | 준비 완료 | 22개 Test File, 전체 85건 통과, Production Build 성공. 변경 대상 ESLint·Oxlint 통과 |
+| Backend 자동 Test | 준비 완료 | 전체 80건 통과, `bootJar` 성공 |
+| Frontend Test | 준비 완료 | 30개 Test File, 전체 127건 통과, Production Build 성공. ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -172,7 +179,12 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - `TourApiClient`, 장소 검색 Controller·Service·DTO·Frontend API Module·검색 Panel·상세 Card와 자동 Test를 추가했다.
 - `frontend/src/components/map/KakaoMap.vue`를 공용 지도 Component로 사용하며 제작 화면과 공개 플랜 상세 화면이 함께 참조한다.
 - Root `.env.example`에는 Oracle·TourAPI·Kakao REST 변수명이 있으며 실제 값은 `.env.local`과 팀 보안 채널에서만 관리한다.
-- Vue SPA 전환 전에 사용하던 `backend/src/main/webapp/WEB-INF/jsp/common/`과 `backend/src/main/resources/static/css/layout.css`가 남아 있다. 현재 코드에서 사용 여부를 확인한 뒤 별도 정리 Commit으로 제거 여부를 결정한다.
+- Vue SPA에서 사용하지 않던 JSP header/footer, legacy `layout.css`, `/testView` 개발 라우트는 2026-08-04 정리했다.
+- 공개 플랜 검색은 `page`/`size` 서버 페이지네이션을 사용하며, 기존 `limit` Parameter도 호환을 위해 유지한다.
+- 공개 플랜 검색은 5분 Pinia 캐시로 검색어·페이지·카드 목록을 복원하며, 새 검색·초기화·더 보기 사이의 늦은 응답을 무시한다. 썸네일 기본값과 로딩 실패 대체 이미지는 외부 임시 서비스가 아닌 로컬 SVG를 사용한다.
+- 설정 화면의 지역 선택기는 `RegionSelect`, 제작 화면의 제목·공개범위·날짜 설정은 `PlanEditorSettings`로 분리했다.
+- 제작 화면은 `PlanEditorToolbar`, `PlanEditorSchedulePanel`, `PlanEditorMapWorkspace`, 공개 상세 화면은 `PublicPlanDetailHeader`, `PublicPlanSchedule`, `PublicPlanDaySummary`, `PublicPlanDayMap`으로 분리했다.
+- 일정 변경 Backend는 `PlanScheduleService` Facade 뒤에서 `PlanScheduleAddService`, `PlanScheduleUpdateService`, `PlanScheduleDeleteService`, `PlanScheduleReorderService`가 작업별 Transaction을 담당한다.
 - Root README의 JUnit·MockMvc와 `src/test/java` 안내에 맞춰 Backend 통합 테스트 구성을 복구했다.
 
 ## 담당 개발 범위
@@ -258,7 +270,7 @@ CurrentMemberProvider
 
 주요 ERD 제약:
 
-- 여행 기간은 최대 14일이다.
+- 여행 기간은 최대 14일이며 날짜 정책의 오늘 기준은 `Asia/Seoul`이다. 신규·출발 전 플랜은 오늘 이후만 허용하고, 진행 중 플랜은 시작일을 유지한 채 종료일만 변경하며, 종료된 플랜은 날짜 변경을 금지한다.
 - `START_DATE <= END_DATE`여야 한다.
 - 공개 범위는 `PUBLIC` 또는 `PRIVATE`다.
 - 일정 시간대는 `MORNING` 또는 `AFTERNOON`이다.

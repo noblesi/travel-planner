@@ -12,16 +12,16 @@ const phone = ref('')
 const userStore = useUserStore()
 
 const handleContinue = () => {
-  if(name.value == null || name.value == '' ){
+  if (!name.value.trim()) {
     alert('이름을 입력하여 주세요.')
     return
   }
-  if(birth.value.length < 8 || birth.value.length > 8) {
+  if (birth.value.length !== 8) {
     alert('생년월일을 정확하게 입력하여주세요.')
     return
   }
   alert('정상 가입되었습니다.')
-  userStore.setStep2Data(birth.value,name.value, gender.value, phone.value)
+  userStore.setStep2Data(birth.value, name.value.trim(), gender.value, phone.value)
   router.push({ name: 'complete' })
 }
 
@@ -69,9 +69,9 @@ const handleContinue = () => {
         </div>
         <div class="input-container">
           <label class="input-label">성별 : </label>
-          <input type="radio" :name="gender" value="M"/>남성
-          <input type="radio" :name="gender" value="F"/>여성
-          <input type="radio" :name="gender" value="N"/>선택안함
+          <input v-model="gender" type="radio" name="gender" value="M" />남성
+          <input v-model="gender" type="radio" name="gender" value="F" />여성
+          <input v-model="gender" type="radio" name="gender" value="N" />선택안함
         </div>
         <button type="submit" class="btn-submit">가입하기</button>
       </form>

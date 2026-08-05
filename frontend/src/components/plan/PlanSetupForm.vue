@@ -1,5 +1,7 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
+import RegionSelect from '@/components/plan/RegionSelect.vue'
+import { addDaysToDate, inclusiveDayCount, todayInKorea } from '@/utils/travelDate'
 
 const props = defineProps({
   regions: {
@@ -23,10 +25,7 @@ const props = defineProps({
 const emit = defineEmits(['field-change', 'submit'])
 
 const formElement = ref(null)
-const regionPicker = ref(null)
-const regionTrigger = ref(null)
-const regionDropdownOpen = ref(false)
-const activeRegionIndex = ref(-1)
+const dateAdjustmentMessage = ref('')
 
 const form = reactive({
   regionCode: '',
@@ -41,18 +40,10 @@ const errors = reactive({
   endDate: '',
 })
 
-function toDateInputValue(date) {
-  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
-  return localDate.toISOString().slice(0, 10)
-}
-
-const today = toDateInputValue(new Date())
+const today = todayInKorea()
 const maxEndDate = computed(() => {
   if (!form.startDate) return undefined
-
-  const date = new Date(`${form.startDate}T00:00:00`)
-  date.setDate(date.getDate() + 13)
-  return toDateInputValue(date)
+  return addDaysToDate(form.startDate, 13)
 })
 
 const tripDayCount = computed(() => {
@@ -65,18 +56,10 @@ const tripDateSummary = computed(() => {
   return `${tripDayCount.value}일 여행으로 계획을 시작합니다.`
 })
 
-const selectedRegion = computed(() =>
-  props.regions.find((region) => region.regionCode === form.regionCode),
-)
-
-const activeRegionId = computed(() =>
-  regionDropdownOpen.value && activeRegionIndex.value >= 0
-    ? `region-option-${activeRegionIndex.value}`
-    : undefined,
-)
-
 function fieldError(field) {
-  return errors[field] || props.serverFieldErrors[field] || ''
+  const localError = errors[field]
+  if (localError) return localError
+  return props.serverFieldErrors[field] || ''
 }
 
 function clearError(field) {
@@ -89,95 +72,29 @@ function clearDateErrors() {
   clearError('endDate')
 }
 
+function handleStartDateChange() {
+  clearDateErrors()
+  dateAdjustmentMessage.value = ''
+  if (!form.startDate || !form.endDate) return
+
+  if (form.endDate < form.startDate) {
+    form.endDate = ''
+    dateAdjustmentMessage.value =
+      '시작 날짜가 기존 종료 날짜보다 늦어 종료 날짜를 초기화했습니다. 다시 선택해 주세요.'
+  } else if (inclusiveDayCount(form.startDate, form.endDate) > 14) {
+    form.endDate = ''
+    dateAdjustmentMessage.value =
+      '변경한 시작 날짜를 기준으로 여행 기간이 14일을 초과해 종료 날짜를 초기화했습니다. 다시 선택해 주세요.'
+  }
+}
+
+function handleEndDateChange() {
+  clearError('endDate')
+  dateAdjustmentMessage.value = ''
+}
+
 function notifyVisibilityChange() {
   emit('field-change', 'visibility')
-}
-
-function openRegionDropdown(preferLast = false) {
-  if (props.regions.length === 0) return
-
-  const selectedIndex = props.regions.findIndex(
-    (region) => region.regionCode === form.regionCode,
-  )
-  activeRegionIndex.value =
-    selectedIndex >= 0 ? selectedIndex : preferLast ? props.regions.length - 1 : 0
-  regionDropdownOpen.value = true
-}
-
-function closeRegionDropdown() {
-  regionDropdownOpen.value = false
-}
-
-function toggleRegionDropdown() {
-  if (regionDropdownOpen.value) {
-    closeRegionDropdown()
-    return
-  }
-
-  openRegionDropdown()
-}
-
-function moveActiveRegion(offset) {
-  if (!regionDropdownOpen.value) {
-    openRegionDropdown(offset < 0)
-    return
-  }
-
-  activeRegionIndex.value =
-    (activeRegionIndex.value + offset + props.regions.length) % props.regions.length
-}
-
-function selectRegion(index) {
-  const region = props.regions[index]
-  if (!region) return
-
-  form.regionCode = region.regionCode
-  activeRegionIndex.value = index
-  clearError('regionCode')
-  closeRegionDropdown()
-  nextTick(() => regionTrigger.value?.focus())
-}
-
-function handleRegionKeydown(event) {
-  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-    event.preventDefault()
-    moveActiveRegion(event.key === 'ArrowDown' ? 1 : -1)
-    return
-  }
-
-  if (event.key === 'Home' || event.key === 'End') {
-    event.preventDefault()
-    if (!regionDropdownOpen.value) openRegionDropdown()
-    activeRegionIndex.value = event.key === 'Home' ? 0 : props.regions.length - 1
-    return
-  }
-
-  if (event.key === 'Enter' || event.key === ' ') {
-    event.preventDefault()
-    if (regionDropdownOpen.value) {
-      selectRegion(activeRegionIndex.value)
-    } else {
-      openRegionDropdown()
-    }
-    return
-  }
-
-  if (event.key === 'Escape' && regionDropdownOpen.value) {
-    event.preventDefault()
-    closeRegionDropdown()
-  }
-
-  if (event.key === 'Tab') closeRegionDropdown()
-}
-
-function handleOutsidePointerDown(event) {
-  if (!regionPicker.value?.contains(event.target)) closeRegionDropdown()
-}
-
-function inclusiveDayCount(startDate, endDate) {
-  const start = Date.parse(`${startDate}T00:00:00Z`)
-  const end = Date.parse(`${endDate}T00:00:00Z`)
-  return Math.floor((end - start) / 86_400_000) + 1
 }
 
 function validate() {
@@ -233,87 +150,20 @@ watch(
     if (!props.regions.some((region) => region.regionCode === form.regionCode)) {
       form.regionCode = ''
     }
-    if (activeRegionIndex.value >= props.regions.length) activeRegionIndex.value = -1
   },
   { deep: true },
 )
-
-onMounted(() => document.addEventListener('pointerdown', handleOutsidePointerDown))
-onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsidePointerDown))
 </script>
 
 <template>
   <form ref="formElement" class="setup-form" novalidate @submit.prevent="submitForm">
     <fieldset class="setup-form__fieldset" :disabled="submitting">
-      <div class="form-field">
-        <label id="regionCode-label" for="regionCode">어디로 떠나시나요?</label>
-        <div ref="regionPicker" class="region-picker">
-          <button
-            id="regionCode"
-            ref="regionTrigger"
-            class="region-select"
-            :class="{ 'region-select--open': regionDropdownOpen }"
-            type="button"
-            role="combobox"
-            aria-autocomplete="none"
-            aria-haspopup="listbox"
-            aria-controls="region-options"
-            :aria-activedescendant="activeRegionId"
-            :aria-describedby="fieldError('regionCode') ? 'regionCode-error' : undefined"
-            :aria-expanded="regionDropdownOpen"
-            :aria-invalid="Boolean(fieldError('regionCode'))"
-            aria-labelledby="regionCode-label regionCode-value"
-            @click="toggleRegionDropdown"
-            @keydown="handleRegionKeydown"
-          >
-            <span
-              id="regionCode-value"
-              class="region-select__value"
-              :class="{ 'region-select__value--placeholder': !selectedRegion }"
-            >
-              {{ selectedRegion?.regionName || '여행지역을 선택해 주세요' }}
-            </span>
-            <span class="region-select__chevron" aria-hidden="true" />
-          </button>
-
-          <Transition name="region-options">
-            <ul
-              v-if="regionDropdownOpen"
-              id="region-options"
-              class="region-options"
-              role="listbox"
-              aria-labelledby="regionCode-label"
-            >
-              <li
-                v-for="(region, index) in regions"
-                :id="`region-option-${index}`"
-                :key="region.regionCode"
-                class="region-option"
-                :class="{
-                  'region-option--active': activeRegionIndex === index,
-                  'region-option--selected': form.regionCode === region.regionCode,
-                }"
-                role="option"
-                :aria-selected="form.regionCode === region.regionCode"
-                @pointermove="activeRegionIndex = index"
-                @mousedown.prevent
-                @click="selectRegion(index)"
-              >
-                <span>{{ region.regionName }}</span>
-                <span
-                  v-if="form.regionCode === region.regionCode"
-                  class="region-option__check"
-                  aria-hidden="true"
-                  >✓</span
-                >
-              </li>
-            </ul>
-          </Transition>
-        </div>
-        <p v-if="fieldError('regionCode')" id="regionCode-error" class="field-error" role="alert">
-          {{ fieldError('regionCode') }}
-        </p>
-      </div>
+      <RegionSelect
+        v-model="form.regionCode"
+        :regions="regions"
+        :error="fieldError('regionCode')"
+        @change="clearError('regionCode')"
+      />
 
       <div class="date-section">
         <div class="date-section__heading">
@@ -332,7 +182,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
               :min="today"
               :aria-describedby="fieldError('startDate') ? 'startDate-error' : undefined"
               :aria-invalid="Boolean(fieldError('startDate'))"
-              @input="clearDateErrors"
+              @input="handleStartDateChange"
             />
             <p v-if="fieldError('startDate')" id="startDate-error" class="field-error" role="alert">
               {{ fieldError('startDate') }}
@@ -351,7 +201,7 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
               :max="maxEndDate"
               :aria-describedby="fieldError('endDate') ? 'endDate-error' : undefined"
               :aria-invalid="Boolean(fieldError('endDate'))"
-              @input="clearError('endDate')"
+              @input="handleEndDateChange"
             />
             <p v-if="fieldError('endDate')" id="endDate-error" class="field-error" role="alert">
               {{ fieldError('endDate') }}
@@ -362,12 +212,21 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
         <p v-if="tripDateSummary" class="date-summary" aria-live="polite">
           {{ tripDateSummary }}
         </p>
+        <p v-if="dateAdjustmentMessage" class="date-adjustment" role="status">
+          {{ dateAdjustmentMessage }}
+        </p>
       </div>
 
       <label class="visibility-card" for="visibility">
         <span>
-          <strong>공개 여행</strong>
-          <small>다른 사람들이 이 여행을 검색하고 볼 수 있어요.</small>
+          <strong>{{ form.visibility === 'PUBLIC' ? '공개 여행' : '비공개 여행' }}</strong>
+          <small>
+            {{
+              form.visibility === 'PUBLIC'
+                ? '다른 사람들이 이 여행을 검색하고 볼 수 있어요.'
+                : '초대한 동행자만 이 여행을 볼 수 있어요.'
+            }}
+          </small>
         </span>
         <span class="switch">
           <input
@@ -418,7 +277,6 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
   font-weight: 750;
 }
 
-.region-select,
 .form-field input {
   width: 100%;
   min-height: 54px;
@@ -433,122 +291,13 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
     box-shadow 160ms ease;
 }
 
-.region-select:focus-visible,
-.region-select--open,
 .form-field input:focus {
   border-color: #ff5a4e;
   box-shadow: 0 0 0 4px rgb(255 90 78 / 13%);
 }
 
-.region-select[aria-invalid='true'],
 .form-field input[aria-invalid='true'] {
   border-color: #dc2626;
-}
-
-.region-picker {
-  position: relative;
-}
-
-.region-select {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.region-select:hover:not(:disabled) {
-  border-color: #b9c1cd;
-}
-
-.region-select__value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.region-select__value--placeholder {
-  color: #94a3b8;
-}
-
-.region-select__chevron {
-  width: 9px;
-  height: 9px;
-  flex: 0 0 auto;
-  border-right: 2px solid #64748b;
-  border-bottom: 2px solid #64748b;
-  transform: translateY(-2px) rotate(45deg);
-  transition: transform 160ms ease;
-}
-
-.region-select--open .region-select__chevron {
-  transform: translateY(2px) rotate(225deg);
-}
-
-.region-options {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 8px);
-  right: 0;
-  left: 0;
-  max-height: 280px;
-  margin: 0;
-  padding: 8px;
-  overflow-y: auto;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 18px 48px rgb(15 23 42 / 16%);
-  list-style: none;
-  overscroll-behavior: contain;
-  scrollbar-color: #cbd5e1 transparent;
-  scrollbar-width: thin;
-}
-
-.region-option {
-  display: flex;
-  min-height: 42px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 9px 12px;
-  color: #334155;
-  border-radius: 10px;
-  cursor: pointer;
-  transition:
-    color 120ms ease,
-    background 120ms ease;
-}
-
-.region-option--active {
-  color: #d83a31;
-  background: #fff1f0;
-}
-
-.region-option--selected {
-  color: #d83a31;
-  font-weight: 750;
-}
-
-.region-option__check {
-  color: #ff5a4e;
-  font-size: 16px;
-  font-weight: 800;
-}
-
-.region-options-enter-active,
-.region-options-leave-active {
-  transition:
-    opacity 140ms ease,
-    transform 140ms ease;
-  transform-origin: top;
-}
-
-.region-options-enter-from,
-.region-options-leave-to {
-  opacity: 0;
-  transform: translateY(-5px) scale(0.99);
 }
 
 .date-section {
@@ -580,11 +329,20 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
   line-height: 1.5;
 }
 
-.date-summary {
+.date-summary,
+.date-adjustment {
   margin: 0;
-  color: var(--color-brand);
   font-size: 13px;
+  line-height: 1.5;
+}
+
+.date-summary {
+  color: var(--color-brand);
   font-weight: 700;
+}
+
+.date-adjustment {
+  color: #92400e;
 }
 
 .visibility-card {
@@ -704,11 +462,6 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .region-select,
-  .region-select__chevron,
-  .region-option,
-  .region-options-enter-active,
-  .region-options-leave-active,
   .form-field input,
   .switch__track,
   .switch__track::after,

@@ -17,12 +17,16 @@ const regionError = ref('')
 const createError = ref('')
 const createFieldErrors = ref({})
 const submitting = ref(false)
+const createdPlanId = ref('')
+const navigationPending = ref(false)
+const navigationError = ref('')
 
 const setupFields = new Set(['regionCode', 'startDate', 'endDate'])
 const businessFieldErrors = {
   REGION_NOT_FOUND: ['regionCode', '선택한 여행지역을 사용할 수 없습니다. 다시 선택해 주세요.'],
   INVALID_TRAVEL_DATE_RANGE: ['endDate', '종료 날짜는 시작 날짜보다 빠를 수 없습니다.'],
   TRAVEL_PLAN_DURATION_EXCEEDED: ['endDate', '여행 기간은 최대 14일까지 설정할 수 있습니다.'],
+  PAST_TRAVEL_START_DATE: ['startDate', '오늘 이후의 시작 날짜를 선택해 주세요.'],
 }
 
 function apiErrorMessage(error, fallbackMessage) {
@@ -92,13 +96,15 @@ async function createPlan(payload) {
   submitting.value = true
   createError.value = ''
   createFieldErrors.value = {}
+  createdPlanId.value = ''
+  navigationError.value = ''
 
   try {
     const plan = await createTravelPlan(payload)
     if (!plan?.planId) {
       throw new Error('Travel plan response does not include planId')
     }
-    await router.push({ name: 'plan-editor', params: { planId: plan.planId } })
+    createdPlanId.value = plan.planId
     toastStore.success('여행 계획이 만들어졌습니다.')
   } catch (error) {
     createFieldErrors.value = apiFieldErrors(error)
@@ -110,6 +116,27 @@ async function createPlan(payload) {
     }
   } finally {
     submitting.value = false
+  }
+
+  if (createdPlanId.value) await navigateToCreatedPlan()
+}
+
+async function navigateToCreatedPlan() {
+  if (!createdPlanId.value || navigationPending.value) return
+
+  navigationPending.value = true
+  navigationError.value = ''
+  try {
+    const navigationFailure = await router.push({
+      name: 'plan-editor',
+      params: { planId: createdPlanId.value },
+    })
+    if (navigationFailure) throw navigationFailure
+  } catch {
+    navigationError.value =
+      '여행 계획은 만들어졌지만 제작 화면으로 이동하지 못했습니다. 아래 버튼으로 다시 이동해 주세요.'
+  } finally {
+    navigationPending.value = false
   }
 }
 
@@ -126,8 +153,23 @@ onMounted(loadRegions)
           <span>여행지역과 날짜를 선택하면 일차별 계획을 바로 시작할 수 있어요.</span>
         </header>
 
+        <section v-if="createdPlanId" class="created-plan-recovery" aria-live="polite">
+          <span class="created-plan-recovery__mark" aria-hidden="true">✓</span>
+          <strong>여행 계획이 만들어졌습니다.</strong>
+          <p v-if="navigationError" role="alert">{{ navigationError }}</p>
+          <p v-else>제작 화면으로 이동하고 있습니다.</p>
+          <button
+            type="button"
+            :disabled="navigationPending"
+            :aria-busy="navigationPending"
+            @click="navigateToCreatedPlan"
+          >
+            {{ navigationPending ? '제작 화면으로 이동 중...' : '제작 화면으로 다시 이동' }}
+          </button>
+        </section>
+
         <AsyncState
-          v-if="regionStatus === 'loading'"
+          v-else-if="regionStatus === 'loading'"
           variant="loading"
           title="여행지역을 불러오고 있어요."
         />
@@ -207,6 +249,60 @@ onMounted(loadRegions)
   color: #64748b;
   line-height: 1.7;
   word-break: keep-all;
+}
+
+.created-plan-recovery {
+  display: grid;
+  justify-items: center;
+  padding: 28px 20px;
+  border: 1px solid #bbf7d0;
+  border-radius: 18px;
+  background: #f0fdf4;
+  text-align: center;
+}
+
+.created-plan-recovery__mark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 14px;
+  place-items: center;
+  color: #15803d;
+  border-radius: 50%;
+  background: #dcfce7;
+  font-size: 22px;
+  font-weight: 850;
+}
+
+.created-plan-recovery strong {
+  color: #166534;
+  font-size: 18px;
+}
+
+.created-plan-recovery p {
+  max-width: 480px;
+  margin: 9px 0 0;
+  color: #475569;
+  font-size: 14px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.created-plan-recovery button {
+  min-height: 44px;
+  margin-top: 20px;
+  padding: 0 18px;
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  background: #16a34a;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.created-plan-recovery button:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 @media (max-width: 620px) {

@@ -90,12 +90,7 @@ import { useRouter } from 'vue-router'
 import { loginAdmin } from '@/api/adminAuth'
 import mainLogo from '@/assets/branding/travel-planner-logo-header.png'
 
-interface AdminLoginForm {
-  adminId: string
-  password: string
-}
-
-const loginForm = reactive<AdminLoginForm>({
+const loginForm = reactive({
   adminId: '',
   password: '',
 })

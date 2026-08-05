@@ -1,6 +1,6 @@
 import { createPinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlanEditorView from '@/views/PlanEditorView.vue'
 
@@ -13,6 +13,7 @@ const {
   updateScheduleItemMock,
   updateTravelPlanDatesMock,
   updateTravelPlanMetadataMock,
+  routeLeaveState,
 } = vi.hoisted(() => ({
   addScheduleItemMock: vi.fn(),
   deleteScheduleItemMock: vi.fn(),
@@ -22,7 +23,18 @@ const {
   updateScheduleItemMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
   updateTravelPlanMetadataMock: vi.fn(),
+  routeLeaveState: { guard: null },
 }))
+
+vi.mock('vue-router', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    onBeforeRouteLeave: (guard) => {
+      routeLeaveState.guard = guard
+    },
+  }
+})
 
 vi.mock('@/api/plans', () => ({
   addScheduleItem: addScheduleItemMock,
@@ -74,20 +86,27 @@ const editor = {
   ],
 }
 
-function mountView(planId = '101') {
+function mountView(planId = '101', mountOptions = {}) {
   return mount(PlanEditorView, {
     props: { planId },
     global: {
       plugins: [createPinia()],
       stubs: {
         KakaoMap: KakaoMapStub,
-        RouterLink: { template: '<a><slot /></a>' },
+        RouterLink: {
+          name: 'RouterLink',
+          props: ['to'],
+          template: '<a><slot /></a>',
+        },
       },
     },
+    ...mountOptions,
   })
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] })
+  vi.setSystemTime(new Date('2026-08-04T00:00:00+09:00'))
   getTravelPlanEditorMock.mockReset().mockResolvedValue(editor)
   searchPlacesMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
@@ -96,6 +115,12 @@ beforeEach(() => {
   updateScheduleItemMock.mockReset()
   deleteScheduleItemMock.mockReset()
   reorderScheduleItemsMock.mockReset()
+  routeLeaveState.guard = null
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 describe('PlanEditorView', () => {
@@ -206,6 +231,73 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('서울 맛집 여행')
     expect(wrapper.text()).toContain('공개')
     expect(wrapper.find('.metadata-editor__form').exists()).toBe(false)
+  })
+
+  it('뒤로가기 링크는 새 플랜 설정이 아니라 홈으로 이동한다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const backLink = wrapper
+      .findAllComponents({ name: 'RouterLink' })
+      .find((link) => link.classes().includes('back-button'))
+
+    expect(backLink.props('to')).toEqual({ name: 'home' })
+    expect(backLink.attributes('aria-label')).toBe('홈으로 돌아가기')
+  })
+
+  it('메타정보 저장 중 이탈 요청은 저장 완료 후 진행한다', async () => {
+    const updatedEditor = {
+      ...editor,
+      plan: { ...editor.plan, title: '서울 맛집 여행', versionNo: 1 },
+    }
+    let resolveSave
+    updateTravelPlanMetadataMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.metadata-editor__open').trigger('click')
+    await wrapper.get('[name="editTitle"]').setValue('서울 맛집 여행')
+    await wrapper.get('.metadata-editor__form').trigger('submit')
+    await Promise.resolve()
+
+    let leaveFinished = false
+    const leaveRequest = routeLeaveState.guard().then((result) => {
+      leaveFinished = true
+      return result
+    })
+    await Promise.resolve()
+
+    expect(leaveFinished).toBe(false)
+    expect(wrapper.get('.exit-button').text()).toContain('저장 후 나가기')
+
+    resolveSave(updatedEditor)
+    await expect(leaveRequest).resolves.toBe(true)
+    expect(confirmSpy).not.toHaveBeenCalled()
+  })
+
+  it('저장 실패 후 이탈과 브라우저 종료를 경고한다', async () => {
+    updateTravelPlanMetadataMock.mockRejectedValueOnce(new Error('metadata save failed'))
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.metadata-editor__open').trigger('click')
+    await wrapper.get('[name="editTitle"]').setValue('서울 맛집 여행')
+    await wrapper.get('.metadata-editor__form').trigger('submit')
+    await flushPromises()
+
+    await expect(routeLeaveState.guard()).resolves.toBe(false)
+    expect(confirmSpy).toHaveBeenCalledOnce()
+
+    const unloadEvent = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(unloadEvent)
+    expect(unloadEvent.defaultPrevented).toBe(true)
   })
 
   it('빈 플랜 제목은 API를 호출하지 않고 Validation 오류를 표시한다', async () => {
@@ -493,16 +585,97 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('1일')
   })
 
+  it('날짜 삭제 확인창의 포커스를 가두고 Escape 후 저장 버튼으로 복귀한다', async () => {
+    updateTravelPlanDatesMock.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          code: 'PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED',
+          message: '변경 범위에서 제외되는 날짜에 일정이 있습니다.',
+        },
+      },
+    })
+    const wrapper = mountView('101', { attachTo: document.body })
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-11')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-11')
+    await wrapper.get('.date-editor__form').trigger('submit')
+    await flushPromises()
+
+    const dialog = wrapper.get('[role="alertdialog"]')
+    const buttons = wrapper.findAll('.confirmation-dialog__actions button')
+    expect(document.activeElement).toBe(buttons[0].element)
+
+    buttons[1].element.focus()
+    await dialog.trigger('keydown', { key: 'Tab' })
+    expect(document.activeElement).toBe(buttons[0].element)
+
+    await dialog.trigger('keydown', { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(buttons[1].element)
+
+    await dialog.trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+
+    expect(wrapper.find('[role="alertdialog"]').exists()).toBe(false)
+    expect(document.activeElement).toBe(wrapper.get('.date-editor__actions button[type="submit"]').element)
+
+    wrapper.unmount()
+  })
+
   it('14일을 초과한 날짜 변경은 API를 호출하지 않는다', async () => {
     const wrapper = mountView()
     await flushPromises()
 
     await wrapper.get('.date-editor__open').trigger('click')
-    await wrapper.get('[name="editStartDate"]').setValue('2026-08-01')
-    await wrapper.get('[name="editEndDate"]').setValue('2026-08-15')
+    await wrapper.get('[name="editStartDate"]').setValue('2026-08-05')
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-19')
     await wrapper.get('.date-editor__form').trigger('submit')
 
     expect(updateTravelPlanDatesMock).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('여행 기간은 최대 14일까지 설정할 수 있습니다.')
+  })
+
+  it('진행 중인 여행은 시작일을 고정하고 종료일만 변경한다', async () => {
+    const ongoingEditor = {
+      ...editor,
+      plan: { ...editor.plan, startDate: '2026-08-01', endDate: '2026-08-06' },
+    }
+    updateTravelPlanDatesMock.mockResolvedValueOnce({
+      ...ongoingEditor,
+      plan: { ...ongoingEditor.plan, endDate: '2026-08-07', versionNo: 1 },
+    })
+    getTravelPlanEditorMock.mockResolvedValueOnce(ongoingEditor)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.date-editor__open').trigger('click')
+
+    expect(wrapper.get('[name="editStartDate"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[name="editEndDate"]').attributes('min')).toBe('2026-08-04')
+
+    await wrapper.get('[name="editEndDate"]').setValue('2026-08-07')
+    await wrapper.get('.date-editor__form').trigger('submit')
+    await flushPromises()
+
+    expect(updateTravelPlanDatesMock).toHaveBeenCalledWith('101', {
+      startDate: '2026-08-01',
+      endDate: '2026-08-07',
+      versionNo: 0,
+      force: false,
+    })
+  })
+
+  it('종료된 여행은 날짜 변경을 비활성화하고 이유를 안내한다', async () => {
+    getTravelPlanEditorMock.mockResolvedValueOnce({
+      ...editor,
+      plan: { ...editor.plan, startDate: '2026-07-01', endDate: '2026-07-02' },
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('.date-editor__open').attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('종료된 여행은 날짜를 변경할 수 없습니다.')
   })
 })

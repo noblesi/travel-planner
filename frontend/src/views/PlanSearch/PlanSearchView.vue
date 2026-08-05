@@ -2,64 +2,100 @@
   <DefaultLayout>
     <div class="search-page">
       <div class="app-container search-page__inner">
-
-      <div class="pg-head">
-        <div class="eyebrow">DISCOVER ITINERARIES</div>
-        <div class="pg-title">다른 사람들은 어떻게 떠날까요?</div>
-        <div class="pg-subtitle">먼저 다녀온 여행자들의 일정을 그대로 가져와 나만의 여행을 시작해보세요.</div>
-      </div>
-
-      <div class="search-wrap">
-        <i class="ti ti-search" aria-hidden="true" @click="handleSearch"></i>
-        <input class="search-input" type="text" v-model="keyword" placeholder="목적지 검색 (예: 서울, 부산, 제주)"
-          @keyup.enter="handleSearch" />
-      </div>
-
-      <div v-if="!hasSearched" class="suggested-tags">
-        <span class="suggested-label">이런 여행지는 어때요?</span>
-        <div class="suggested-tag-list">
-          <button v-for="city in suggestedCities" :key="city" class="suggested-tag" @click="searchSuggested(city)">{{ city
-          }}</button>
-        </div>
-      </div>
-
-      <div v-if="loading" class="status-wrap" role="status">공개 일정을 불러오는 중이에요.</div>
-      <div v-else-if="errorMessage" class="status-wrap status-wrap--error" role="alert">
-        <span>{{ errorMessage }}</span>
-        <button type="button" @click="loadPlans(searchedKeyword)">다시 시도</button>
-      </div>
-
-      <div v-if="hasSearched && !loading" class="result-meta">
-        <div class="result-count">
-          "{{ searchedKeyword }}" 검색 결과
-          <em v-if="filteredPlans.length > 0">{{ filteredPlans.length }}개</em>
-          <span v-else class="zero">0개</span>
-        </div>
-      </div>
-
-      <div v-if="!hasSearched || filteredPlans.length > 0" class="divider"></div>
-
-      <div v-if="!hasSearched || filteredPlans.length > 0" class="grid">
-        <div v-for="plan in displayedPlans" :key="plan.id" class="card" @click="goToDetail(plan.id)">
-          <div class="card-img-wrap">
-            <div class="card-img" :style="{ backgroundImage: `url(${plan.thumbImage})` }"></div>
-            <div class="badge-days">{{ plan.days }}일</div>
+        <div class="pg-head">
+          <div class="eyebrow">DISCOVER ITINERARIES</div>
+          <div class="pg-title">다른 사람들은 어떻게 떠날까요?</div>
+          <div class="pg-subtitle">
+            먼저 다녀온 여행자들의 일정을 그대로 가져와 나만의 여행을 시작해보세요.
           </div>
-          <div class="card-body">
-            <div class="card-top">
-              <span class="region-badge" :class="'region-' + regionColorKey(plan.region)">{{ plan.region }}</span>
+        </div>
+
+        <div class="search-wrap">
+          <i class="ti ti-search" aria-hidden="true" @click="handleSearch"></i>
+          <input
+            class="search-input"
+            type="text"
+            v-model="keyword"
+            placeholder="목적지 검색 (예: 서울, 부산, 제주)"
+            @keyup.enter="handleSearch"
+          />
+        </div>
+
+        <div v-if="!hasSearched" class="suggested-tags">
+          <span class="suggested-label">이런 여행지는 어때요?</span>
+          <div class="suggested-tag-list">
+            <button
+              v-for="city in suggestedCities"
+              :key="city"
+              class="suggested-tag"
+              @click="searchSuggested(city)"
+            >
+              {{ city }}
+            </button>
+          </div>
+        </div>
+
+        <div v-if="loading" class="status-wrap" role="status">공개 일정을 불러오는 중이에요.</div>
+        <div v-else-if="errorMessage" class="status-wrap status-wrap--error" role="alert">
+          <span>{{ errorMessage }}</span>
+          <button type="button" @click="loadPlans(searchedKeyword, currentPage)">다시 시도</button>
+        </div>
+
+        <div v-if="hasSearched && !loading" class="result-meta">
+          <div class="result-count">
+            "{{ searchedKeyword }}" 검색 결과
+            <em v-if="filteredPlans.length > 0">{{ totalCount }}개</em>
+            <span v-else class="zero">0개</span>
+          </div>
+        </div>
+
+        <div v-if="!hasSearched || filteredPlans.length > 0" class="divider"></div>
+
+        <div v-if="!hasSearched || filteredPlans.length > 0" class="grid">
+          <button
+            v-for="plan in filteredPlans"
+            :key="plan.id"
+            type="button"
+            class="card"
+            @click="goToDetail(plan.id)"
+          >
+            <div class="card-img-wrap">
+              <img
+                class="card-img"
+                :src="plan.thumbImage"
+                alt=""
+                @error="useDefaultThumbnail"
+              />
+              <div class="badge-days">{{ plan.days }}일</div>
             </div>
-            <div class="card-title">{{ plan.title }}</div>
-            <div class="card-foot">
-              <div class="author">
-                <div class="avatar" :style="plan.authorAvatar ? { backgroundImage: `url(${plan.authorAvatar})` } : {}">
-                  <span v-if="!plan.authorAvatar">{{ plan.authorInitials }}</span>
-                </div>
-                <span class="author-name">{{ plan.authorName }}</span>
+            <div class="card-body">
+              <div class="card-top">
+                <span class="region-badge" :class="'region-' + regionColorKey(plan.region)">{{
+                  plan.region
+                }}</span>
               </div>
-              <div class="stats">
-                <span class="stat stat-like"><i class="ti ti-heart" aria-hidden="true"></i>{{ plan.likeCount }}</span>
-                <span class="stat"><i class="ti ti-eye" aria-hidden="true"></i>{{ formatCount(plan.viewCount) }}</span>
+              <div class="card-title">{{ plan.title }}</div>
+              <div class="card-foot">
+                <div class="author">
+                  <div
+                    class="avatar"
+                    :style="
+                      plan.authorAvatar ? { backgroundImage: `url(${plan.authorAvatar})` } : {}
+                    "
+                  >
+                    <span v-if="!plan.authorAvatar">{{ plan.authorInitials }}</span>
+                  </div>
+                  <span class="author-name">{{ plan.authorName }}</span>
+                </div>
+                <div class="stats">
+                  <span class="stat stat-like"
+                    ><i class="ti ti-heart" aria-hidden="true"></i>{{ plan.likeCount }}</span
+                  >
+                  <span class="stat"
+                    ><i class="ti ti-eye" aria-hidden="true"></i
+                    >{{ formatCount(plan.viewCount) }}</span
+                  >
+                </div>
               </div>
             </div>
           </div>
@@ -104,45 +140,156 @@
           </button>
         </div>
 
-        <button class="browse-btn" @click="resetSearch">모든 일정 보기</button>
-      </div>
+        <div v-if="hasMore" class="more">
+          <button class="more-btn" :disabled="loadingMore" @click="loadMore">
+            {{ loadingMore ? '일정을 불러오는 중...' : '일정 더 보기' }}
+          </button>
+        </div>
 
+        <div
+          v-if="!loading && !errorMessage && hasSearched && filteredPlans.length === 0"
+          class="empty-wrap"
+        >
+          <div class="divider"></div>
+          <div class="empty-illus" aria-hidden="true">
+            <svg width="200" height="200" viewBox="0 0 148 148" xmlns="http://www.w3.org/2000/svg">
+              <circle
+                cx="74"
+                cy="74"
+                r="62"
+                fill="var(--color-brand-soft)"
+                stroke="var(--color-brand-border)"
+                stroke-width="1"
+              />
+              <circle cx="74" cy="74" r="40" fill="none" stroke="#e8d5d2" stroke-width="1.5" />
+              <line
+                x1="74"
+                y1="34"
+                x2="74"
+                y2="114"
+                stroke="#e0d0ce"
+                stroke-width="1"
+                stroke-dasharray="3 3"
+              />
+              <line
+                x1="34"
+                y1="74"
+                x2="114"
+                y2="74"
+                stroke="#e0d0ce"
+                stroke-width="1"
+                stroke-dasharray="3 3"
+              />
+              <text x="74" y="28" text-anchor="middle" font-size="9" fill="#bbb">N</text>
+              <text x="74" y="124" text-anchor="middle" font-size="9" fill="#bbb">S</text>
+              <text x="122" y="78" text-anchor="middle" font-size="9" fill="#bbb">E</text>
+              <text x="26" y="78" text-anchor="middle" font-size="9" fill="#bbb">W</text>
+              <polygon points="74,48 78,74 74,70 70,74" fill="var(--color-brand-accent)" />
+              <polygon points="74,100 78,74 74,78 70,74" fill="#ccc" />
+              <circle cx="74" cy="74" r="4" fill="#fff" stroke="#ddd" stroke-width="1.5" />
+              <circle cx="104" cy="44" r="13" fill="#fff" stroke="#f0e0de" stroke-width="1" />
+              <line
+                x1="98.5"
+                y1="38.5"
+                x2="109.5"
+                y2="49.5"
+                stroke="var(--color-brand-accent)"
+                stroke-width="2.2"
+                stroke-linecap="round"
+              />
+              <line
+                x1="109.5"
+                y1="38.5"
+                x2="98.5"
+                y2="49.5"
+                stroke="var(--color-brand-accent)"
+                stroke-width="2.2"
+                stroke-linecap="round"
+              />
+            </svg>
+          </div>
+
+          <div class="empty-head">일정을 찾을 수 없어요</div>
+          <div class="empty-sub">
+            <em>"{{ searchedKeyword }}"</em>에 대한 여행 일정이 아직 없어요.<br />
+            다른 국내 도시로 검색하거나 아래 추천 여행지를 둘러보세요.
+          </div>
+
+          <div class="suggest-label">이런 일정은 어떠세요?</div>
+          <div class="suggest-chips">
+            <button
+              v-for="city in suggestedCities"
+              :key="city"
+              class="suggest-chip"
+              @click="searchSuggested(city)"
+            >
+              {{ city }}
+            </button>
+          </div>
+
+          <button class="browse-btn" @click="resetSearch">모든 일정 보기</button>
+        </div>
       </div>
     </div>
   </DefaultLayout>
 </template>
 
 <script setup>
-import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
 import { searchPublicPlans } from '@/api/plans'
+import defaultPlanThumbnail from '@/assets/plan/default-plan-thumbnail.svg'
+import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import { usePlanSearchStore } from '@/stores/planSearch'
 
 const router = useRouter()
 const route = useRoute()
-
-// 카드를 클릭하면 상세 페이지로 이동
-function goToDetail(planId) {
-  router.push({ name: 'plan-detail', params: { id: planId } })
-}
+const planSearchStore = usePlanSearchStore()
 
 const suggestedCities = ['서울', '제주', '부산', '경주', '전주']
 const pageSize = 8
-const plans = ref([])
-const loading = ref(false)
-const errorMessage = ref('')
-let loadSequence = 0
+const initialKeyword = typeof route.query.keyword === 'string' ? route.query.keyword : ''
+const legacyPage = Math.ceil((Number(route.query.count) || pageSize) / pageSize)
+const initialPage = Math.max(Number(route.query.page) || legacyPage, 1)
+const cachedSearch = planSearchStore.restoreSearch({
+  searchedKeyword: initialKeyword,
+  currentPage: initialPage,
+})
 
-// ── URL 쿼리에서 검색 상태 복원 (뒤로가기로 돌아왔을 때 검색어/더보기 개수 유지) ──
-const keyword = ref(route.query.keyword || '') // 입력받은 키워드 (사용자가 이미 검색했을 시 검색한 키워드 할당)
-const searchedKeyword = ref(route.query.keyword || '') // 사용자가 실제로 검색한 키워드
-const hasSearched = ref(!!route.query.keyword) // 사용자가 검색했는지 여부
-const visibleCount = ref(Number(route.query.count) || pageSize) // 화면에 보여줄 플랜 수
+const plans = ref(cachedSearch?.plans ?? [])
+const loading = ref(false)
+const loadingMore = ref(false)
+const errorMessage = ref('')
+const totalCount = ref(cachedSearch?.totalCount ?? 0)
+const hasNextPage = ref(cachedSearch?.hasNextPage ?? false)
+const keyword = ref(cachedSearch?.keyword ?? initialKeyword)
+const searchedKeyword = ref(cachedSearch?.searchedKeyword ?? initialKeyword)
+const hasSearched = ref(cachedSearch?.hasSearched ?? Boolean(initialKeyword))
+const currentPage = ref(cachedSearch?.currentPage ?? initialPage)
+let requestSequence = 0
+
+// 카드를 클릭하면 상세 페이지로 이동
+function goToDetail(planId) {
+  cacheCurrentSearch()
+  router.push({ name: 'plan-detail', params: { id: planId } })
+}
 
 const filteredPlans = computed(() => plans.value)
 
-const displayedPlans = computed(() => filteredPlans.value.slice(0, visibleCount.value))
-const hasMore = computed(() => visibleCount.value < filteredPlans.value.length)
+const hasMore = computed(() => hasNextPage.value)
+
+function cacheCurrentSearch() {
+  planSearchStore.cacheSearch({
+    keyword: keyword.value,
+    searchedKeyword: searchedKeyword.value,
+    hasSearched: hasSearched.value,
+    currentPage: currentPage.value,
+    plans: plans.value,
+    totalCount: totalCount.value,
+    hasNextPage: hasNextPage.value,
+  })
+}
 
 // 검색 상태가 바뀔 때마다 URL 쿼리에 반영한다.
 // push가 아니라 replace를 쓰는 이유: 검색어를 입력하거나 "더 보기"를 누를 때마다
@@ -151,7 +298,7 @@ const hasMore = computed(() => visibleCount.value < filteredPlans.value.length)
 function syncUrl() {
   const query = {}
   if (searchedKeyword.value) query.keyword = searchedKeyword.value
-  if (visibleCount.value !== pageSize) query.count = visibleCount.value
+  if (currentPage.value > 1) query.page = currentPage.value
   router.replace({ query })
 }
 
@@ -188,9 +335,9 @@ async function handleSearch() {
   if (!trimmed) return
   searchedKeyword.value = trimmed
   hasSearched.value = true
-  visibleCount.value = pageSize
+  currentPage.value = 1
   syncUrl()
-  await loadPlans(searchedKeyword.value)
+  await loadPlans(searchedKeyword.value, 1)
 }
 
 function searchSuggested(city) {
@@ -202,21 +349,52 @@ async function resetSearch() {
   keyword.value = ''
   searchedKeyword.value = ''
   hasSearched.value = false
-  visibleCount.value = pageSize
+  currentPage.value = 1
   syncUrl()
-  await loadPlans()
+  await loadPlans('', 1)
 }
 
-function loadMore() {
-  visibleCount.value += pageSize
-  syncUrl()
+async function loadMore() {
+  if (loadingMore.value || !hasNextPage.value) return
+
+  const sequence = ++requestSequence
+  const requestKeyword = searchedKeyword.value
+  loadingMore.value = true
+  errorMessage.value = ''
+  try {
+    const nextPage = currentPage.value + 1
+    const result = await searchPublicPlans({
+      keyword: requestKeyword,
+      page: nextPage,
+      size: pageSize,
+    })
+    if (sequence !== requestSequence) return
+
+    plans.value.push(...result.plans.map(mapPlan))
+    currentPage.value = result.page
+    totalCount.value = result.totalCount
+    hasNextPage.value = result.hasNext
+    syncUrl()
+    cacheCurrentSearch()
+  } catch {
+    if (sequence !== requestSequence) return
+    errorMessage.value = '다음 일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    if (sequence === requestSequence) loadingMore.value = false
+  }
 }
 
 // 헤더의 "일정 탐색"을 이미 이 페이지에 있는 상태에서 다시 클릭하면
 // 라우트가 바뀌지 않아 컴포넌트가 재마운트되지 않으므로, AppHeader가 쏘는
 // 커스텀 이벤트를 받아 검색 상태를 새로고침한 것처럼 초기화한다.
-onMounted(() => window.addEventListener('plan-search:reset', resetSearch))
-onUnmounted(() => window.removeEventListener('plan-search:reset', resetSearch))
+onMounted(() => {
+  window.addEventListener('plan-search:reset', resetSearch)
+  if (!cachedSearch) loadPlans(searchedKeyword.value, currentPage.value)
+})
+onUnmounted(() => {
+  requestSequence += 1
+  window.removeEventListener('plan-search:reset', resetSearch)
+})
 
 function formatCount(n) {
   if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
@@ -237,7 +415,6 @@ function regionColorKey(region) {
   return REGION_COLOR_KEYS[hash]
 }
 
-onMounted(() => loadPlans(searchedKeyword.value))
 </script>
 
 <style scoped>
@@ -276,9 +453,9 @@ onMounted(() => loadPlans(searchedKeyword.value))
 
 .eyebrow {
   font-size: 13px;
-  letter-spacing: .14em;
+  letter-spacing: 0.14em;
   color: var(--color-brand);
-  margin-bottom: .6rem;
+  margin-bottom: 0.6rem;
   text-transform: uppercase;
 }
 
@@ -286,7 +463,7 @@ onMounted(() => loadPlans(searchedKeyword.value))
   font-size: 34px;
   font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: .75rem;
+  margin-bottom: 0.75rem;
 }
 
 .pg-subtitle {
@@ -358,7 +535,7 @@ onMounted(() => loadPlans(searchedKeyword.value))
   color: #666;
   font-size: 13.5px;
   cursor: pointer;
-  transition: all .15s;
+  transition: all 0.15s;
 }
 
 .suggested-tag:hover {
@@ -426,13 +603,15 @@ onMounted(() => loadPlans(searchedKeyword.value))
   font: inherit;
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .06);
-  transition: transform .2s ease, box-shadow .2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 14px 32px rgba(0, 0, 0, .1);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.1);
 }
 
 /* 이미지를 감싸는 별도 wrap을 둬서, 카드 자체는 overflow: hidden으로 모서리를 유지하면서
@@ -444,13 +623,13 @@ onMounted(() => loadPlans(searchedKeyword.value))
 }
 
 .card-img {
+  display: block;
   width: 100%;
   height: 100%;
-  background-size: cover;
-  background-position: center;
+  object-fit: cover;
   background-color: #f0f0f0;
   /* 이미지 로딩 전/실패 시 대체 배경 */
-  transition: transform .35s ease;
+  transition: transform 0.35s ease;
 }
 
 .card:hover .card-img {
@@ -461,7 +640,7 @@ onMounted(() => loadPlans(searchedKeyword.value))
   position: absolute;
   top: 14px;
   left: 14px;
-  background: rgba(0, 0, 0, .5);
+  background: rgba(0, 0, 0, 0.5);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -520,7 +699,7 @@ onMounted(() => loadPlans(searchedKeyword.value))
   color: #1a1a1a;
   margin-bottom: 16px;
   line-height: 1.4;
-  letter-spacing: -.2px;
+  letter-spacing: -0.2px;
   /* 제목이 1줄이든 2줄이든 카드 높이가 달라지지 않도록 min-height로 2줄분 공간을 항상 확보한다.
      18px * 1.4(line-height) * 2줄 = 50.4px */
   min-height: 50.4px;
@@ -583,7 +762,7 @@ onMounted(() => loadPlans(searchedKeyword.value))
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: color .15s;
+  transition: color 0.15s;
 }
 
 .more {
@@ -630,7 +809,7 @@ onMounted(() => loadPlans(searchedKeyword.value))
   font-size: 22px;
   font-weight: 600;
   color: #1a1a1a;
-  margin-bottom: .75rem;
+  margin-bottom: 0.75rem;
 }
 
 .empty-sub {
