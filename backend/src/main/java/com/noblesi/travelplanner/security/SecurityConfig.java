@@ -60,15 +60,15 @@ public class SecurityConfig {
 			CsrfTokenRepository csrfTokenRepository
 	) throws Exception {
 		http
-				.csrf(csrf -> csrf
-						.csrfTokenRepository(csrfTokenRepository)
-						.ignoringRequestMatchers("/api/admin/auth/login"))
+				.csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(
 								"/api/auth/**",
 								"/api/admin/auth/login",
+								"/api/admin/auth/session",
 								"/api/health",
 								"/error").permitAll()
+						.requestMatchers("/api/admin/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.GET, "/api/regions", "/api/places/search").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/notices", "/api/notices/*").permitAll()
@@ -104,13 +104,12 @@ public class SecurityConfig {
 			HttpSecurity http,
 			CsrfTokenRepository csrfTokenRepository
 	) throws Exception {
-		http
+			http
 				.csrf(csrf -> csrf
 						.csrfTokenRepository(csrfTokenRepository)
 						.ignoringRequestMatchers(
 								"/api/plans/**",
-								"/api/plan-invitations/**",
-								"/api/admin/auth/login"))
+								"/api/plan-invitations/**"))
 				.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
 		return http.build();
 	}
