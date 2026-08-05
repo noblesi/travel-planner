@@ -103,12 +103,8 @@ function createMore() {
 }
 
 function goBackToPlan() {
-  router.push({
-    name: 'plan-editor',
-    params: { planId: props.id },
-  })
+  router.push({ name: 'plan-editor', params: { planId: String(props.id) } })
 }
-
 </script>
 
 <template>

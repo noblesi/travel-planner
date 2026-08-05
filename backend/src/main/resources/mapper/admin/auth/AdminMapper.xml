@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.noblesi.travelplanner.admin.auth.dao.AdminDAO">
+
+	<select id="loginAdmin"
+			resultType="com.noblesi.travelplanner.admin.auth.domain.AdminDomain">
+		SELECT ADMIN_ID        AS adminId,
+		       LOGIN_ID        AS loginId,
+		       ADMIN_NAME      AS name,
+		       PASSWORD_HASH   AS password,
+		       PHONE_NUMBER    AS phoneNumber,
+		       EMAIL           AS email,
+		       ADMIN_ROLE_CODE AS adminRoleCode,
+		       ADMIN_STATUS    AS adminStatus,
+		       CREATED_AT      AS createAt
+		  FROM ADMIN
+		 WHERE LOGIN_ID = #{loginId}
+	</select>
+
+</mapper>

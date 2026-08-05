@@ -98,6 +98,45 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="hasMore" class="more">
+        <button class="more-btn" @click="loadMore">일정 더 보기</button>
+      </div>
+
+      <div v-if="!loading && !errorMessage && hasSearched && filteredPlans.length === 0" class="empty-wrap">
+        <div class="divider"></div>
+        <div class="empty-illus" aria-hidden="true">
+          <svg width="200" height="200" viewBox="0 0 148 148" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="74" cy="74" r="62" fill="var(--color-brand-soft)" stroke="var(--color-brand-border)" stroke-width="1" />
+            <circle cx="74" cy="74" r="40" fill="none" stroke="#e8d5d2" stroke-width="1.5" />
+            <line x1="74" y1="34" x2="74" y2="114" stroke="#e0d0ce" stroke-width="1" stroke-dasharray="3 3" />
+            <line x1="34" y1="74" x2="114" y2="74" stroke="#e0d0ce" stroke-width="1" stroke-dasharray="3 3" />
+            <text x="74" y="28" text-anchor="middle" font-size="9" fill="#bbb">N</text>
+            <text x="74" y="124" text-anchor="middle" font-size="9" fill="#bbb">S</text>
+            <text x="122" y="78" text-anchor="middle" font-size="9" fill="#bbb">E</text>
+            <text x="26" y="78" text-anchor="middle" font-size="9" fill="#bbb">W</text>
+            <polygon points="74,48 78,74 74,70 70,74" fill="var(--color-brand-accent)" />
+            <polygon points="74,100 78,74 74,78 70,74" fill="#ccc" />
+            <circle cx="74" cy="74" r="4" fill="#fff" stroke="#ddd" stroke-width="1.5" />
+            <circle cx="104" cy="44" r="13" fill="#fff" stroke="#f0e0de" stroke-width="1" />
+            <line x1="98.5" y1="38.5" x2="109.5" y2="49.5" stroke="var(--color-brand-accent)" stroke-width="2.2" stroke-linecap="round" />
+            <line x1="109.5" y1="38.5" x2="98.5" y2="49.5" stroke="var(--color-brand-accent)" stroke-width="2.2" stroke-linecap="round" />
+          </svg>
+        </div>
+
+        <div class="empty-head">일정을 찾을 수 없어요</div>
+        <div class="empty-sub">
+          <em>"{{ searchedKeyword }}"</em>에 대한 여행 일정이 아직 없어요.<br />
+          다른 국내 도시로 검색하거나 아래 추천 여행지를 둘러보세요.
+        </div>
+
+        <div class="suggest-label">이런 일정은 어떠세요?</div>
+        <div class="suggest-chips">
+          <button v-for="city in suggestedCities" :key="city" class="suggest-chip" @click="searchSuggested(city)">
+            {{ city }}
           </button>
         </div>
 
@@ -263,67 +302,31 @@ function syncUrl() {
   router.replace({ query })
 }
 
-function mapPlan(plan) {
-  return {
-    id: plan.planId,
-    title: plan.title,
-    region: plan.regionName,
-    days: plan.dayCount,
-    likeCount: plan.likeCount,
-    viewCount: plan.viewCount,
-    authorInitials: Array.from(plan.authorName || '여행자')
-      .slice(0, 2)
-      .join(''),
-    authorName: plan.authorName,
-    authorAvatar: plan.authorProfileImageUrl,
-    thumbImage: plan.thumbnailImageUrl || defaultPlanThumbnail,
-  }
-}
-
-function useDefaultThumbnail(event) {
-  const image = event.currentTarget
-  if (image.dataset.fallbackApplied === 'true') return
-
-  image.dataset.fallbackApplied = 'true'
-  image.src = defaultPlanThumbnail
-}
-
-async function loadPlans(searchKeyword = '', targetPage = 1) {
-  const sequence = ++requestSequence
+async function loadPlans(searchKeyword = '') {
+  const sequence = ++loadSequence
   loading.value = true
-  loadingMore.value = false
   errorMessage.value = ''
-  plans.value = []
-  totalCount.value = 0
-  hasNextPage.value = false
-
   try {
-    const restoredPlans = []
-    const requestedTarget = Math.min(Math.max(Number(targetPage) || 1, 1), 25)
-    let loadedPage = 0
-    let result
-
-    for (let page = 1; page <= requestedTarget; page += 1) {
-      result = await searchPublicPlans({ keyword: searchKeyword, page, size: pageSize })
-      if (sequence !== requestSequence) return
-      restoredPlans.push(...result.plans.map(mapPlan))
-      loadedPage = page
-      if (!result.hasNext) break
-    }
-
-    plans.value = restoredPlans
-    currentPage.value = loadedPage || 1
-    totalCount.value = result?.totalCount || 0
-    hasNextPage.value = Boolean(result?.hasNext)
-    cacheCurrentSearch()
+    const result = await searchPublicPlans({ keyword: searchKeyword, limit: 100 })
+    if (sequence !== loadSequence) return
+    plans.value = result.plans.map((plan) => ({
+      id: plan.planId,
+      title: plan.title,
+      region: plan.regionName,
+      days: plan.dayCount,
+      likeCount: plan.likeCount,
+      viewCount: plan.viewCount,
+      authorInitials: Array.from(plan.authorName || '여행자').slice(0, 2).join(''),
+      authorName: plan.authorName,
+      authorAvatar: plan.authorProfileImageUrl,
+      thumbImage: plan.thumbnailImageUrl || `https://picsum.photos/seed/withtrip-${plan.planId}/640/440`,
+    }))
   } catch {
-    if (sequence !== requestSequence) return
+    if (sequence !== loadSequence) return
     plans.value = []
-    totalCount.value = 0
-    hasNextPage.value = false
     errorMessage.value = '공개 일정을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
   } finally {
-    if (sequence === requestSequence) loading.value = false
+    if (sequence === loadSequence) loading.value = false
   }
 }
 
