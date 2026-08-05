@@ -85,7 +85,9 @@
 
 <script setup lang="ts">
 import { nextTick, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+import { loginAdmin } from '@/api/adminAuth'
 import mainLogo from '@/assets/branding/travel-planner-logo-header.png'
 
 interface AdminLoginForm {
@@ -103,6 +105,7 @@ const fieldErrors = reactive<AdminLoginForm>({
   password: '',
 })
 const feedbackMessage = ref('')
+const router = useRouter()
 const adminIdInput = ref<HTMLInputElement | null>(null)
 const passwordInput = ref<HTMLInputElement | null>(null)
 
@@ -134,7 +137,16 @@ const handleLogin = async () => {
     return
   }
 
-  feedbackMessage.value = '입력값 확인이 완료되었습니다. 로그인 API 연결이 필요합니다.'
+  try {
+    await loginAdmin({
+      loginId: loginForm.adminId.trim(),
+      password: loginForm.password,
+    })
+    await router.push({ name: 'admin-dashboard' })
+  } catch (error) {
+    feedbackMessage.value =
+      error.response?.data?.message || '로그인 중 오류가 발생했습니다.'
+  }
 }
 </script>
 
