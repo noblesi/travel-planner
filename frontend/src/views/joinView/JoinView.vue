@@ -3,12 +3,28 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
+import { createPinia } from 'pinia'
+import { createPersistedStatePlugin } from 'pinia-plugin-persistedstate'
+
+
 
 const email = ref('')
 const password = ref('')
 const passwordCheck = ref('')
 const router = useRouter()
 const userStore = useUserStore()
+
+
+var testid = "test@test.com"
+
+///////////////////////////////테스트 이메일
+var testemail = "test@test.test";
+var testpass = "123123123123";
+
+email.value = testemail
+password.value = testpass
+passwordCheck.value = testpass
+///////////////////////////////////////////
 
 const isPasswordMatched = computed(() => {
   if (!passwordCheck.value) return true; 
@@ -44,8 +60,7 @@ const passCheckNull = () => {
 }
 
 const checkedId = () => {
-  var testid = "test@test.com"
-  
+ 
   if (!email.value) {
     alert('이메일 주소를 입력해주세요.')
     return false
@@ -62,7 +77,9 @@ const checkedId = () => {
       return false
     }else{
       userStore.setStep1Data(email.value, password.value)
-      router.push('/joinProfileView')
+      const pinia = createPinia()
+      pinia.use(createPersistedStatePlugin())
+      router.push({name:"joinProfile"})
     }
   } else {
     return false

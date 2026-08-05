@@ -24,4 +24,36 @@
 		 WHERE LOWER(EMAIL) = #{email}
 	</select>
 
+	<insert id="insertMember" parameterType="com.noblesi.travelplanner.dto.member.JoinMemberRequest">
+		INSERT INTO MEMBER (
+			MEMBER_ID, 
+			MEMBER_NAME, 
+			EMAIL,
+			BIRTH_DATE, 
+			GENDER_CODE, 
+			PHONE_NUMBER, 
+			NICKNAME, 
+			PASSWORD_HASH, 
+			PRIVACY_CONSENT_YN, 
+			MEMBER_STATUS, 
+			CREATED_AT, 
+			UPDATED_AT
+			)
+    	VALUES (
+			SEQ_MEMBER, 
+			#{NAME}, 
+			#{EMAIL}, 
+			#{BIRTH}, 
+			#{GENDER}, 
+			#{PHONE}, 
+			#{NAME}, 
+			#{PASSWORD}, 
+			'Y', 
+			'ACTIVE',
+			SYSTIMESTAMP, 
+			SYSTIMESTAMP
+			)
+	</insert>
+
+
 </mapper>

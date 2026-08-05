@@ -2,33 +2,37 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
-  const tempEmail = ref('')
-  const tempPassword = ref('')
-  const tempBirth = ref('')
-  const tempName = ref('')
-  const tempGender = ref('')
-  const tempPhone = ref('')
-
+  const tempUserInfo = {
+    tempEmail : "",
+    tempPassword : "",
+    tempBirth : "",
+    tempName : "",
+    tempGender : "",
+    tempPhone : ""
+  }
+  
   const setStep1Data = (email, password) => {
-    tempEmail.value = email
-    tempPassword.value = password
+    tempUserInfo.tempEmail = email
+    tempUserInfo.tempPassword = password
   }
 
   const setStep2Data = (birth, name, gender, phone) => {
-    tempBirth.value = birth
-    tempName.value = name
-    tempGender.value = gender
-    tempPhone.value = phone
+    tempUserInfo.tempBirth = birth
+    tempUserInfo.tempName = name
+    tempUserInfo.tempGender = gender
+    tempUserInfo.tempPhone = phone
   }
 
   const clearData = () => {
-    tempEmail.value = ''
-    tempPassword.value = ''
-    tempBirth.value = ''
-    tempName.value = ''
-    tempGender.value = ''
-    tempPhone.value = ''
+    tempUserInfo.tempEmail = ''
+    tempUserInfo.tempPassword = ''
+    tempUserInfo.tempBirth = ''
+    tempUserInfo.tempName = ''
+    tempUserInfo.tempGender = ''
+    tempUserInfo.tempPhone = ''
   }
 
-  return { tempEmail, tempPassword, setStep1Data, clearData }
+  return { tempUserInfo, setStep1Data, setStep2Data, clearData }
+}, {
+  persist: true //localStorage에 자동 저장
 })

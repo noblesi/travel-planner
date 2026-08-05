@@ -11,6 +11,25 @@ const gender = ref('')
 const phone = ref('')
 const userStore = useUserStore()
 
+const joinFlag = ref(true)
+////////////////////////////////////가데이터
+const testname = "테스터"
+const testbirth = "20001010"
+const testphone = "010-1234-1234"
+
+name.value = testname
+birth.value = testbirth
+phone.value = testphone
+
+console.log("email : " + userStore.tempUserInfo.email)
+console.log("password : " + userStore.tempUserInfo.password)
+console.log("birth : " + userStore.tempUserInfo.birth)
+console.log("name : " + userStore.tempUserInfo.name)
+console.log("gender : " + userStore.tempUserInfo.gender)
+console.log("phone : " + userStore.tempUserInfo.phone)
+
+/////////////////////////////////////
+
 const handleContinue = () => {
   if(name.value == null || name.value == '' ){
     alert('이름을 입력하여 주세요.')
@@ -20,9 +39,27 @@ const handleContinue = () => {
     alert('생년월일을 정확하게 입력하여주세요.')
     return
   }
-  alert('정상 가입되었습니다.')
-  userStore.setStep2Data(birth.value,name.value, gender.value, phone.value)
-  router.push({ name: 'complete' })
+  userStore.setStep2Data(birth.value, name.value, gender.value, phone.value)
+
+  const userInfo = {
+    email: userStore.tempUserInfo.email,
+    password: userStore.tempUserInfo.password,
+    birth: userStore.tempUserInfo.birth,
+    name: userStore.tempUserInfo.name,
+    gender: userStore.tempUserInfo.gender,
+    phone: userStore.tempUserInfo.phone
+  }
+
+  
+
+  if(joinFlag){
+    alert('정상 가입되었습니다.')
+    userStore.clearData()
+    router.push('/joinComplete')
+  } else {
+    alert('가입이 정상적으로 이루어지지 않았습니다. 조금 뒤에 다시 시도해주세요')
+    userStore.clearData()
+  }
 }
 
 </script>
@@ -69,7 +106,7 @@ const handleContinue = () => {
         </div>
         <div class="input-container">
           <label class="input-label">성별 : </label>
-          <input type="radio" :name="gender" value="M"/>남성
+          <input type="radio" :name="gender" value="M" checked="checked"/>남성
           <input type="radio" :name="gender" value="F"/>여성
           <input type="radio" :name="gender" value="N"/>선택안함
         </div>

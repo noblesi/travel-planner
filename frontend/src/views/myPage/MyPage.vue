@@ -129,6 +129,7 @@ const userInfo = ref({
   birthdate: '1998-04-02',
   email: 'hong@example.com'
 })
+const userdata = ref()
 
 // 저장 함수
 const saveInfo = () => {
