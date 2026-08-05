@@ -19,17 +19,20 @@ class PlanInvitationAcceptanceService {
 	private final PlanInvitationQueryService queryService;
 	private final PlanInvitationMapper planInvitationMapper;
 	private final PlanMemberMapper planMemberMapper;
+	private final InvitationTokenService tokenService;
 
 	PlanInvitationAcceptanceService(
 			PlanAccessService planAccessService,
 			PlanInvitationQueryService queryService,
 			PlanInvitationMapper planInvitationMapper,
-			PlanMemberMapper planMemberMapper
+			PlanMemberMapper planMemberMapper,
+			InvitationTokenService tokenService
 	) {
 		this.planAccessService = planAccessService;
 		this.queryService = queryService;
 		this.planInvitationMapper = planInvitationMapper;
 		this.planMemberMapper = planMemberMapper;
+		this.tokenService = tokenService;
 	}
 
 	@Transactional
@@ -50,7 +53,7 @@ class PlanInvitationAcceptanceService {
 			);
 		}
 
-		if (planInvitationMapper.acceptInvitation(invitation.invitationId(), memberId) != 1) {
+		if (planInvitationMapper.acceptInvitation(invitation.invitationId(), memberId, tokenService.now()) != 1) {
 			throw invitationUnavailable();
 		}
 		if (planInvitationMapper.countPlanMember(invitation.planId(), memberId) == 0) {

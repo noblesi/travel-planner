@@ -49,7 +49,7 @@
 	<update id="cancelPendingInvitations">
 		UPDATE PLAN_INVITATION
 		   SET INVITATION_STATUS = 'CANCELED',
-		       RESPONDED_AT = CURRENT_TIMESTAMP
+		       RESPONDED_AT = #{respondedAt}
 		 WHERE PLAN_ID = #{planId}
 		   AND INVITEE_EMAIL = #{inviteeEmail}
 		   AND INVITATION_STATUS = 'PENDING'
@@ -64,7 +64,8 @@
 			INVITEE_EMAIL,
 			INVITATION_STATUS,
 			INVITATION_TOKEN,
-			EXPIRES_AT
+			EXPIRES_AT,
+			CREATED_AT
 		) VALUES (
 			#{invitationId},
 			#{planId},
@@ -73,7 +74,8 @@
 			#{inviteeEmail},
 			#{status},
 			#{tokenHash},
-			#{expiresAt}
+			#{expiresAt},
+			#{createdAt}
 		)
 	</insert>
 
@@ -90,10 +92,9 @@
 		UPDATE PLAN_INVITATION
 		   SET INVITATION_STATUS = 'ACCEPTED',
 		       INVITEE_MEMBER_ID = #{memberId},
-		       RESPONDED_AT = CURRENT_TIMESTAMP
+		       RESPONDED_AT = #{respondedAt}
 		 WHERE INVITATION_ID = #{invitationId}
 		   AND INVITATION_STATUS = 'PENDING'
-		   AND EXPIRES_AT &gt; CURRENT_TIMESTAMP
 	</update>
 
 	<select id="countPlanMember" resultType="int">

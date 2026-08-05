@@ -44,15 +44,11 @@ class InvitationTokenService {
 		}
 	}
 
-	OffsetDateTime expiresAfterHours(long hours) {
-		return now().plusHours(hours);
-	}
-
 	boolean isExpired(OffsetDateTime expiresAt) {
 		return !expiresAt.isAfter(now());
 	}
 
-	private OffsetDateTime now() {
+	OffsetDateTime now() {
 		return OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
 	}
 }
