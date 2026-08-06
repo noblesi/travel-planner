@@ -15,23 +15,23 @@ beforeEach(() => {
 })
 
 describe('admin authentication API', () => {
-  it('관리자 로그인과 세션 조회 응답의 data를 반환한다', async () => {
-    const session = { authenticated: true, admin: { loginId: 'e2e_admin' } }
-    http.post.mockResolvedValueOnce({ data: { data: session } })
-    http.get.mockResolvedValueOnce({ data: { data: session } })
+  it('관리자 로그인과 세션 조회 응답을 반환한다', async () => {
+    const admin = { adminId: 1, loginId: 'e2e_admin' }
+    http.post.mockResolvedValueOnce({ data: admin })
+    http.get.mockResolvedValueOnce({ data: admin })
 
     const credentials = { loginId: 'e2e_admin', password: 'correct-password' }
-    await expect(loginAdmin(credentials)).resolves.toEqual(session)
-    await expect(getAdminSession()).resolves.toEqual(session)
+    await expect(loginAdmin(credentials)).resolves.toEqual(admin)
+    await expect(getAdminSession()).resolves.toEqual(admin)
 
     expect(http.post).toHaveBeenCalledWith('/admin/auth/login', credentials)
     expect(http.get).toHaveBeenCalledWith('/admin/auth/session')
   })
 
   it('관리자 로그아웃 요청을 전송한다', async () => {
-    http.post.mockResolvedValue({ data: { data: null } })
+    http.post.mockResolvedValue({ data: null })
 
-    await expect(logoutAdmin()).resolves.toBeNull()
+    await expect(logoutAdmin()).resolves.toBeUndefined()
     expect(http.post).toHaveBeenCalledWith('/admin/auth/logout')
   })
 })

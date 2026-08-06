@@ -1,94 +1,53 @@
 package com.noblesi.travelplanner.admin.auth.controller;
 
-import java.util.List;
-
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.noblesi.travelplanner.admin.auth.dto.AdminAuthenticationSessionResponse;
-import com.noblesi.travelplanner.admin.auth.dto.AdminLoginRequest;
-import com.noblesi.travelplanner.admin.auth.dto.AuthenticatedAdminResponse;
-import com.noblesi.travelplanner.admin.auth.security.AdminPrincipal;
+import com.noblesi.travelplanner.admin.auth.dto.AdminDTO;
 import com.noblesi.travelplanner.admin.auth.service.AdminAuthService;
-import com.noblesi.travelplanner.common.api.ApiResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/auth")
 public class AdminAuthController {
 
-	private final AdminAuthService adminAuthService;
-	private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
-	private final HttpSessionSecurityContextRepository securityContextRepository =
-			new HttpSessionSecurityContextRepository();
+	private static final String LOGIN_ADMIN_SESSION_KEY = "loginAdmin";
 
-	public AdminAuthController(
-			AdminAuthService adminAuthService,
-			SessionAuthenticationStrategy sessionAuthenticationStrategy
-	) {
+	private final AdminAuthService adminAuthService;
+
+	public AdminAuthController(AdminAuthService adminAuthService) {
 		this.adminAuthService = adminAuthService;
-		this.sessionAuthenticationStrategy = sessionAuthenticationStrategy;
 	}
 
 	@PostMapping("/login")
-	public ApiResponse<AdminAuthenticationSessionResponse> login(
-			@Valid @RequestBody AdminLoginRequest request,
-			HttpServletRequest httpRequest,
-			HttpServletResponse httpResponse
-	) {
-		AdminPrincipal principal = adminAuthService.authenticate(request);
-		Authentication authentication = UsernamePasswordAuthenticationToken.authenticated(
-				principal,
-				null,
-				List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
-		);
-		sessionAuthenticationStrategy.onAuthentication(authentication, httpRequest, httpResponse);
-
-		SecurityContext context = SecurityContextHolder.createEmptyContext();
-		context.setAuthentication(authentication);
-		SecurityContextHolder.setContext(context);
-		securityContextRepository.saveContext(context, httpRequest, httpResponse);
-
-		return authenticatedResponse(principal);
+	public AdminDTO login(@Valid @RequestBody AdminDTO adminDTO, HttpSession session) {
+		AdminDTO loginAdmin = adminAuthService.login(adminDTO);
+		session.setAttribute(LOGIN_ADMIN_SESSION_KEY, loginAdmin);
+		return loginAdmin;
 	}
 
 	@GetMapping("/session")
-	public ApiResponse<AdminAuthenticationSessionResponse> getSession(Authentication authentication) {
-		if (authentication == null
-				|| !authentication.isAuthenticated()
-				|| !(authentication.getPrincipal() instanceof AdminPrincipal principal)) {
-			return ApiResponse.success(AdminAuthenticationSessionResponse.anonymous());
+	public AdminDTO getSession(HttpServletRequest request) {
+		HttpSession session = request.getSession(false);
+		if (session == null) {
+			return null;
 		}
-		return authenticatedResponse(principal);
+
+		Object loginAdmin = session.getAttribute(LOGIN_ADMIN_SESSION_KEY);
+		return loginAdmin instanceof AdminDTO admin ? admin : null;
 	}
 
 	@PostMapping("/logout")
-	public ApiResponse<Void> logout(
-			Authentication authentication,
-			HttpServletRequest request,
-			HttpServletResponse response
-	) {
-		new SecurityContextLogoutHandler().logout(request, response, authentication);
-		return ApiResponse.successWithoutData();
-	}
-
-	private ApiResponse<AdminAuthenticationSessionResponse> authenticatedResponse(AdminPrincipal principal) {
-		return ApiResponse.success(AdminAuthenticationSessionResponse.authenticated(
-				AuthenticatedAdminResponse.from(principal)
-		));
+	public void logout(HttpServletRequest request) {
+		HttpSession session = request.getSession(false);
+		if (session != null) {
+			session.invalidate();
+		}
 	}
 }

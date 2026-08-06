@@ -11,6 +11,7 @@ import com.noblesi.travelplanner.admin.dashboard.service.AdminDashboardService;
 @RequestMapping("/api/admin/dashboard")
 public class AdminDashboardController {
 
+	
 	private final AdminDashboardService adminDashboardService;
 
 	public AdminDashboardController(AdminDashboardService adminDashboardService) {
