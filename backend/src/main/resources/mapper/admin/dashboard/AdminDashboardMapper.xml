@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.noblesi.travelplanner.admin.dashboard.dao.AdminDashboardDAO">
+
+	<select id="selectTotalMemberCount" resultType="int">
+		SELECT COUNT(*)
+		  FROM MEMBER
+	</select>
+
+	<select id="selectNewMemberCount" resultType="int">
+		SELECT COUNT(*)
+		  FROM MEMBER
+		 WHERE CREATED_AT &gt;= TRUNC(SYSDATE)
+		   AND CREATED_AT &lt; TRUNC(SYSDATE) + 1
+	</select>
+
+	<select id="selectPublicPlanCount" resultType="int">
+		SELECT COUNT(*)
+		  FROM TRAVEL_PLAN
+		 WHERE VISIBILITY = 'PUBLIC'
+		   AND PLAN_STATUS = 'ACTIVE'
+	</select>
+
+	<select id="selectPendingReportCount" resultType="int">
+		SELECT COUNT(*)
+		  FROM REPORT
+		 WHERE REPORT_STATUS = 'PENDING'
+	</select>
+
+	<select id="selectWeeklyPlanStats"
+			resultType="com.noblesi.travelplanner.admin.dashboard.domain.WeeklyPlanStatDomain">
+		SELECT TO_CHAR(days.day_date, 'DY', 'NLS_DATE_LANGUAGE=KOREAN') AS day,
+		       COUNT(plan.PLAN_ID)                                      AS value
+		  FROM (
+		        SELECT TRUNC(SYSDATE) - 7 + LEVEL AS day_date
+		          FROM DUAL
+		       CONNECT BY LEVEL &lt;= 7
+		       ) days
+		  LEFT JOIN TRAVEL_PLAN plan
+		    ON plan.CREATED_AT &gt;= days.day_date
+		   AND plan.CREATED_AT &lt; days.day_date + 1
+		 GROUP BY days.day_date
+		 ORDER BY days.day_date
+	</select>
+
+	<select id="selectPopularRegionStats"
+			resultType="com.noblesi.travelplanner.admin.dashboard.domain.PopularRegionStatDomain">
+		SELECT name,
+		       count
+		  FROM (
+		        SELECT region.REGION_NAME AS name,
+		               COUNT(plan.PLAN_ID) AS count
+		          FROM TRAVEL_PLAN plan
+		          JOIN REGION_MASTER region
+		            ON region.REGION_CODE = plan.REGION_CODE
+		         WHERE plan.VISIBILITY = 'PUBLIC'
+		           AND plan.PLAN_STATUS = 'ACTIVE'
+		         GROUP BY region.REGION_CODE, region.REGION_NAME
+		         ORDER BY COUNT(plan.PLAN_ID) DESC, region.REGION_NAME
+		       )
+		 WHERE ROWNUM &lt;= 5
+	</select>
+
+</mapper>

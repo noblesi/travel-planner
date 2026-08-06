@@ -1,6 +1,8 @@
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { getAdminDashboard } from '@/api/adminDashboard'
 import newUserIcon from '@/assets/icons/admin/newmember_icon.png'
 import peopleIcon from '@/assets/icons/admin/member_icon.png'
 import planIcon from '@/assets/icons/admin/plan_icon.png'
@@ -8,33 +10,30 @@ import reportIcon from '@/assets/icons/admin/report_icon.png'
 
 const router = useRouter()
 
-// 대시보드 통계 API 응답으로 교체할 요약 카드 데이터입니다.
-const summaryCards = [
-  { label: '전체 회원', value: '3,000', image: peopleIcon, imageClass: 'summary-image--people', caption: '전월 대비 12% 증가', tone: 'positive', route: { name: 'admin-members' } },
-  { label: '신규 가입자 수', value: '15', image: newUserIcon, caption: '오늘 신규 가입', tone: 'positive', route: { name: 'admin-members' } },
-  { label: '공개 여행 플랜', value: '200', image: planIcon, caption: '이번 달 42개 등록', tone: 'neutral', route: { name: 'admin-trips' } },
-  { label: '신고 검토 대기', value: '13', image: reportIcon, caption: '확인이 필요합니다', tone: 'warning', route: { name: 'admin-trips', query: { tab: 'reported' } } },
-]
+const dashboard = ref({
+  totalMemberCount: 0,
+  newMemberCount: 0,
+  publicPlanCount: 0,
+  pendingReportCount: 0,
+  weeklyPlanStats: [],
+  popularRegionStats: [],
+})
 
-// 최근 7일 플랜 생성 통계 API 응답으로 교체합니다.
-const weeklyPlans = [
-  { day: '월', value: 50 },
-  { day: '화', value: 38 },
-  { day: '수', value: 101 },
-  { day: '목', value: 24 },
-  { day: '금', value: 20 },
-  { day: '토', value: 11 },
-  { day: '일', value: 28 },
-]
+const formatNumber = (value) => Number(value || 0).toLocaleString('ko-KR')
 
-// 지역별 공개 여행 플랜 수를 많은 순서대로 표시합니다.
-const popularRegions = [
-  { rank: 1, name: '제주', count: 142, percentage: 100 },
-  { rank: 2, name: '서울', count: 118, percentage: 83 },
-  { rank: 3, name: '부산', count: 96, percentage: 68 },
-  { rank: 4, name: '강원', count: 72, percentage: 51 },
-  { rank: 5, name: '경주', count: 51, percentage: 36 },
-]
+const summaryCards = computed(() => [
+  { label: '전체 회원', value: formatNumber(dashboard.value.totalMemberCount), image: peopleIcon, imageClass: 'summary-image--people', caption: '전체 가입 회원', tone: 'positive', route: { name: 'admin-members' } },
+  { label: '신규 가입자 수', value: formatNumber(dashboard.value.newMemberCount), image: newUserIcon, caption: '오늘 신규 가입', tone: 'positive', route: { name: 'admin-members' } },
+  { label: '공개 여행 플랜', value: formatNumber(dashboard.value.publicPlanCount), image: planIcon, caption: '현재 공개 중', tone: 'neutral', route: { name: 'admin-trips' } },
+  { label: '신고 검토 대기', value: formatNumber(dashboard.value.pendingReportCount), image: reportIcon, caption: '확인이 필요합니다', tone: 'warning', route: { name: 'admin-trips', query: { tab: 'reported' } } },
+])
+
+const weeklyPlans = computed(() => dashboard.value.weeklyPlanStats)
+const popularRegions = computed(() => dashboard.value.popularRegionStats)
+
+onMounted(async () => {
+  dashboard.value = await getAdminDashboard()
+})
 </script>
 
 <template>
