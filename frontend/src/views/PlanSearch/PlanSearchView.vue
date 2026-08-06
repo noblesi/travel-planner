@@ -271,7 +271,9 @@ function mapPlan(plan) {
     days: plan.dayCount,
     likeCount: plan.likeCount,
     viewCount: plan.viewCount,
-    authorInitials: Array.from(plan.authorName || '여행자').slice(0, 2).join(''),
+    authorInitials: Array.from(plan.authorName || '여행자')
+      .slice(0, 2)
+      .join(''),
     authorName: plan.authorName,
     authorAvatar: plan.authorProfileImageUrl,
     thumbImage: plan.thumbnailImageUrl || defaultPlanThumbnail,
