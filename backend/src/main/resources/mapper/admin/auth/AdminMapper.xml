@@ -15,7 +15,7 @@
 		       EMAIL           AS email,
 		       ADMIN_ROLE_CODE AS adminRoleCode,
 		       ADMIN_STATUS    AS adminStatus,
-		       CREATED_AT      AS createAt
+		       CREATED_AT      AS createdAt
 		  FROM ADMIN
 		 WHERE LOGIN_ID = #{loginId}
 	</select>

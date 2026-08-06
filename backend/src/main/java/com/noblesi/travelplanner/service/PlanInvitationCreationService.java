@@ -46,10 +46,11 @@ class PlanInvitationCreationService {
 		long memberId = planAccessService.currentMemberId();
 		planAccessService.requireOwnedPlan(planId, memberId);
 
-		OffsetDateTime expiresAt = tokenService.expiresAfterHours(INVITATION_VALID_HOURS);
+		OffsetDateTime createdAt = tokenService.now();
+		OffsetDateTime expiresAt = createdAt.plusHours(INVITATION_VALID_HOURS);
 		List<CreatedPlanInvitationResponse> invitations = normalizeEmails(request.inviteeEmails())
 				.stream()
-				.map(email -> createInvitation(planId, memberId, email, expiresAt))
+				.map(email -> createInvitation(planId, memberId, email, createdAt, expiresAt))
 				.toList();
 		return new CreatePlanInvitationsResponse(Long.toString(planId), invitations);
 	}
@@ -58,9 +59,10 @@ class PlanInvitationCreationService {
 			long planId,
 			long memberId,
 			String email,
+			OffsetDateTime createdAt,
 			OffsetDateTime expiresAt
 	) {
-		planInvitationMapper.cancelPendingInvitations(planId, email);
+		planInvitationMapper.cancelPendingInvitations(planId, email, createdAt);
 		String token = tokenService.generateToken();
 		long invitationId = planInvitationMapper.nextPlanInvitationId();
 		int affectedRows = planInvitationMapper.insertPlanInvitation(new PlanInvitation(
@@ -71,7 +73,8 @@ class PlanInvitationCreationService {
 				email,
 				InvitationStatus.PENDING,
 				tokenService.hashToken(token),
-				expiresAt
+				expiresAt,
+				createdAt
 		));
 		if (affectedRows != 1) {
 			throw new IllegalStateException("Expected one affected row but got " + affectedRows);
