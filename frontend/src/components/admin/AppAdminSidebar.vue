@@ -1,7 +1,7 @@
 <script setup>
 import { RouterLink, useRouter } from 'vue-router'
 
-import logoSymbol from '@/assets/branding/travel-planner-logo-symbol.png'
+import logoSymbol from '@/assets/branding/travel-planner-logo-symbol.webp'
 
 defineProps({ open: Boolean })
 defineEmits(['close'])

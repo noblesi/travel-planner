@@ -22,6 +22,31 @@ VALUES
     ('39', '제주특별자치도',   NULL, 'SIDO', 17, 'Y');
 
 -- P2/P3 authentication fixtures. Raw test password: WithTrip-E2E-2026!
+INSERT INTO ADMIN (
+    ADMIN_ID,
+    LOGIN_ID,
+    ADMIN_NAME,
+    PASSWORD_HASH,
+    EMAIL,
+    ADMIN_ROLE_CODE,
+    ADMIN_STATUS
+) VALUES
+    (SEQ_ADMIN.NEXTVAL, 'e2e_admin', '테스트관리자', '$2a$10$vtQ0WJwy8lT3TsxLq/NZ0ucMHmcSxN5hGQiWw28uIe4ehQTtDs2IW', 'e2e.admin@withtrip.test', 'CONTENT', 'ACTIVE'),
+    (SEQ_ADMIN.NEXTVAL, 'inactive_admin', '비활성관리자', '$2a$10$vtQ0WJwy8lT3TsxLq/NZ0ucMHmcSxN5hGQiWw28uIe4ehQTtDs2IW', 'inactive.admin@withtrip.test', 'CONTENT', 'INACTIVE');
+
+INSERT INTO NOTICE (
+    NOTICE_ID,
+    ADMIN_ID,
+    TITLE,
+    CONTENT,
+    CATEGORY_CODE,
+    HIDDEN_YN
+) VALUES
+    (SEQ_NOTICE.NEXTVAL, 1, 'WithTrip 서비스 이용 안내', '서비스 이용 방법을 안내합니다.', 'GUIDE', 'N'),
+    (SEQ_NOTICE.NEXTVAL, 1, '여행 플랜 기능 업데이트', '여행 플랜 기능이 업데이트되었습니다.', 'GUIDE', 'N'),
+    (SEQ_NOTICE.NEXTVAL, 1, '시스템 정기 점검 안내', '시스템 정기 점검 일정을 안내합니다.', 'MAINTENANCE', 'N'),
+    (SEQ_NOTICE.NEXTVAL, 1, '숨김 공지', '사용자 화면에 노출되지 않아야 합니다.', 'GUIDE', 'Y');
+
 INSERT INTO MEMBER (
     MEMBER_ID,
     MEMBER_NAME,

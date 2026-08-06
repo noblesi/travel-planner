@@ -3,7 +3,7 @@ import { onBeforeUnmount, onMounted } from 'vue'
 
 import AdminButton from './AdminButton.vue'
 
-const props = defineProps({
+defineProps({
   title: { type: String, required: true },
   message: { type: String, required: true },
   confirmLabel: { type: String, default: '확인' },

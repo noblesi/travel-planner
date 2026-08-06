@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.OffsetDateTime;
+import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
 
@@ -40,6 +41,9 @@ class PlanInvitationControllerIntegrationTest {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+
+	@Autowired
+	private Clock clock;
 
 	@BeforeEach
 	void setUp() {
@@ -199,7 +203,7 @@ class PlanInvitationControllerIntegrationTest {
 	@Test
 	void rejectsExpiredAndInvalidInvitationTokens() throws Exception {
 		insertPlan(PLAN_ID, 2L);
-		OffsetDateTime createdAt = OffsetDateTime.now(ZoneOffset.UTC).minusDays(2);
+		OffsetDateTime createdAt = now().minusDays(2);
 		insertInvitation(
 				INVITATION_ID,
 				PLAN_ID,
@@ -258,7 +262,7 @@ class PlanInvitationControllerIntegrationTest {
 			OffsetDateTime expiresAt
 	) {
 		OffsetDateTime effectiveCreatedAt = createdAt == null
-				? OffsetDateTime.now(ZoneOffset.UTC)
+				? now()
 				: createdAt;
 		jdbcTemplate.update("""
 				INSERT INTO PLAN_INVITATION (
@@ -277,7 +281,11 @@ class PlanInvitationControllerIntegrationTest {
 	}
 
 	private OffsetDateTime futureExpiry() {
-		return OffsetDateTime.now(ZoneOffset.UTC).plusHours(24);
+		return now().plusHours(24);
+	}
+
+	private OffsetDateTime now() {
+		return OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
 	}
 
 	private String hashToken(String token) {

@@ -20,37 +20,47 @@ import com.noblesi.travelplanner.dto.plan.PublicPlanSearchResponse;
 import com.noblesi.travelplanner.dto.plan.PublicPlanSummaryResponse;
 import com.noblesi.travelplanner.mapper.PlanDayMapper;
 import com.noblesi.travelplanner.mapper.PlanScheduleItemMapper;
-import com.noblesi.travelplanner.mapper.TravelPlanMapper;
+import com.noblesi.travelplanner.mapper.PublicPlanMapper;
 
 @Service
 public class PublicPlanService {
 	private static final int MAX_SEARCH_LIMIT = 100;
 
-	private final TravelPlanMapper travelPlanMapper;
+	private final PublicPlanMapper publicPlanMapper;
 	private final PlanDayMapper planDayMapper;
 	private final PlanScheduleItemMapper planScheduleItemMapper;
 
 	public PublicPlanService(
-			TravelPlanMapper travelPlanMapper,
+			PublicPlanMapper publicPlanMapper,
 			PlanDayMapper planDayMapper,
 			PlanScheduleItemMapper planScheduleItemMapper
 	) {
-		this.travelPlanMapper = travelPlanMapper;
+		this.publicPlanMapper = publicPlanMapper;
 		this.planDayMapper = planDayMapper;
 		this.planScheduleItemMapper = planScheduleItemMapper;
 	}
 
 	@Transactional(readOnly = true)
-	public PublicPlanSearchResponse search(String keywordValue, int requestedLimit) {
+	public PublicPlanSearchResponse search(String keywordValue, int requestedPage, int requestedSize) {
 		String keyword = keywordValue == null ? "" : keywordValue.strip();
-		int limit = Math.min(Math.max(requestedLimit, 1), MAX_SEARCH_LIMIT);
-		List<PublicPlanSummaryResponse> plans = travelPlanMapper.findPublicPlans(keyword, limit)
+		int page = Math.max(requestedPage, 1);
+		int size = Math.min(Math.max(requestedSize, 1), MAX_SEARCH_LIMIT);
+		long offset = (long) (page - 1) * size;
+		int totalCount = publicPlanMapper.countPublicPlans(keyword);
+		int totalPages = totalCount == 0
+				? 0
+				: (int) ((totalCount + (long) size - 1) / size);
+		List<PublicPlanSummaryResponse> plans = publicPlanMapper.findPublicPlans(keyword, offset, size)
 				.stream()
 				.map(PublicPlanSummaryResponse::from)
 				.toList();
 		return new PublicPlanSearchResponse(
 				keyword,
-				travelPlanMapper.countPublicPlans(keyword),
+				page,
+				size,
+				totalCount,
+				totalPages,
+				page < totalPages,
 				plans
 		);
 	}
@@ -58,10 +68,10 @@ public class PublicPlanService {
 	@Transactional
 	public PublicPlanDetailResponse getDetail(String planIdValue) {
 		long planId = parsePlanId(planIdValue);
-		if (travelPlanMapper.incrementPublicPlanViewCount(planId) != 1) {
+		if (publicPlanMapper.incrementPublicPlanViewCount(planId) != 1) {
 			throw planNotFound();
 		}
-		PublicTravelPlan plan = travelPlanMapper.findPublicPlanById(planId);
+		PublicTravelPlan plan = publicPlanMapper.findPublicPlanById(planId);
 		if (plan == null) {
 			throw planNotFound();
 		}

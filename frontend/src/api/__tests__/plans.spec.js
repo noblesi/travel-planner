@@ -81,13 +81,13 @@ describe('getTravelPlanEditor', () => {
 })
 
 describe('public plan reads', () => {
-  it('검색어와 제한 건수를 전달해 공개 플랜을 조회한다', async () => {
+  it('검색어와 페이지 정보를 전달해 공개 플랜을 조회한다', async () => {
     const result = { keyword: '서울', totalCount: 1, plans: [{ planId: '11' }] }
     http.get.mockResolvedValue({ data: { data: result } })
 
-    await expect(searchPublicPlans({ keyword: '서울', limit: 24 })).resolves.toEqual(result)
+    await expect(searchPublicPlans({ keyword: '서울', page: 2, size: 8 })).resolves.toEqual(result)
     expect(http.get).toHaveBeenCalledWith('/plans', {
-      params: { keyword: '서울', limit: 24 },
+      params: { keyword: '서울', page: 2, size: 8 },
     })
   })
 

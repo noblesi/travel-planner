@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 440" role="img" aria-labelledby="title description">
+  <title id="title">WithTrip 기본 여행 이미지</title>
+  <desc id="description">해와 산, 여행 경로를 표현한 기본 썸네일</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff7ed"/>
+      <stop offset="1" stop-color="#fee2e2"/>
+    </linearGradient>
+    <linearGradient id="mountain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fb923c"/>
+      <stop offset="1" stop-color="#ea580c"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="440" fill="url(#sky)"/>
+  <circle cx="490" cy="108" r="54" fill="#fdba74" opacity=".9"/>
+  <path d="M0 352 138 194l80 86 96-124 96 118 76-70 154 148v88H0Z" fill="#fed7aa"/>
+  <path d="M0 394 178 246l96 91 92-124 122 132 62-58 90 83v70H0Z" fill="url(#mountain)" opacity=".9"/>
+  <path d="M102 372c76-74 150-85 222-35 62 43 125 39 214-21" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-dasharray="4 22" opacity=".9"/>
+  <circle cx="102" cy="372" r="13" fill="#fff"/>
+  <path d="M525 292c0 28-35 62-35 62s-35-34-35-62a35 35 0 1 1 70 0Z" fill="#fff"/>
+  <circle cx="490" cy="291" r="12" fill="#f97316"/>
+  <text x="42" y="70" fill="#9a3412" font-family="Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="4">WITH TRIP</text>
+</svg>

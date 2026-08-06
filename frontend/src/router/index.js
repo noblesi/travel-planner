@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
+import { useAuthStore } from '@/stores/auth'
 import adminRoutes from './adminRouter'
 
 // 사용자 라우트와 기능별로 분리한 관리자 라우트를 하나의 Router에 등록합니다.
@@ -17,12 +18,14 @@ const router = createRouter({
       path: '/plans/new',
       name: 'plan-setup',
       component: () => import('@/views/PlanSetupView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/plans/:planId/edit',
       name: 'plan-editor',
       component: () => import('@/views/PlanEditorView.vue'),
       props: true,
+      meta: { requiresAuth: true },
     },
     {
       path: '/plans',
@@ -94,11 +97,6 @@ const router = createRouter({
       name: 'myPage',
       component: () => import('@/views/myPage/MyPage.vue'),
     },
-     {
-      path: '/testView',
-      name: 'testView',
-      component: () => import('@/views/myPage/testView.vue'),
-    },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
@@ -111,10 +109,23 @@ const router = createRouter({
     }
 
     if (to.path === from.path) {
-      return false  // 스크롤 유지,  아무 것도 안 함
+      return false // 스크롤 유지,  아무 것도 안 함
     }
     return { top: 0 }
   },
+})
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAuth) return true
+
+  const authStore = useAuthStore()
+  if (!authStore.initialized) await authStore.restoreSession()
+  if (authStore.isAuthenticated) return true
+
+  return {
+    name: 'login',
+    query: { redirect: to.fullPath },
+  }
 })
 
 export default router

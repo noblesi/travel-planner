@@ -1,17 +1,15 @@
 package com.noblesi.travelplanner.admin.auth.domain;
 
-import java.sql.Date;
+import java.time.OffsetDateTime;
 
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 
 @Getter
 @Setter
-@ToString
 public class AdminDomain {
 	
-	private int adminId;
+	private long adminId;
 	private String loginId;
 	private String password;
 	private String name;
@@ -19,5 +17,5 @@ public class AdminDomain {
 	private String phoneNumber;
 	private String adminRoleCode;
 	private String adminStatus;
-	private Date createAt;
+	private OffsetDateTime createdAt;
 }

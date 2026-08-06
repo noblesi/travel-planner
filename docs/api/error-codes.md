@@ -43,6 +43,10 @@
 | --- | --- | --- |
 | `400` | `INVALID_TRAVEL_DATE_RANGE` | `startDate`가 `endDate`보다 늦음 |
 | `400` | `TRAVEL_PLAN_DURATION_EXCEEDED` | 여행 기간이 14일을 초과함 |
+| `400` | `PAST_TRAVEL_START_DATE` | 한국 시간 기준 여행 시작일이 오늘보다 빠름 |
+| `400` | `ONGOING_TRAVEL_START_DATE_LOCKED` | 진행 중인 여행의 기존 시작일을 변경함 |
+| `400` | `PAST_TRAVEL_END_DATE` | 진행 중인 여행의 종료일을 오늘보다 과거로 변경함 |
+| `400` | `COMPLETED_TRAVEL_DATES_LOCKED` | 종료된 여행 플랜의 날짜를 변경함 |
 | `403` | `PLAN_ACCESS_DENIED` | 현재 회원에게 플랜 조회 또는 편집 권한이 없음 |
 | `404` | `REGION_NOT_FOUND` | 활성화된 시·도 지역코드가 존재하지 않음 |
 | `404` | `PLAN_NOT_FOUND` | 플랜이 없거나 삭제 상태여서 조회할 수 없음 |

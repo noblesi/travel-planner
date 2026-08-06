@@ -83,33 +83,28 @@
   </main>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { nextTick, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import { loginAdmin } from '@/api/adminAuth'
-import mainLogo from '@/assets/branding/travel-planner-logo-header.png'
+import mainLogo from '@/assets/branding/travel-planner-logo-header.webp'
 
-interface AdminLoginForm {
-  adminId: string
-  password: string
-}
-
-const loginForm = reactive<AdminLoginForm>({
+const loginForm = reactive({
   adminId: '',
   password: '',
 })
 
-const fieldErrors = reactive<AdminLoginForm>({
+const fieldErrors = reactive({
   adminId: '',
   password: '',
 })
 const feedbackMessage = ref('')
 const router = useRouter()
-const adminIdInput = ref<HTMLInputElement | null>(null)
-const passwordInput = ref<HTMLInputElement | null>(null)
+const adminIdInput = ref(null)
+const passwordInput = ref(null)
 
-const clearFieldError = (field: keyof AdminLoginForm) => {
+const clearFieldError = (field) => {
   fieldErrors[field] = ''
   feedbackMessage.value = ''
 }

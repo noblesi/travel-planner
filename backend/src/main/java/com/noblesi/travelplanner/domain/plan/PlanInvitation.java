@@ -10,6 +10,7 @@ public record PlanInvitation(
 		String inviteeEmail,
 		InvitationStatus status,
 		String tokenHash,
-		OffsetDateTime expiresAt
+		OffsetDateTime expiresAt,
+		OffsetDateTime createdAt
 ) {
 }
