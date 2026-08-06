@@ -9,9 +9,10 @@ const props = defineProps({
   selectedDay: { type: Object, default: null },
   scheduleItems: { type: Array, required: true },
   settingsBusy: { type: Boolean, required: true },
+  selectedScheduleItemId: { type: [String, Number], default: null },
 })
 
-defineEmits(['add'])
+const emit = defineEmits(['add', 'select-schedule'])
 const searchResults = ref([])
 const selectedSearchPlace = ref(null)
 
@@ -21,7 +22,11 @@ const selectedSearchPlaceId = computed(() =>
     : null,
 )
 const selectedMapPlaceId = computed(() =>
-  selectedSearchPlaceId.value ? `search:${selectedSearchPlaceId.value}` : null,
+  selectedSearchPlaceId.value
+    ? `search:${selectedSearchPlaceId.value}`
+    : props.selectedScheduleItemId != null
+      ? `schedule:${props.selectedScheduleItemId}`
+      : null,
 )
 const mapPlaces = computed(() => [
   ...props.scheduleItems.map((item) => ({
@@ -52,6 +57,10 @@ function updateSearchResults(places) {
 
 function selectMapPlace(place) {
   if (place.markerSource === 'SEARCH') selectedSearchPlace.value = place
+  if (place.markerSource === 'SCHEDULE') {
+    selectedSearchPlace.value = null
+    emit('select-schedule', place)
+  }
 }
 </script>
 
@@ -70,6 +79,7 @@ function selectMapPlace(place) {
         :region-name="plan.regionName"
         :selected-place-id="selectedSearchPlaceId"
         :schedule-disabled="settingsBusy || !selectedDay"
+        :schedule-items="scheduleItems"
         @results-change="updateSearchResults"
         @select="selectedSearchPlace = $event"
         @add="$emit('add', $event)"
@@ -82,8 +92,4 @@ function selectMapPlace(place) {
 .map-panel { position: relative; min-width: 0; min-height: 0; background: #dce5e1; }
 .editor-map { width: 100%; height: 100%; min-height: 520px; }
 .map-overlay { position: absolute; z-index: 5; top: 20px; right: 20px; width: min(380px, calc(100% - 40px)); max-height: calc(100% - 40px); overflow-y: auto; }
-@media (max-width: 880px) {
-  .map-panel { min-height: 680px; }
-  .map-overlay { top: 12px; right: 12px; width: calc(100% - 24px); }
-}
 </style>

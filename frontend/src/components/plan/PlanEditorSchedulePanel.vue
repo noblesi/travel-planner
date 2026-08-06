@@ -18,6 +18,7 @@ defineProps({
   saveStatus: { type: String, required: true },
   saveErrorMessage: { type: String, default: '' },
   canRetrySave: { type: Boolean, required: true },
+  selectedScheduleItemId: { type: [String, Number], default: null },
 })
 
 const emit = defineEmits([
@@ -28,6 +29,11 @@ const emit = defineEmits([
   'move-position',
   'move-time-slot',
   'remove',
+  'select-item',
+  'drag-start',
+  'drag-end',
+  'drop-schedule',
+  'drop-before',
 ])
 const settingsBusy = ref(false)
 
@@ -41,16 +47,32 @@ function updateBusy(value) {
   <aside class="schedule-panel" aria-label="여행 일정 편집 영역">
     <header class="schedule-panel__header">
       <div><span>TRAVEL SCHEDULE</span><h2>여행 일정</h2></div>
-      <span class="visibility-badge">{{ plan.visibility === 'PUBLIC' ? '공개' : '비공개' }}</span>
+      <span class="visibility-badge">
+        {{
+          plan.publishStatus === 'DRAFT'
+            ? '작성 중'
+            : plan.visibility === 'PUBLIC'
+              ? '공개'
+              : '비공개'
+        }}
+      </span>
     </header>
     <div class="plan-summary">
       <div><span>여행 기간</span><strong>{{ days.length }}일</strong></div>
       <div><span>여행 지역</span><strong>{{ plan.regionName }}</strong></div>
     </div>
-    <RouterLink class="invite-panel-link" :to="{ name: 'invite', params: { id: plan.planId } }">
+    <RouterLink
+      v-if="plan.canManagePlan !== false"
+      class="invite-panel-link"
+      :to="{ name: 'invite', params: { id: plan.planId } }"
+    >
       동행자 초대 링크 만들기
     </RouterLink>
-    <PlanEditorSettings @busy-change="updateBusy" />
+    <p v-else class="collaborator-notice">동행자는 일정만 편집할 수 있습니다.</p>
+    <PlanEditorSettings
+      :can-manage-plan="plan.canManagePlan !== false"
+      @busy-change="updateBusy"
+    />
 
     <section v-if="hasSaveError" class="save-error" role="alert">
       <div>
@@ -72,6 +94,8 @@ function updateBusy(value) {
         type="button"
         :aria-pressed="day.planDayId === selectedDayId"
         @click="$emit('select-day', day.planDayId)"
+        @dragover.prevent
+        @drop.prevent="$emit('drop-schedule', { targetPlanDayId: day.planDayId })"
       >
         <strong>DAY {{ day.dayNo }}</strong>
         <small>{{ formatKoreanTravelDate(day.travelDate) }}</small>
@@ -96,13 +120,23 @@ function updateBusy(value) {
         <p>장소를 검색한 뒤 오전 또는 오후 일정에 바로 추가할 수 있어요.</p>
       </div>
       <div v-else class="schedule-groups">
-        <section class="schedule-group" aria-labelledby="morning-heading">
+        <section
+          class="schedule-group"
+          aria-labelledby="morning-heading"
+          @dragover.prevent
+          @drop.prevent="$emit('drop-schedule', { targetPlanDayId: selectedDayId, targetTimeSlot: 'MORNING' })"
+        >
           <header class="schedule-group__header"><h3 id="morning-heading">오전</h3><span>{{ morningItems.length }}곳</span></header>
           <ScheduleList
             v-if="morningItems.length"
             :items="morningItems"
             time-slot="MORNING"
             :disabled="settingsBusy"
+            :selected-schedule-item-id="selectedScheduleItemId"
+            @select="$emit('select-item', $event)"
+            @drag-start="$emit('drag-start', $event)"
+            @drag-end="$emit('drag-end')"
+            @drop-before="$emit('drop-before', { targetItem: $event, targetPlanDayId: selectedDayId, targetTimeSlot: 'MORNING' })"
             @move-up="$emit('move-position', $event, -1)"
             @move-down="$emit('move-position', $event, 1)"
             @move-time-slot="$emit('move-time-slot', $event, 'AFTERNOON')"
@@ -110,13 +144,23 @@ function updateBusy(value) {
           />
           <p v-else class="schedule-group__empty">오전 일정이 없습니다.</p>
         </section>
-        <section class="schedule-group" aria-labelledby="afternoon-heading">
+        <section
+          class="schedule-group"
+          aria-labelledby="afternoon-heading"
+          @dragover.prevent
+          @drop.prevent="$emit('drop-schedule', { targetPlanDayId: selectedDayId, targetTimeSlot: 'AFTERNOON' })"
+        >
           <header class="schedule-group__header"><h3 id="afternoon-heading">오후</h3><span>{{ afternoonItems.length }}곳</span></header>
           <ScheduleList
             v-if="afternoonItems.length"
             :items="afternoonItems"
             time-slot="AFTERNOON"
             :disabled="settingsBusy"
+            :selected-schedule-item-id="selectedScheduleItemId"
+            @select="$emit('select-item', $event)"
+            @drag-start="$emit('drag-start', $event)"
+            @drag-end="$emit('drag-end')"
+            @drop-before="$emit('drop-before', { targetItem: $event, targetPlanDayId: selectedDayId, targetTimeSlot: 'AFTERNOON' })"
             @move-up="$emit('move-position', $event, -1)"
             @move-down="$emit('move-position', $event, 1)"
             @move-time-slot="$emit('move-time-slot', $event, 'MORNING')"
@@ -141,6 +185,7 @@ function updateBusy(value) {
 .day-preview__label > span { color: #94a3b8; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 .plan-summary strong { overflow: hidden; color: #334155; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .invite-panel-link { display: flex; align-items: center; justify-content: center; min-height: 42px; margin-top: 14px; color: #e8443a; border: 1px solid #ffc2bd; border-radius: 12px; background: #fff8f7; font-size: 13px; font-weight: 800; text-decoration: none; }
+.collaborator-notice { margin: 14px 0 0; padding: 11px 12px; color: #475569; border-radius: 10px; background: #f1f5f9; font-size: 11px; text-align: center; }
 .save-error { display: grid; gap: 12px; margin-top: 14px; padding: 14px; color: #991b1b; border: 1px solid #fecaca; border-radius: 12px; background: #fef2f2; }
 .save-error strong { font-size: 12px; }
 .save-error p { margin: 4px 0 0; font-size: 11px; line-height: 1.5; }
@@ -165,5 +210,4 @@ function updateBusy(value) {
 .schedule-group__header h3 { margin: 0; color: #334155; font-size: 13px; }
 .schedule-group__header span { color: #94a3b8; font-size: 10px; }
 .schedule-group__empty { margin: 0; padding: 14px; color: #94a3b8; border-radius: 10px; background: #f8fafc; font-size: 10px; text-align: center; }
-@media (max-width: 880px) { .schedule-panel { border-right: 0; border-bottom: 1px solid #dce3ec; } }
 </style>

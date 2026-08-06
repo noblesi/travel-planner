@@ -11,6 +11,7 @@ const {
   updateScheduleItemMock,
   updateTravelPlanDatesMock,
   updateTravelPlanMetadataMock,
+  updatePlanPublicationMock,
 } = vi.hoisted(() => ({
   addScheduleItemMock: vi.fn(),
   deleteScheduleItemMock: vi.fn(),
@@ -19,6 +20,7 @@ const {
   updateScheduleItemMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
   updateTravelPlanMetadataMock: vi.fn(),
+  updatePlanPublicationMock: vi.fn(),
 }))
 
 vi.mock('@/api/plans', () => ({
@@ -29,6 +31,7 @@ vi.mock('@/api/plans', () => ({
   updateScheduleItem: updateScheduleItemMock,
   updateTravelPlanDates: updateTravelPlanDatesMock,
   updateTravelPlanMetadata: updateTravelPlanMetadataMock,
+  updatePlanPublication: updatePlanPublicationMock,
 }))
 
 const plan = {
@@ -47,6 +50,7 @@ beforeEach(() => {
   getTravelPlanEditorMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
   updateTravelPlanMetadataMock.mockReset()
+  updatePlanPublicationMock.mockReset()
   addScheduleItemMock.mockReset()
   updateScheduleItemMock.mockReset()
   deleteScheduleItemMock.mockReset()

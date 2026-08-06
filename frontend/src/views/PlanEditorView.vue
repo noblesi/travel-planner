@@ -7,12 +7,14 @@ import PlanEditorMapWorkspace from '@/components/plan/PlanEditorMapWorkspace.vue
 import PlanEditorSchedulePanel from '@/components/plan/PlanEditorSchedulePanel.vue'
 import PlanEditorToolbar from '@/components/plan/PlanEditorToolbar.vue'
 import { usePlanEditorStore } from '@/stores/planEditor'
+import { useToastStore } from '@/stores/toast'
 
 const props = defineProps({
   planId: { type: String, required: true },
 })
 
 const editorStore = usePlanEditorStore()
+const toastStore = useToastStore()
 const {
   status,
   errorMessage,
@@ -37,6 +39,11 @@ const {
 } = storeToRefs(editorStore)
 
 const settingsBusy = ref(false)
+const publicationBusy = ref(false)
+const selectedScheduleItemId = ref(null)
+const draggedSchedule = ref(null)
+const schedulePanelWidth = ref(Number(localStorage.getItem('planEditorPanelWidth')) || 430)
+const resizingPanel = ref(false)
 
 function retryLoad() {
   return editorStore.loadPlanEditor(props.planId)
@@ -61,16 +68,143 @@ function moveScheduleItem(item, targetTimeSlot) {
   )
 }
 
+function selectScheduleItem(item) {
+  selectedScheduleItemId.value = item?.scheduleItemId ?? null
+}
+
+function startScheduleDrag(item) {
+  draggedSchedule.value = {
+    item,
+    sourcePlanDayId: selectedDayId.value,
+    sourceTimeSlot: item.timeSlot,
+  }
+}
+
+function endScheduleDrag() {
+  draggedSchedule.value = null
+}
+
+function dropSchedule({ targetPlanDayId, targetTimeSlot }) {
+  const dragged = draggedSchedule.value
+  if (!dragged || !targetPlanDayId) return
+  const nextTimeSlot = targetTimeSlot || dragged.sourceTimeSlot
+  const sameDay = String(targetPlanDayId) === String(dragged.sourcePlanDayId)
+  const sameSlot = nextTimeSlot === dragged.sourceTimeSlot
+
+  if (sameDay && sameSlot) {
+    runScheduleOperation(
+      editorStore.moveScheduleItemToEnd(
+        dragged.item.scheduleItemId,
+        dragged.sourcePlanDayId,
+      ),
+    )
+  } else {
+    runScheduleOperation(
+      editorStore.moveScheduleItemTimeSlot(
+        dragged.item.scheduleItemId,
+        nextTimeSlot,
+        dragged.sourcePlanDayId,
+        targetPlanDayId,
+      ),
+    )
+  }
+  selectedScheduleItemId.value = dragged.item.scheduleItemId
+  draggedSchedule.value = null
+}
+
+function dropScheduleBefore({ targetItem, targetPlanDayId, targetTimeSlot }) {
+  const dragged = draggedSchedule.value
+  if (!dragged || !targetItem) return
+  const sameDay = String(targetPlanDayId) === String(dragged.sourcePlanDayId)
+  const sameSlot = targetTimeSlot === dragged.sourceTimeSlot
+  if (sameDay && sameSlot) {
+    runScheduleOperation(
+      editorStore.moveScheduleItemBefore(
+        dragged.item.scheduleItemId,
+        targetItem.scheduleItemId,
+        targetPlanDayId,
+      ),
+    )
+    draggedSchedule.value = null
+    return
+  }
+  dropSchedule({ targetPlanDayId, targetTimeSlot })
+}
+
 function moveScheduleItemPosition(item, direction) {
   return runScheduleOperation(editorStore.moveScheduleItemPosition(item.scheduleItemId, direction))
 }
 
-function removeScheduleItem(item) {
-  return runScheduleOperation(editorStore.removeScheduleItem(item.scheduleItemId))
+async function removeScheduleItem(item) {
+  const sourcePlanDayId = selectedDayId.value
+  try {
+    await editorStore.removeScheduleItem(item.scheduleItemId)
+    if (String(selectedScheduleItemId.value) === String(item.scheduleItemId)) {
+      selectedScheduleItemId.value = null
+    }
+    toastStore.show({
+      message: `${item.placeName} 일정을 삭제했습니다.`,
+      type: 'info',
+      duration: 8000,
+      actionLabel: '실행 취소',
+      action: async () => {
+        await editorStore.addPlaceToSchedule(item, item.timeSlot, sourcePlanDayId)
+        toastStore.success(`${item.placeName} 일정을 복구했습니다.`)
+      },
+    })
+  } catch {
+    return null
+  }
+  return true
+}
+
+function resizePanelTo(clientX) {
+  const nextWidth = Math.min(560, Math.max(340, clientX))
+  schedulePanelWidth.value = nextWidth
+}
+
+function startPanelResize(event) {
+  resizingPanel.value = true
+  resizePanelTo(event.clientX)
+  document.addEventListener('pointermove', handlePanelResize)
+  document.addEventListener('pointerup', stopPanelResize, { once: true })
+}
+
+function handlePanelResize(event) {
+  if (resizingPanel.value) resizePanelTo(event.clientX)
+}
+
+function stopPanelResize() {
+  resizingPanel.value = false
+  localStorage.setItem('planEditorPanelWidth', String(schedulePanelWidth.value))
+  document.removeEventListener('pointermove', handlePanelResize)
+}
+
+function adjustPanelWidth(event) {
+  if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return
+  event.preventDefault()
+  schedulePanelWidth.value = Math.min(
+    560,
+    Math.max(340, schedulePanelWidth.value + (event.key === 'ArrowRight' ? 20 : -20)),
+  )
+  localStorage.setItem('planEditorPanelWidth', String(schedulePanelWidth.value))
 }
 
 function retryScheduleSave() {
   return runScheduleOperation(editorStore.retryLastSave())
+}
+
+async function togglePublication() {
+  if (!plan.value?.canManagePlan || publicationBusy.value) return
+  publicationBusy.value = true
+  try {
+    const targetStatus = plan.value.publishStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
+    await editorStore.savePlanPublication(targetStatus)
+  } catch {
+    // 저장 오류는 공통 자동 저장 상태 영역에서 안내합니다.
+  } finally {
+    publicationBusy.value = false
+  }
 }
 
 function handleBeforeUnload(event) {
@@ -93,6 +227,7 @@ onMounted(() => window.addEventListener('beforeunload', handleBeforeUnload))
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', handleBeforeUnload)
   editorStore.resetEditor()
+  document.removeEventListener('pointermove', handlePanelResize)
 })
 </script>
 
@@ -105,9 +240,11 @@ onBeforeUnmount(() => {
       :save-status="saveStatus"
       :save-message="saveMessage"
       :pending-save-count="pendingSaveCount"
+      :publication-busy="publicationBusy"
+      @toggle-publication="togglePublication"
     />
 
-    <main class="editor-main">
+    <main class="editor-main" :style="{ '--schedule-panel-width': `${schedulePanelWidth}px` }">
       <section v-if="isLoading || status === 'idle'" class="editor-state" aria-live="polite">
         <span class="editor-state__spinner" aria-hidden="true" />
         <strong>여행 계획을 불러오고 있어요.</strong>
@@ -132,6 +269,7 @@ onBeforeUnmount(() => {
           :save-status="saveStatus"
           :save-error-message="saveErrorMessage"
           :can-retry-save="canRetrySave"
+          :selected-schedule-item-id="selectedScheduleItemId"
           @busy-change="settingsBusy = $event"
           @select-day="editorStore.selectDay"
           @retry-save="retryScheduleSave"
@@ -139,13 +277,32 @@ onBeforeUnmount(() => {
           @move-position="moveScheduleItemPosition"
           @move-time-slot="moveScheduleItem"
           @remove="removeScheduleItem"
+          @select-item="selectScheduleItem"
+          @drag-start="startScheduleDrag"
+          @drag-end="endScheduleDrag"
+          @drop-schedule="dropSchedule"
+          @drop-before="dropScheduleBefore"
+        />
+        <div
+          class="editor-resizer"
+          role="separator"
+          tabindex="0"
+          aria-label="일정 패널 너비 조절"
+          aria-orientation="vertical"
+          :aria-valuenow="schedulePanelWidth"
+          aria-valuemin="340"
+          aria-valuemax="560"
+          @pointerdown.prevent="startPanelResize"
+          @keydown="adjustPanelWidth"
         />
         <PlanEditorMapWorkspace
           :plan="plan"
           :selected-day="selectedDay"
           :schedule-items="scheduleItems"
           :settings-busy="settingsBusy"
+          :selected-schedule-item-id="selectedScheduleItemId"
           @add="addSearchPlace"
+          @select-schedule="selectScheduleItem"
         />
       </template>
     </main>
@@ -153,8 +310,11 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.editor-page { min-height: 100vh; color: #172033; background: #eef2f7; }
-.editor-main { display: grid; grid-template-columns: minmax(340px, 430px) minmax(0, 1fr); min-height: calc(100vh - 82px); }
+.editor-page { min-width: 1180px; min-height: 100vh; color: #172033; background: #eef2f7; }
+.editor-main { display: grid; grid-template-columns: var(--schedule-panel-width, 430px) 8px minmax(0, 1fr); min-height: calc(100vh - 82px); }
+.editor-resizer { position: relative; z-index: 8; background: #dce3ec; cursor: col-resize; outline: none; }
+.editor-resizer::after { position: absolute; top: 50%; left: 2px; width: 4px; height: 42px; border-radius: 999px; background: #94a3b8; content: ''; transform: translateY(-50%); }
+.editor-resizer:hover,.editor-resizer:focus-visible { background: #ffb7b1; }
 .editor-state {
   display: grid;
   grid-column: 1 / -1;
@@ -171,9 +331,6 @@ onBeforeUnmount(() => {
 .editor-state p { margin: 8px 0 0; font-size: 12px; }
 .editor-state button { min-height: 40px; margin-top: 18px; padding: 0 16px; color: #fff; border: 0; border-radius: 10px; background: #ff5a4e; font-weight: 800; cursor: pointer; }
 @keyframes spin { to { transform: rotate(360deg); } }
-@media (max-width: 880px) {
-  .editor-main { grid-template-columns: 1fr; }
-}
 @media (prefers-reduced-motion: reduce) {
   .editor-state__spinner { animation: none; }
 }

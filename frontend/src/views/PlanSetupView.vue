@@ -208,6 +208,7 @@ onMounted(loadRegions)
 <style scoped>
 .setup-page {
   display: grid;
+  min-width: 760px;
   min-height: 680px;
   place-items: start center;
   padding: 72px 20px 96px;
@@ -215,7 +216,7 @@ onMounted(loadRegions)
 }
 
 .setup-card {
-  width: min(100%, 680px);
+  width: 680px;
   padding: 42px;
   border: 1px solid #e7eaf0;
   border-radius: 24px;
@@ -303,17 +304,6 @@ onMounted(loadRegions)
 .created-plan-recovery button:disabled {
   cursor: wait;
   opacity: 0.7;
-}
-
-@media (max-width: 620px) {
-  .setup-page {
-    padding: 32px 14px 64px;
-  }
-
-  .setup-card {
-    padding: 28px 20px;
-    border-radius: 18px;
-  }
 }
 
 </style>

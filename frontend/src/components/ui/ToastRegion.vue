@@ -11,6 +11,16 @@ const toastIcon = {
   error: '!',
   info: 'i',
 }
+
+async function runAction(toast) {
+  if (!toast.action) return
+  try {
+    await toast.action()
+    toastStore.dismiss(toast.id)
+  } catch {
+    toastStore.error('요청한 작업을 완료하지 못했습니다.')
+  }
+}
 </script>
 
 <template>
@@ -24,6 +34,14 @@ const toastIcon = {
     >
       <span class="toast__icon" aria-hidden="true">{{ toastIcon[toast.type] }}</span>
       <p>{{ toast.message }}</p>
+      <button
+        v-if="toast.action && toast.actionLabel"
+        class="toast__action"
+        type="button"
+        @click="runAction(toast)"
+      >
+        {{ toast.actionLabel }}
+      </button>
       <button type="button" aria-label="알림 닫기" @click="toastStore.dismiss(toast.id)">×</button>
     </article>
   </TransitionGroup>
@@ -43,7 +61,7 @@ const toastIcon = {
 
 .toast {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   gap: 12px;
   align-items: center;
   padding: 14px 14px 14px 16px;
@@ -109,6 +127,7 @@ const toastIcon = {
 .toast button:hover {
   background: var(--color-surface-muted);
 }
+.toast .toast__action { width: auto; min-width: 64px; padding: 0 10px; color: #e8443a; border: 1px solid #ffc2bd; font-size: 11px; font-weight: 800; }
 
 .toast-enter-active,
 .toast-leave-active {

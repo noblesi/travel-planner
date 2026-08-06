@@ -451,16 +451,6 @@ watch(
   opacity: 0.72;
 }
 
-@media (max-width: 620px) {
-  .date-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .visibility-card {
-    align-items: flex-start;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .form-field input,
   .switch__track,

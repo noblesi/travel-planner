@@ -8,6 +8,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  existingTimeSlots: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 defineEmits(['add'])
@@ -26,11 +30,11 @@ defineEmits(['add'])
         지도 좌표가 없는 장소입니다.
       </small>
       <div class="place-detail-card__actions" aria-label="선택 장소 일정 추가">
-        <button type="button" :disabled="addDisabled" @click="$emit('add', 'MORNING')">
-          오전에 추가
+        <button type="button" :disabled="addDisabled || existingTimeSlots.includes('MORNING')" @click="$emit('add', 'MORNING')">
+          {{ existingTimeSlots.includes('MORNING') ? '오전 등록됨' : '오전에 추가' }}
         </button>
-        <button type="button" :disabled="addDisabled" @click="$emit('add', 'AFTERNOON')">
-          오후에 추가
+        <button type="button" :disabled="addDisabled || existingTimeSlots.includes('AFTERNOON')" @click="$emit('add', 'AFTERNOON')">
+          {{ existingTimeSlots.includes('AFTERNOON') ? '오후 등록됨' : '오후에 추가' }}
         </button>
       </div>
     </div>

@@ -6,6 +6,12 @@ import { usePlanEditorStore } from '@/stores/planEditor'
 import { addDaysToDate, inclusiveDayCount, todayInKorea } from '@/utils/travelDate'
 
 const emit = defineEmits(['busy-change'])
+const props = defineProps({
+  canManagePlan: {
+    type: Boolean,
+    default: true,
+  },
+})
 const editorStore = usePlanEditorStore()
 const { plan, isSaving } = storeToRefs(editorStore)
 
@@ -62,6 +68,7 @@ function closeMetadataEditor() {
   editingMetadata.value = false
   metadataError.value = ''
   syncMetadataForm()
+  editorStore.clearDirectSaveFailure()
 }
 
 function validateMetadata() {
@@ -128,6 +135,7 @@ function closeDateEditor() {
   removalConfirmationOpen.value = false
   pendingDatePayload.value = null
   syncDateForm()
+  editorStore.clearDirectSaveFailure()
 }
 
 function openRemovalConfirmation(payload) {
@@ -251,7 +259,7 @@ onBeforeUnmount(() => emit('busy-change', false))
 </script>
 
 <template>
-  <div class="plan-editor-settings">
+  <div v-if="props.canManagePlan" class="plan-editor-settings">
     <section
       class="metadata-editor"
       :aria-label="editingMetadata ? undefined : '플랜 정보 변경'"
@@ -622,11 +630,6 @@ onBeforeUnmount(() => emit('busy-change', false))
 }
 .confirmation-dialog__actions {
   margin-top: 24px;
-}
-@media (max-width: 520px) {
-  .date-editor__grid {
-    grid-template-columns: 1fr;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .date-editor__open {
