@@ -32,12 +32,16 @@
 
 	<select id="selectWeeklyPlanStats"
 			resultType="com.noblesi.travelplanner.admin.dashboard.domain.WeeklyPlanStatDomain">
-		SELECT TO_CHAR(days.day_date, 'DY', 'NLS_DATE_LANGUAGE=KOREAN') AS day,
-		       COUNT(plan.PLAN_ID)                                      AS value
+		SELECT TO_CHAR(days.day_date, 'DY', 'NLS_DATE_LANGUAGE=KOREAN') AS "day",
+		       COUNT(plan.PLAN_ID)                                      AS "value"
 		  FROM (
-		        SELECT TRUNC(SYSDATE) - 7 + LEVEL AS day_date
-		          FROM DUAL
-		       CONNECT BY LEVEL &lt;= 7
+		        SELECT TRUNC(SYSDATE) - 6 AS day_date FROM DUAL
+		        UNION ALL SELECT TRUNC(SYSDATE) - 5 FROM DUAL
+		        UNION ALL SELECT TRUNC(SYSDATE) - 4 FROM DUAL
+		        UNION ALL SELECT TRUNC(SYSDATE) - 3 FROM DUAL
+		        UNION ALL SELECT TRUNC(SYSDATE) - 2 FROM DUAL
+		        UNION ALL SELECT TRUNC(SYSDATE) - 1 FROM DUAL
+		        UNION ALL SELECT TRUNC(SYSDATE)     FROM DUAL
 		       ) days
 		  LEFT JOIN TRAVEL_PLAN plan
 		    ON plan.CREATED_AT &gt;= days.day_date

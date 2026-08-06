@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>회원 상세 | WithTrip</title>
+<link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+	<div class="admin-layout">
+		<aside th:replace="~{admin/fragments/layout :: sidebar('members')}"></aside>
+		<div class="admin-main">
+			<header
+				th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+			<main class="admin-content">
+				<div class="page-header">
+					<div>
+						<h1>회원 상세</h1>
+						<p>회원 기본 정보, 활동 내역과 계정 상태를 확인합니다.</p>
+					</div>
+					<div class="header-actions">
+						<a class="button secondary" th:href="@{/admin/members}">목록으로</a>
+						<button class="button danger" type="button"
+							th:text="${member.status == '정지' ? '정지 해제' : '회원 정지'}">회원
+							정지</button>
+					</div>
+				</div>
+				<section class="card member-card">
+					<div class="detail-heading">
+						<div class="member-identity">
+							<span class="member-avatar"
+								th:text="${#strings.substring(member.name,0,1)}">김</span>
+							<div>
+								<div class="name-line">
+									<h2 th:text="${member.name}">김민수</h2>
+									<span class="badge"
+										th:classappend="${member.status == '정상' ? ' success' : (member.status == '정지' ? ' danger' : ' muted')}"
+										th:text="|${member.status} 회원|">정상 회원</span>
+								</div>
+								<p th:text="${member.email}">email</p>
+							</div>
+						</div>
+					</div>
+					<dl class="info-grid">
+						<div>
+							<dt>아이디</dt>
+							<dd th:text="${member.id}">id</dd>
+						</div>
+						<div>
+							<dt>가입일</dt>
+							<dd th:text="${member.joinedAt}">date</dd>
+						</div>
+						<div>
+							<dt>닉네임</dt>
+							<dd th:text="${member.nickname}">nick</dd>
+						</div>
+						<div>
+							<dt>이메일</dt>
+							<dd th:text="${member.email}">mail</dd>
+						</div>
+						<div>
+							<dt>휴대전화</dt>
+							<dd>010-1111-1111</dd>
+						</div>
+						<div>
+							<dt>생년월일</dt>
+							<dd>2001-01-01</dd>
+						</div>
+					</dl>
+				</section>
+<section class="card account-status-card"><div><h2>계정 상태</h2><p>현재 회원의 서비스 이용 상태입니다.</p></div><div><span class="badge" th:classappend="${member.status == '정상' ? ' success' : (member.status == '정지' ? ' danger' : ' muted')}" th:text="|${member.status} 회원|">정상 회원</span><button class="mini-button danger" type="button" data-pending-action="회원 상태 변경" th:text="${member.status == '정지' ? '정지 해제' : '회원 정지'}">회원 정지</button></div></section><section class="summary-grid detail-summary">
+					<article class="summary-card">
+						<span>여행 플랜</span><strong th:text="${member.trips}">0</strong><small>작성한
+							플랜 수</small>
+					</article>
+					<article class="summary-card">
+						<span>신고받은 플랜 수</span><strong th:text="${member.reports}">0</strong><small>콘텐츠
+							신고</small>
+					</article>
+					<article class="summary-card">
+						<span>신고 누적</span><strong>0</strong><small>회원 신고 횟수</small>
+					</article>
+				</section>
+				<section class="card memo-card">
+					<div class="panel-heading">
+						<h2>관리자 메모</h2>
+						<button class="mini-button primary" type="button">메모 편집</button>
+					</div>
+					<textarea class="memo">특이 사항 없음</textarea>
+					<div class="memo-actions">
+						<button class="mini-button" type="button">취소</button>
+						<button class="mini-button primary" type="button">저장</button>
+					</div>
+				</section>
+			</main>
+		</div>
+	</div>
+	<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>

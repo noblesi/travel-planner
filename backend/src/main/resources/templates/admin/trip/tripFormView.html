@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>여행 플랜 관리 | WithTrip</title>
+    <link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{admin/fragments/layout :: sidebar('trips')}"></aside>
+    <div class="admin-main">
+        <header th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+        <main class="admin-content">
+            <div class="page-header">
+                <div>
+                    <h1>여행 플랜 관리</h1>
+                    <p>공개 여행 플랜의 노출 상태와 신고 콘텐츠를 관리합니다.</p>
+                </div>
+                <div class="header-actions">
+                    <span>검색 결과 <strong th:text="${#lists.size(trips)}">0</strong>건</span>
+                    <button class="button" type="button" data-modal-open="recommendation-rule-modal">추천 점수 규칙</button>
+                </div>
+            </div>
+
+            <section class="card">
+                <div class="tabs">
+                    <a class="active" th:href="@{/admin/trips}">전체 공개 플랜</a>
+                    <a href="#">비공개 플랜</a>
+                    <a href="#">신고 접수</a>
+                </div>
+                <form class="filters">
+                    <input name="keyword" th:value="${keyword}" placeholder="플랜 제목 또는 작성자 검색">
+                    <select aria-label="지역"><option>지역 전체</option><option>서울</option><option>제주</option><option>부산</option></select>
+                    <select aria-label="상태"><option>상태 전체</option><option>공개</option><option>비공개</option><option>검토 대기</option></select>
+                    <button class="button">검색</button>
+                </form>
+                <div class="table-wrapper">
+                    <table class="admin-table">
+                        <thead><tr><th class="text-column">플랜 번호</th><th class="text-column">제목</th><th>지역</th><th class="text-column">작성자</th><th>기간</th><th>좋아요/조회</th><th>상태</th><th>관리</th></tr></thead>
+                        <tbody>
+                        <tr th:each="trip:${trips}">
+                            <td class="text-column" th:text="${trip.id}">P</td>
+                            <td class="title"><a th:href="@{/admin/trips/{id}(id=${trip.id})}" th:text="${trip.title}">제목</a></td>
+                            <td th:text="${trip.region}">지역</td>
+                            <td class="text-column" th:text="${trip.author}">작성자</td>
+                            <td th:text="${trip.duration}">기간</td>
+                            <td th:text="|${trip.likes} / ${trip.views}|">0</td>
+                            <td><span class="badge" th:classappend="${trip.status == '공개' ? ' success' : (trip.status == '비공개' ? ' muted' : ' warning')}" th:text="${trip.status}">공개</span></td>
+                            <td><div class="table-actions"><a class="mini-button" th:href="@{/admin/trips/{id}(id=${trip.id})}">플랜 상세</a><a class="mini-button danger" th:if="${trip.reportId != null}" th:href="@{/admin/reports/{id}(id=${trip.reportId})}">신고 상세</a></div></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<div id="recommendation-rule-modal" class="modal-overlay" role="presentation" hidden>
+    <section class="recommendation-modal" role="dialog" aria-modal="true" aria-labelledby="recommendation-modal-title">
+        <header class="recommendation-modal-header">
+            <div>
+                <h2 id="recommendation-modal-title">추천 점수 규칙 설정</h2>
+                <p>메인 화면의 추천 콘텐츠 노출 순위를 계산하는 기준입니다.</p>
+            </div>
+            <button class="modal-close" type="button" aria-label="추천 점수 규칙 닫기" data-modal-close>×</button>
+        </header>
+        <div class="rule-guide">항목별 비중을 조정해 여행 플랜 추천 기준을 설정합니다.</div>
+        <form class="weight-form" data-recommendation-form>
+            <label><span>좋아요 수</span><span class="weight-input"><input name="likes" type="number" min="0" max="100" value="40"><small>%</small></span></label>
+            <label><span>조회 수</span><span class="weight-input"><input name="views" type="number" min="0" max="100" value="20"><small>%</small></span></label>
+            <label><span>일정 저장 수</span><span class="weight-input"><input name="saves" type="number" min="0" max="100" value="40"><small>%</small></span></label>
+            <p class="weight-total" data-weight-total>합계 100%</p>
+            <div class="modal-actions">
+                <button class="modal-reset" type="button" data-rule-reset>초기화</button>
+                <button class="modal-save" type="submit">규칙 저장</button>
+            </div>
+        </form>
+    </section>
+</div>
+<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>
