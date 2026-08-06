@@ -2,7 +2,8 @@
 
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/useUserStore'
+// import { useUserStore } from '@/stores/useUserStore'
+import { postMemberEmailCheck } from '@/api/users'
 
 const email = ref('')
 const password = ref('')
@@ -11,9 +12,9 @@ const router = useRouter()
 const userStore = useUserStore()
 
 
-var testid = "test@test.com"
 
-///////////////////////////////테스트 이메일
+///////////////////////////////가데이터
+var testid = "test@test.com"
 var testemail = "test@test.test";
 var testpass = "123123123123";
 
@@ -68,13 +69,17 @@ const checkedId = () => {
   }
 
   if(passCheckNull()){
-    if(testid === email.value){
-      alert("사용중인 이메일 입니다.")
-      return false
-    }else{
-      userStore.setStep1Data(email.value, password.value)
-      router.push({name:"joinProfile"})
-    }
+    postMemberEmailCheck(email.value).then(response => {
+      if(response){
+        alert('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.')
+      } else {
+        router.push({ name: 'JoinInfoView' })
+      }
+    }).catch(error => {
+      console.log('이메일 체크 에러 발생:', error)
+      alert('이메일 체크 중 오류가 발생했습니다.')
+    })
+    
   } else {
     return false
   }

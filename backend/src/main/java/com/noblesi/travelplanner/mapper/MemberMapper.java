@@ -18,5 +18,14 @@ public interface MemberMapper {
 	**/
 	int insertMember(JoinMemberRequest joinMemberRequest);
 
+	/**
+	 * 
+	 * 유저의 이메일이 DB에 존재하는지 확인한다.
+	 * 
+	 * @param email 확인할 이메일
+	 * @return true = 존재, false = 존재하지 않음
+	**/
+	int selectEmailCnt(@Param("email") String email);
+
 	AuthenticatedMember findForEmailAuthentication(@Param("email") String email);
 }
