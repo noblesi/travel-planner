@@ -314,7 +314,7 @@ watch(
 }
 
 .place-search-panel__header span {
-  color: #ff5a4e;
+  color: var(--color-brand);
   font-size: 9px;
   font-weight: 850;
   letter-spacing: 0.12em;
@@ -358,8 +358,8 @@ watch(
 }
 
 .place-search-panel__form input:focus {
-  border-color: #ff8b82;
-  box-shadow: 0 0 0 3px rgb(255 90 78 / 12%);
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-focus);
 }
 
 .place-search-panel__form button,
@@ -368,7 +368,7 @@ watch(
   padding: 0 14px;
   border: 0;
   border-radius: 11px;
-  background: #ff5a4e;
+  background: var(--color-brand);
   color: #fff;
   font-weight: 750;
   cursor: pointer;
@@ -433,8 +433,8 @@ watch(
 
 .place-search-panel__results > li > button:hover,
 .place-search-panel__results > li > .place-result--selected {
-  border-color: #ff9f97;
-  background: #fff8f7;
+  border-color: var(--color-brand-border);
+  background: var(--color-brand-soft);
 }
 
 .place-search-panel__results img,
@@ -469,7 +469,7 @@ watch(
 .place-result__body > em { display: block; margin-top: 3px; color: #16a34a; font-size: 9px; font-style: normal; font-weight: 800; }
 
 .place-result__body > small {
-  color: #ff5a4e;
+  color: var(--color-brand);
   font-size: 9px;
   font-weight: 800;
 }

@@ -292,8 +292,8 @@ watch(
 }
 
 .form-field input:focus {
-  border-color: #ff5a4e;
-  box-shadow: 0 0 0 4px rgb(255 90 78 / 13%);
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 4px var(--color-brand-focus);
 }
 
 .form-field input[aria-invalid='true'] {
@@ -408,7 +408,7 @@ watch(
 }
 
 .switch__input:checked + .switch__track {
-  background: #ff5a4e;
+  background: var(--color-brand);
 }
 
 .switch__input:checked + .switch__track::after {
@@ -416,7 +416,7 @@ watch(
 }
 
 .switch__input:focus-visible + .switch__track {
-  outline: 4px solid rgb(255 90 78 / 20%);
+  outline: 4px solid var(--color-brand-focus);
   outline-offset: 2px;
 }
 
@@ -432,7 +432,7 @@ watch(
   color: white;
   border: 0;
   border-radius: 999px;
-  background: #ff5a4e;
+  background: var(--color-brand);
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
@@ -442,7 +442,7 @@ watch(
 }
 
 .submit-button:hover:not(:disabled) {
-  background: #e8443a;
+  background: var(--color-brand-hover);
   transform: translateY(-1px);
 }
 

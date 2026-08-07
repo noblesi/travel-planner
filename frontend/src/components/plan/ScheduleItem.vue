@@ -109,7 +109,7 @@ function startDrag(event) {
   cursor: grab;
 }
 .schedule-card:active { cursor: grabbing; }
-.schedule-card--selected { border-color: #ff776d; box-shadow: 0 0 0 3px rgb(255 90 78 / 12%); }
+.schedule-card--selected { border-color: var(--color-brand-border); box-shadow: 0 0 0 3px var(--color-brand-focus); }
 
 .schedule-card > img,
 .schedule-card__image-empty {
@@ -132,7 +132,7 @@ function startDrag(event) {
 }
 
 .schedule-card__body > span {
-  color: #ff5a4e;
+  color: var(--color-brand);
   font-size: 10px;
   font-weight: 800;
 }

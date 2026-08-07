@@ -176,7 +176,7 @@ function updateBusy(value) {
 <style scoped>
 .schedule-panel { min-width: 0; padding: 24px; overflow-y: auto; border-right: 1px solid #dce3ec; background: #fff; }
 .schedule-panel__header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-.schedule-panel__header span:first-child { color: #ff5a4e; font-size: 9px; font-weight: 850; letter-spacing: .13em; }
+.schedule-panel__header span:first-child { color: var(--color-brand); font-size: 9px; font-weight: 850; letter-spacing: .13em; }
 .schedule-panel__header h2 { margin: 4px 0 0; color: #172033; font-size: 22px; }
 .visibility-badge { padding: 5px 10px; color: #475569; border-radius: 999px; background: #eef2f7; font-size: 10px; font-weight: 800; }
 .plan-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 18px; }
@@ -184,7 +184,7 @@ function updateBusy(value) {
 .plan-summary span,
 .day-preview__label > span { color: #94a3b8; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 .plan-summary strong { overflow: hidden; color: #334155; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.invite-panel-link { display: flex; align-items: center; justify-content: center; min-height: 42px; margin-top: 14px; color: #e8443a; border: 1px solid #ffc2bd; border-radius: 12px; background: #fff8f7; font-size: 13px; font-weight: 800; text-decoration: none; }
+.invite-panel-link { display: flex; align-items: center; justify-content: center; min-height: 42px; margin-top: 14px; color: var(--color-brand); border: 1px solid var(--color-brand-border); border-radius: 12px; background: var(--color-brand-soft); font-size: 13px; font-weight: 800; text-decoration: none; }
 .collaborator-notice { margin: 14px 0 0; padding: 11px 12px; color: #475569; border-radius: 10px; background: #f1f5f9; font-size: 11px; text-align: center; }
 .save-error { display: grid; gap: 12px; margin-top: 14px; padding: 14px; color: #991b1b; border: 1px solid #fecaca; border-radius: 12px; background: #fef2f2; }
 .save-error strong { font-size: 12px; }
@@ -195,13 +195,13 @@ function updateBusy(value) {
 .day-tab { display: grid; min-width: 92px; gap: 3px; padding: 10px 12px; color: #64748b; border: 1px solid #dce3ec; border-radius: 11px; background: #fff; text-align: left; cursor: pointer; }
 .day-tab small { font-size: 9px; }
 .day-tab:hover,
-.day-tab--active { color: #e8443a; border-color: #ffaaa3; background: #fff4f2; }
+.day-tab--active { color: var(--color-brand); border-color: var(--color-brand-border); background: var(--color-brand-soft); }
 .day-preview { margin-top: 16px; }
 .day-preview__label { display: grid; gap: 4px; }
 .day-preview__label strong { color: #334155; font-size: 15px; }
 .day-preview__label small { color: #64748b; font-size: 10px; }
 .empty-schedule { display: grid; justify-items: center; margin-top: 18px; padding: 28px 14px; color: #64748b; border: 1px dashed #cbd5e1; border-radius: 14px; text-align: center; }
-.empty-schedule__mark { display: grid; width: 38px; height: 38px; margin-bottom: 10px; place-items: center; color: #e8443a; border-radius: 50%; background: #fff1f0; font-size: 20px; }
+.empty-schedule__mark { display: grid; width: 38px; height: 38px; margin-bottom: 10px; place-items: center; color: var(--color-brand); border-radius: 50%; background: var(--color-brand-soft); font-size: 20px; }
 .empty-schedule strong { color: #475569; font-size: 12px; }
 .empty-schedule p { margin: 7px 0 0; font-size: 10px; line-height: 1.5; }
 .schedule-groups { display: grid; gap: 16px; margin-top: 18px; }

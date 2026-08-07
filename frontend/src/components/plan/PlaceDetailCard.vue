@@ -47,9 +47,9 @@ defineEmits(['add'])
   grid-template-columns: 84px minmax(0, 1fr);
   gap: 12px;
   padding: 12px;
-  border: 1px solid #ffd5d1;
+  border: 1px solid var(--color-brand-border);
   border-radius: 14px;
-  background: #fff8f7;
+  background: var(--color-brand-soft);
 }
 
 .place-detail-card > img,
@@ -63,8 +63,8 @@ defineEmits(['add'])
 .place-detail-card__image-empty {
   display: grid;
   place-items: center;
-  background: #ffe4e1;
-  color: #e8443a;
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
   font-size: 24px;
 }
 
@@ -75,7 +75,7 @@ defineEmits(['add'])
 .place-detail-card__body > span {
   display: block;
   overflow: hidden;
-  color: #e8443a;
+  color: var(--color-brand);
   font-size: 10px;
   font-weight: 800;
   text-overflow: ellipsis;
@@ -116,7 +116,7 @@ defineEmits(['add'])
   padding: 0 10px;
   border: 0;
   border-radius: 9px;
-  background: #ff5a4e;
+  background: var(--color-brand);
   color: #fff;
   font-size: 10px;
   font-weight: 800;

@@ -215,8 +215,8 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
 }
 .region-select:focus-visible,
 .region-select--open {
-  border-color: #ff5a4e;
-  box-shadow: 0 0 0 4px rgb(255 90 78 / 13%);
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 4px var(--color-brand-focus);
 }
 .region-select[aria-invalid='true'] {
   border-color: #dc2626;
@@ -275,15 +275,15 @@ onBeforeUnmount(() => document.removeEventListener('pointerdown', handleOutsideP
     background 120ms ease;
 }
 .region-option--active {
-  color: #d83a31;
-  background: #fff1f0;
+  color: var(--color-brand);
+  background: var(--color-brand-soft);
 }
 .region-option--selected {
-  color: #d83a31;
+  color: var(--color-brand);
   font-weight: 750;
 }
 .region-option__check {
-  color: #ff5a4e;
+  color: var(--color-brand);
   font-size: 16px;
   font-weight: 800;
 }

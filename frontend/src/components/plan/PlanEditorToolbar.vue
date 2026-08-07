@@ -103,7 +103,7 @@ defineEmits(['toggle-publication'])
 }
 .back-button { width: 42px; color: #334155; font-size: 20px; }
 .plan-heading { min-width: 0; }
-.plan-heading__eyebrow { color: #ff5a4e; font-size: 9px; font-weight: 850; letter-spacing: .14em; }
+.plan-heading__eyebrow { color: var(--color-brand); font-size: 9px; font-weight: 850; letter-spacing: .14em; }
 .plan-heading h1 {
   margin: 3px 0 0;
   overflow: hidden;
@@ -123,6 +123,6 @@ defineEmits(['toggle-publication'])
 .save-state--error > span,
 .save-state--conflict > span { background: #ef4444; }
 .exit-button { padding: 0 18px; color: #334155; }
-.complete-button { padding: 0 16px; color: #fff; border-color: #ff5a4e; background: #ff5a4e; font-weight: 800; cursor: pointer; }
+.complete-button { padding: 0 16px; color: var(--color-brand-on); border-color: var(--color-brand); background: var(--color-brand); font-weight: 800; cursor: pointer; }
 .complete-button:disabled { cursor: wait; opacity: .55; }
 </style>
