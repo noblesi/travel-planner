@@ -17,7 +17,8 @@
 			REGION_CODE,
 			START_DATE,
 			END_DATE,
-			VISIBILITY
+			VISIBILITY,
+			PUBLISH_STATUS
 		) VALUES (
 			#{planId},
 			#{ownerMemberId},
@@ -25,7 +26,8 @@
 			#{regionCode},
 			#{startDate},
 			#{endDate},
-			#{visibility}
+			#{visibility},
+			#{publishStatus}
 		)
 	</insert>
 
@@ -50,6 +52,43 @@
 		 WHERE PLAN_ID = #{planId}
 		   AND OWNER_MEMBER_ID = #{memberId}
 		   AND PLAN_STATUS = 'ACTIVE'
+		   AND VERSION_NO = #{versionNo}
+	</update>
+
+	<update id="updatePublishStatus">
+		UPDATE TRAVEL_PLAN
+		   SET PUBLISH_STATUS = #{publishStatus},
+		       VERSION_NO = VERSION_NO + 1,
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE PLAN_ID = #{planId}
+		   AND OWNER_MEMBER_ID = #{memberId}
+		   AND PLAN_STATUS = 'ACTIVE'
+		   AND VERSION_NO = #{versionNo}
+	</update>
+
+	<update id="softDeleteTravelPlan">
+		UPDATE TRAVEL_PLAN
+		   SET PLAN_STATUS = 'DELETED',
+		       DELETED_AT = CURRENT_TIMESTAMP,
+		       DELETED_BY_MEMBER_ID = #{memberId},
+		       VERSION_NO = VERSION_NO + 1,
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE PLAN_ID = #{planId}
+		   AND OWNER_MEMBER_ID = #{memberId}
+		   AND PLAN_STATUS = 'ACTIVE'
+		   AND VERSION_NO = #{versionNo}
+	</update>
+
+	<update id="restoreTravelPlan">
+		UPDATE TRAVEL_PLAN
+		   SET PLAN_STATUS = 'ACTIVE',
+		       DELETED_AT = NULL,
+		       DELETED_BY_MEMBER_ID = NULL,
+		       VERSION_NO = VERSION_NO + 1,
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE PLAN_ID = #{planId}
+		   AND OWNER_MEMBER_ID = #{memberId}
+		   AND PLAN_STATUS = 'DELETED'
 		   AND VERSION_NO = #{versionNo}
 	</update>
 

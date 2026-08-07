@@ -1,5 +1,5 @@
 <script setup>
-defineProps({
+const props = defineProps({
   item: {
     type: Object,
     required: true,
@@ -20,13 +20,36 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  selected: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-defineEmits(['move-up', 'move-down', 'move-time-slot', 'remove'])
+const emit = defineEmits(['select', 'drag-start', 'drag-end', 'drop-before', 'move-up', 'move-down', 'move-time-slot', 'remove'])
+
+function startDrag(event) {
+  if (props.disabled) return
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', String(props.item.scheduleItemId))
+  emit('drag-start', props.item)
+}
 </script>
 
 <template>
-  <article class="schedule-card" :aria-busy="disabled">
+  <article
+    class="schedule-card"
+    :class="{ 'schedule-card--selected': selected }"
+    :aria-busy="disabled"
+    :draggable="!disabled"
+    tabindex="0"
+    @click="emit('select', item)"
+    @keydown.enter="emit('select', item)"
+    @dragstart="startDrag"
+    @dragend="emit('drag-end')"
+    @dragover.prevent
+    @drop.stop.prevent="emit('drop-before', item)"
+  >
     <img v-if="item.imageUrl" :src="item.imageUrl" :alt="`${item.placeName} 이미지`" />
     <div v-else class="schedule-card__image-empty" aria-hidden="true">⌖</div>
 
@@ -42,7 +65,7 @@ defineEmits(['move-up', 'move-down', 'move-time-slot', 'remove'])
         type="button"
         :disabled="disabled || first"
         :aria-label="`${item.placeName} 순서 올리기`"
-        @click="$emit('move-up')"
+        @click.stop="$emit('move-up')"
       >
         ↑
       </button>
@@ -50,14 +73,14 @@ defineEmits(['move-up', 'move-down', 'move-time-slot', 'remove'])
         type="button"
         :disabled="disabled || last"
         :aria-label="`${item.placeName} 순서 내리기`"
-        @click="$emit('move-down')"
+        @click.stop="$emit('move-down')"
       >
         ↓
       </button>
       <button
         type="button"
         :disabled="disabled"
-        @click="$emit('move-time-slot')"
+        @click.stop="$emit('move-time-slot')"
       >
         {{ timeSlot === 'MORNING' ? '오후로' : '오전으로' }}
       </button>
@@ -66,7 +89,7 @@ defineEmits(['move-up', 'move-down', 'move-time-slot', 'remove'])
         type="button"
         :disabled="disabled"
         :aria-label="`${item.placeName} 일정 삭제`"
-        @click="$emit('remove')"
+        @click.stop="$emit('remove')"
       >
         삭제
       </button>
@@ -83,7 +106,10 @@ defineEmits(['move-up', 'move-down', 'move-time-slot', 'remove'])
   border: 1px solid #e3e8ef;
   border-radius: 13px;
   background: #fff;
+  cursor: grab;
 }
+.schedule-card:active { cursor: grabbing; }
+.schedule-card--selected { border-color: var(--color-brand-border); box-shadow: 0 0 0 3px var(--color-brand-focus); }
 
 .schedule-card > img,
 .schedule-card__image-empty {
@@ -106,7 +132,7 @@ defineEmits(['move-up', 'move-down', 'move-time-slot', 'remove'])
 }
 
 .schedule-card__body > span {
-  color: #ff5a4e;
+  color: var(--color-brand);
   font-size: 10px;
   font-weight: 800;
 }

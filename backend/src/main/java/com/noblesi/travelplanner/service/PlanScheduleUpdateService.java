@@ -47,6 +47,9 @@ class PlanScheduleUpdateService {
 		long planId = idParser.parse(planIdValue, "planId");
 		long planDayId = idParser.parse(planDayIdValue, "dayId");
 		long scheduleItemId = idParser.parse(scheduleItemIdValue, "itemId");
+		long targetPlanDayId = request.targetPlanDayId() == null
+				? planDayId
+				: idParser.parse(request.targetPlanDayId(), "targetPlanDayId");
 		long memberId = planAccessService.currentMemberId();
 		planAccessService.requireAccessiblePlan(planId, memberId);
 		String operationId = operationLedger.normalizeOperationId(request.operationId());
@@ -54,7 +57,9 @@ class PlanScheduleUpdateService {
 				scheduleItemId,
 				request.scheduleVersion(),
 				request.itemVersion(),
-				request.timeSlot()
+				request.timeSlot(),
+				targetPlanDayId,
+				request.targetScheduleVersion()
 		);
 
 		PlanEditOperation replay = operationLedger.findReplay(
@@ -70,11 +75,14 @@ class PlanScheduleUpdateService {
 		}
 
 		PlanDay day = support.requireOwnedDay(planDayId, planId);
+		PlanDay targetDay = targetPlanDayId == planDayId
+				? day
+				: support.requireOwnedDay(targetPlanDayId, planId);
 		PlanScheduleItem item = support.requireScheduleItem(scheduleItemId, planDayId);
 		support.requireItemVersion(item, request.itemVersion());
 		support.requireScheduleVersion(day, request.scheduleVersion());
 
-		if (item.timeSlot() == request.timeSlot()) {
+		if (targetPlanDayId == planDayId && item.timeSlot() == request.timeSlot()) {
 			operationLedger.record(new PlanEditOperation(
 					operationId,
 					planId,
@@ -88,12 +96,23 @@ class PlanScheduleUpdateService {
 			return responseFactory.create(operationId, scheduleItemId, request.scheduleVersion(), planIdValue);
 		}
 
-		int targetCount = planScheduleItemMapper.countByDayAndTimeSlot(planDayId, request.timeSlot());
+		if (targetPlanDayId != planDayId) {
+			if (request.targetScheduleVersion() == null) {
+				throw new com.noblesi.travelplanner.common.exception.BusinessException(
+						org.springframework.http.HttpStatus.BAD_REQUEST,
+						"TARGET_SCHEDULE_VERSION_REQUIRED",
+						"다른 일차로 이동하려면 대상 일정 버전이 필요합니다."
+				);
+			}
+			support.requireScheduleVersion(targetDay, request.targetScheduleVersion());
+		}
+
+		int targetCount = planScheduleItemMapper.countByDayAndTimeSlot(targetPlanDayId, request.timeSlot());
 		if (targetCount >= PlanScheduleMutationSupport.MAX_ITEMS_PER_TIME_SLOT) {
 			throw support.scheduleItemLimitExceeded();
 		}
 		support.requireNoDuplicatePlace(
-				planDayId,
+				targetPlanDayId,
 				request.timeSlot(),
 				item.placeProvider(),
 				item.externalPlaceId(),
@@ -101,13 +120,25 @@ class PlanScheduleUpdateService {
 		);
 
 		support.incrementScheduleVersion(planDayId, planId, request.scheduleVersion());
-		int updatedRows = planScheduleItemMapper.updateTimeSlot(
-				scheduleItemId,
-				planDayId,
-				request.timeSlot(),
-				targetCount + 1,
-				request.itemVersion()
-		);
+		if (targetPlanDayId != planDayId) {
+			support.incrementScheduleVersion(targetPlanDayId, planId, request.targetScheduleVersion());
+		}
+		int updatedRows = targetPlanDayId == planDayId
+				? planScheduleItemMapper.updateTimeSlot(
+						scheduleItemId,
+						planDayId,
+						request.timeSlot(),
+						targetCount + 1,
+						request.itemVersion()
+				)
+				: planScheduleItemMapper.moveToDayAndTimeSlot(
+						scheduleItemId,
+						planDayId,
+						targetPlanDayId,
+						request.timeSlot(),
+						targetCount + 1,
+						request.itemVersion()
+				);
 		if (updatedRows != 1) {
 			throw support.itemVersionConflict();
 		}

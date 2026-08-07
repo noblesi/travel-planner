@@ -93,6 +93,7 @@ DECLARE
                 START_DATE,
                 END_DATE,
                 VISIBILITY,
+                PUBLISH_STATUS,
                 PLAN_STATUS,
                 VIEW_COUNT
             ) VALUES (
@@ -103,6 +104,7 @@ DECLARE
                 p_start_date,
                 p_start_date + p_day_count - 1,
                 'PUBLIC',
+                'PUBLISHED',
                 'ACTIVE',
                 p_view_count
             );
@@ -114,6 +116,7 @@ DECLARE
 
             UPDATE TRAVEL_PLAN
                SET VISIBILITY = 'PUBLIC',
+                   PUBLISH_STATUS = 'PUBLISHED',
                    PLAN_STATUS = 'ACTIVE',
                    DELETED_AT = NULL,
                    DELETED_BY_MEMBER_ID = NULL,

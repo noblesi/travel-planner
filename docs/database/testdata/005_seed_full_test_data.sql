@@ -504,6 +504,7 @@ BEGIN
             START_DATE,
             END_DATE,
             VISIBILITY,
+            PUBLISH_STATUS,
             PLAN_STATUS,
             VIEW_COUNT
         ) VALUES (
@@ -514,6 +515,7 @@ BEGIN
             TRUNC(SYSDATE) + 30 + i,
             TRUNC(SYSDATE) + 31 + i,
             'PUBLIC',
+            'PUBLISHED',
             'ACTIVE',
             10 * i
         );

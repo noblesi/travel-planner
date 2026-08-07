@@ -56,6 +56,14 @@ const handleLogout = async () => {
           일정 탐색
         </RouterLink>
         <RouterLink
+          v-if="authStore.isAuthenticated"
+          class="navigation__link"
+          :to="{ name: 'my-plans' }"
+          @click="closeMenu"
+        >
+          내 플랜
+        </RouterLink>
+        <RouterLink
           class="navigation__link"
           :to="{ name: 'notice-list' }"
           @click="closeMenu"
