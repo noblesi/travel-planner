@@ -199,7 +199,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { searchPublicPlans } from '@/api/plans'
+import { getPlanList } from '@/api/planSearch'
 import defaultPlanThumbnail from '@/assets/plan/default-plan-thumbnail.svg'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import { usePlanSearchStore } from '@/stores/planSearch'
@@ -267,16 +267,16 @@ function mapPlan(plan) {
   return {
     id: plan.planId,
     title: plan.title,
-    region: plan.regionName,
-    days: plan.dayCount,
+    region: plan.region,
+    days: plan.days,
     likeCount: plan.likeCount,
     viewCount: plan.viewCount,
     authorInitials: Array.from(plan.authorName || '여행자')
       .slice(0, 2)
       .join(''),
     authorName: plan.authorName,
-    authorAvatar: plan.authorProfileImageUrl,
-    thumbImage: plan.thumbnailImageUrl || defaultPlanThumbnail,
+    authorAvatar: plan.authorImage,
+    thumbImage: plan.thumbnailImage || defaultPlanThumbnail,
   }
 }
 
@@ -304,7 +304,7 @@ async function loadPlans(searchKeyword = '', targetPage = 1) {
     let result
 
     for (let page = 1; page <= requestedTarget; page += 1) {
-      result = await searchPublicPlans({ keyword: searchKeyword, page, size: pageSize })
+      result = await getPlanList({ keyword: searchKeyword, page, size: pageSize })
       if (sequence !== requestSequence) return
       restoredPlans.push(...result.plans.map(mapPlan))
       loadedPage = page
@@ -360,7 +360,7 @@ async function loadMore() {
   errorMessage.value = ''
   try {
     const nextPage = currentPage.value + 1
-    const result = await searchPublicPlans({
+    const result = await getPlanList({
       keyword: requestKeyword,
       page: nextPage,
       size: pageSize,

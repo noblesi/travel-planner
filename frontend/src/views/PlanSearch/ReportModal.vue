@@ -21,6 +21,7 @@
         placeholder="자세한 내용을 입력해 주세요."
         rows="3"
       />
+      <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
     </template>
 
     <div v-else class="success-wrap">
@@ -32,8 +33,12 @@
     <template #footer>
       <template v-if="step === 'form'">
         <BaseButton class="footer-button" variant="secondary" @click="emit('close')">취소</BaseButton>
-        <BaseButton class="footer-button footer-button--primary" :disabled="!selectedReason" @click="submit">
-          신고하기
+        <BaseButton
+          class="footer-button footer-button--primary"
+          :disabled="!selectedReason || submitting"
+          @click="submit"
+        >
+          {{ submitting ? '접수 중...' : '신고하기' }}
         </BaseButton>
       </template>
       <BaseButton v-else class="footer-button" @click="emit('close')">확인</BaseButton>
@@ -44,10 +49,14 @@
 <script setup>
 import { ref } from 'vue'
 
+import { reportPlan } from '@/api/planSearch'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
 
-const emit = defineEmits(['close', 'submit'])
+const props = defineProps({
+  planId: { type: [String, Number], required: true },
+})
+const emit = defineEmits(['close'])
 
 const reasons = [
   { value: 'INAPPROPRIATE', label: '부적절한 콘텐츠' },
@@ -59,12 +68,21 @@ const reasons = [
 const selectedReason = ref('')
 const detail = ref('')
 const step = ref('form')
+const submitting = ref(false)
+const errorMessage = ref('')
 
-function submit() {
-  if (!selectedReason.value.trim()) return
-  // TODO: 백엔드 연동 시 API 호출 (신고 접수) 후 응답 성공하면 step을 'done'으로 전환
-  emit('submit', { reason: selectedReason.value, detail: detail.value })
-  step.value = 'done'
+async function submit() {
+  if (!selectedReason.value.trim() || submitting.value) return
+  submitting.value = true
+  errorMessage.value = ''
+  try {
+    await reportPlan(props.planId, { reason: selectedReason.value, detail: detail.value })
+    step.value = 'done'
+  } catch {
+    errorMessage.value = '신고를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    submitting.value = false
+  }
 }
 
 </script>
@@ -119,6 +137,12 @@ function submit() {
 .detail-input:focus {
   border-color: var(--color-brand-accent);
   box-shadow: 0 0 0 3px var(--color-brand-focus);
+}
+
+.error-text {
+  margin: 10px 0 0;
+  color: #b23a24;
+  font-size: 12.5px;
 }
 
 .success-wrap {

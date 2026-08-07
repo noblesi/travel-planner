@@ -15,6 +15,7 @@
         💡 원본은 {{ plan.days.length }}일 일정이에요. 여행 기간을 더 짧게 설정하면, 넘어가는
         날짜의 일정은 담기지 않아요.
       </div>
+      <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
     </div>
 
     <div v-else class="success-wrap">
@@ -27,19 +28,21 @@
       <BaseButton
         v-if="step === 'new'"
         class="modal-action"
-        :disabled="!newPlanName.trim() || !newStartDate || !newEndDate"
+        :disabled="!newPlanName.trim() || !newStartDate || !newEndDate || submitting"
         @click="submitNew"
       >
-        플랜 만들기
+        {{ submitting ? '만드는 중...' : '플랜 만들기' }}
       </BaseButton>
-      <BaseButton v-else class="modal-action" @click="handleClose">내 플랜 보러 가기</BaseButton>
+      <BaseButton v-else class="modal-action" @click="goToMyPlan">내 플랜 보러 가기</BaseButton>
     </template>
   </BaseModal>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 
+import { copyPlan } from '@/api/planSearch'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseModal from '@/components/ui/BaseModal.vue'
@@ -49,18 +52,42 @@ const props = defineProps({
 })
 const emit = defineEmits(['close'])
 
+const router = useRouter()
 const step = ref('new')
 const newPlanName = ref(`${props.plan.title} (복사)`)
 const newStartDate = ref('')
 const newEndDate = ref('')
+const submitting = ref(false)
+const errorMessage = ref('')
+const newPlanId = ref(null)
 
-function submitNew() {
-  // TODO: 백엔드 연동 시 API 호출 (새 플랜 생성)
-  step.value = 'success'
+async function submitNew() {
+  submitting.value = true
+  errorMessage.value = ''
+  try {
+    newPlanId.value = await copyPlan(props.plan.id, {
+      title: newPlanName.value,
+      startDate: newStartDate.value,
+      endDate: newEndDate.value,
+    })
+    step.value = 'success'
+  } catch {
+    errorMessage.value = '일정을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    submitting.value = false
+  }
 }
 
 function handleClose() {
   emit('close')
+}
+
+function goToMyPlan() {
+  if (newPlanId.value != null) {
+    router.push({ name: 'plan-editor', params: { planId: newPlanId.value } })
+    return
+  }
+  handleClose()
 }
 </script>
 
@@ -68,6 +95,12 @@ function handleClose() {
 .form-grid {
   display: grid;
   gap: 18px;
+}
+
+.error-text {
+  margin: 0;
+  color: #b23a24;
+  font-size: 12.5px;
 }
 
 .date-row {

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.plansearch.dao.PlanLikeDAO">
+
+	<insert id="insertLike">
+		INSERT INTO PLAN_LIKE (
+			PLAN_LIKE_ID,
+			PLAN_ID,
+			MEMBER_ID
+		) VALUES (
+			SEQ_PLAN_LIKE.NEXTVAL,
+			#{planId},
+			#{memberId}
+		)
+	</insert>
+
+	<delete id="deleteLike">
+		DELETE FROM PLAN_LIKE
+		 WHERE PLAN_ID = #{planId}
+		   AND MEMBER_ID = #{memberId}
+	</delete>
+
+	<select id="existsLike" resultType="boolean">
+		SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END
+		  FROM PLAN_LIKE
+		 WHERE PLAN_ID = #{planId}
+		   AND MEMBER_ID = #{memberId}
+	</select>
+
+</mapper>
