@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper
+	namespace="com.noblesi.travelplanner.admin.member.dao.AdminMemberDAO">
+
+	<select id="selectMemberList"
+		resultType="com.noblesi.travelplanner.admin.member.dto.AdminMemberListDTO">
+		SELECT 
+			member.MEMBER_ID AS memberId,
+			member.MEMBER_NAME AS memberName,
+			member.NICKNAME AS memberNickName,
+			member.EMAIL AS email,
+			member.CREATED_AT AS createAt,
+			member.MEMBER_STATUS AS memberStatus,
+			COUNT(DISTINCT plan.PLAN_ID) AS planCount,
+			COUNT(DISTINCT report.PLAN_ID) AS reportedPlanCount
+			FROM MEMBER member
+			LEFT JOIN TRAVEL_PLAN plan ON plan.OWNER_MEMBER_ID = member.MEMBER_ID
+			LEFT JOIN REPORT report ON report.PLAN_ID = plan.PLAN_ID
+			WHERE 1 = 1
+
+		<if test="keyword != null and keyword != ''">
+			AND (
+			member.MEMBER_NAME LIKE '%' || #{keyword} || '%'
+			OR member.NICKNAME LIKE '%' || #{keyword} || '%'
+			OR member.EMAIL LIKE '%' || #{keyword} || '%'
+			)
+		</if>
+
+		<if test="memberStatus != null and memberStatus != ''">
+			AND member.MEMBER_STATUS = #{memberStatus}
+		</if>
+
+		GROUP BY member.MEMBER_ID,
+		member.MEMBER_NAME,
+		member.NICKNAME,
+		member.EMAIL,
+		member.CREATED_AT,
+		member.MEMBER_STATUS
+		ORDER BY member.CREATED_AT DESC
+	</select>
+
+
+	<select id="selectMemberDetail"
+		resultType="com.noblesi.travelplanner.admin.member.dto.AdminMemberDetailDTO">
+		SELECT
+			member.MEMBER_ID AS memberId,
+			member.MEMBER_NAME AS memberName,
+			member.NICKNAME AS nickName,
+			member.EMAIL AS email,
+			member.PHONE_NUMBER AS phoneNumber,
+			member.BIRTH_DATE AS birthDate,
+			member.MEMBER_STATUS AS memberStatus,
+			member.CREATED_AT AS createAt,
+			COUNT(DISTINCT plan.PLAN_ID) AS planCount,
+			COUNT(DISTINCT report.PLAN_ID) AS reportedPlanCount
+		FROM MEMBER member
+		LEFT JOIN TRAVEL_PLAN plan ON plan.OWNER_MEMBER_ID = member.MEMBER_ID
+		LEFT JOIN REPORT report ON report.PLAN_ID = plan.PLAN_ID
+		WHERE member.MEMBER_ID = #{memberId}
+		GROUP BY member.MEMBER_ID,
+			member.MEMBER_NAME,
+			member.NICKNAME,
+			member.EMAIL,
+			member.PHONE_NUMBER,
+			member.BIRTH_DATE,
+			member.MEMBER_STATUS,
+			member.CREATED_AT
+	</select>
+
+	<update id="updateStatus">
+		UPDATE MEMBER
+		SET MEMBER_STATUS = #{memberStatus},
+			UPDATED_AT = CURRENT_TIMESTAMP
+		WHERE MEMBER_ID = #{memberId}
+	</update>
+
+</mapper>

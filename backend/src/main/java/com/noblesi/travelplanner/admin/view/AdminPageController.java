@@ -16,14 +16,6 @@ import com.noblesi.travelplanner.notice.service.NoticeService;
 @RequestMapping("/admin")
 public class AdminPageController {
 
-	// 아직 조회 서비스가 구현되지 않은 관리자 화면에서 사용하는 임시 표시 데이터입니다.
-	// 실제 API가 연결되면 각 목록을 Service 조회 결과로 교체합니다.
-	private static final List<MemberView> MEMBERS = List.of(
-			new MemberView("minsu12", "김민수", "여행하는민수", "minsu12@test.com", "2026.07.07", 10, 3, "정지"),
-			new MemberView("seoyeon23", "이서연", "서연의여행", "seoyeon23@test.com", "2026.07.11", 12, 2, "탈퇴"),
-			new MemberView("jiho77", "최지호", "길위의지호", "jiho77@test.com", "2026.07.10", 13, 0, "정상")
-	);
-
 	private static final List<TripView> TRIPS = List.of(
 			new TripView("P-5412", "서울 궁궐 여행", "서울", "김민수", "1박 2일", 142, 233, "공개", null),
 			new TripView("P-1122", "제주 카페 투어", "제주", "이서연", "2박 3일", 52, 73, "공개", null),
@@ -36,29 +28,6 @@ public class AdminPageController {
 
 	public AdminPageController(NoticeService noticeService) {
 		this.noticeService = noticeService;
-	}
-
-	@GetMapping("/members")
-	public String members(@RequestParam(name = "keyword", defaultValue = "") String keyword, Model model) {
-		// 검색 조건으로 화면에 전달할 회원 목록을 좁힌 뒤 request scope에 담습니다.
-		String query = keyword.strip().toLowerCase();
-		List<MemberView> filtered = MEMBERS.stream()
-				.filter(member -> query.isEmpty() || member.id().toLowerCase().contains(query)
-						|| member.name().contains(query) || member.email().toLowerCase().contains(query))
-				.toList();
-		model.addAttribute("pageTitle", "회원 관리");
-		model.addAttribute("keyword", keyword);
-		model.addAttribute("members", filtered);
-		return "admin/member/memberFormView";
-	}
-
-	@GetMapping("/members/{memberId}")
-	public String memberDetail(@PathVariable("memberId") String memberId, Model model) {
-		MemberView member = MEMBERS.stream().filter(value -> value.id().equals(memberId)).findFirst()
-				.orElse(new MemberView(memberId, "김민수", "여행하는민수", "minsul2@test.com", "2026.07.07", 12, 3, "정상"));
-		model.addAttribute("pageTitle", "회원 상세");
-		model.addAttribute("member", member);
-		return "admin/member/memberDetailView";
 	}
 
 	@GetMapping("/trips")
@@ -149,8 +118,6 @@ public class AdminPageController {
 	}
 
 	// Thymeleaf 전용 읽기 모델입니다. 영속 Domain과 화면 표시 데이터를 분리합니다.
-	public record MemberView(String id, String name, String nickname, String email, String joinedAt,
-			int trips, int reports, String status) { }
 	public record TripView(String id, String title, String region, String author, String duration,
 			int likes, int views, String status, String reportId) { }
 	public record SyncView(String id, String startedAt, int changedCount, int failedCount,
