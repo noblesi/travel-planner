@@ -58,6 +58,7 @@ class TravelPlanControllerIntegrationTest {
 				.andExpect(jsonPath("$.data.region.regionCode").value("1"))
 				.andExpect(jsonPath("$.data.region.regionName").value("서울특별시"))
 				.andExpect(jsonPath("$.data.visibility").value("PRIVATE"))
+				.andExpect(jsonPath("$.data.publishStatus").value("DRAFT"))
 				.andExpect(jsonPath("$.data.versionNo").value(0))
 				.andExpect(jsonPath("$.data.days", hasSize(1)))
 				.andExpect(jsonPath("$.data.days[0].planDayId").isString())

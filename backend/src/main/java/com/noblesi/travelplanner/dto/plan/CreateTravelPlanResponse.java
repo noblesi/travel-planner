@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.noblesi.travelplanner.domain.plan.PlanDay;
+import com.noblesi.travelplanner.domain.plan.PlanPublishStatus;
 import com.noblesi.travelplanner.domain.plan.PlanVisibility;
 import com.noblesi.travelplanner.domain.plan.TravelPlan;
 import com.noblesi.travelplanner.domain.region.Region;
@@ -15,6 +16,7 @@ public record CreateTravelPlanResponse(
 		LocalDate startDate,
 		LocalDate endDate,
 		PlanVisibility visibility,
+		PlanPublishStatus publishStatus,
 		int versionNo,
 		List<CreatedPlanDayResponse> days
 ) {
@@ -35,6 +37,7 @@ public record CreateTravelPlanResponse(
 				travelPlan.startDate(),
 				travelPlan.endDate(),
 				travelPlan.visibility(),
+				travelPlan.publishStatus(),
 				0,
 				planDays.stream().map(CreatedPlanDayResponse::from).toList()
 		);

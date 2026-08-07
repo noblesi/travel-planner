@@ -21,6 +21,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  scheduleItems: {
+    type: Array,
+    default: () => [],
+  },
 })
 
 const emit = defineEmits(['results-change', 'select', 'add'])
@@ -34,6 +38,8 @@ const places = ref([])
 const page = ref(1)
 const totalCount = ref(0)
 const hasNext = ref(false)
+const categoryFilter = ref('ALL')
+const recentKeywords = ref(loadRecentKeywords())
 let requestSequence = 0
 
 const isLoading = computed(() => status.value === 'loading')
@@ -42,6 +48,44 @@ const selectedPlace = computed(() => {
   const id = String(props.selectedPlaceId)
   return places.value.find((place) => placeId(place) === id) ?? null
 })
+const categoryOptions = computed(() => [
+  'ALL',
+  ...new Set(places.value.map((place) => place.categoryName || '기타')),
+])
+const visiblePlaces = computed(() =>
+  categoryFilter.value === 'ALL'
+    ? places.value
+    : places.value.filter((place) => (place.categoryName || '기타') === categoryFilter.value),
+)
+
+function loadRecentKeywords() {
+  try {
+    const values = JSON.parse(localStorage.getItem('planEditorRecentKeywords') || '[]')
+    return Array.isArray(values) ? values.filter((value) => typeof value === 'string').slice(0, 5) : []
+  } catch {
+    return []
+  }
+}
+
+function rememberKeyword(value) {
+  recentKeywords.value = [value, ...recentKeywords.value.filter((keyword) => keyword !== value)].slice(0, 5)
+  localStorage.setItem('planEditorRecentKeywords', JSON.stringify(recentKeywords.value))
+}
+
+function searchRecent(value) {
+  keyword.value = value
+  executeSearch(1)
+}
+
+function registeredTimeSlots(place) {
+  return props.scheduleItems
+    .filter(
+      (item) =>
+        item.placeProvider === place.placeProvider &&
+        String(item.externalPlaceId) === String(place.externalPlaceId),
+    )
+    .map((item) => item.timeSlot)
+}
 
 function placeId(place) {
   return String(`${place.placeProvider}:${place.externalPlaceId}`)
@@ -102,7 +146,9 @@ async function executeSearch(targetPage = 1) {
 
     const nextPlaces = Array.isArray(data.places) ? data.places : []
     searchedKeyword.value = normalizedKeyword
+    rememberKeyword(normalizedKeyword)
     places.value = nextPlaces
+    categoryFilter.value = 'ALL'
     page.value = data.page ?? targetPage
     totalCount.value = data.totalCount ?? nextPlaces.length
     hasNext.value = Boolean(data.hasNext)
@@ -163,6 +209,13 @@ watch(
       </button>
     </form>
 
+    <div v-if="recentKeywords.length" class="recent-searches" aria-label="최근 검색어">
+      <span>최근</span>
+      <button v-for="recent in recentKeywords" :key="recent" type="button" @click="searchRecent(recent)">
+        {{ recent }}
+      </button>
+    </div>
+
     <p v-if="status === 'idle'" class="place-search-panel__guide">
       {{ regionName || '전국' }}의 관광정보를 TourAPI에서 검색합니다.
     </p>
@@ -183,11 +236,19 @@ watch(
     <template v-else-if="status === 'success'">
       <div class="place-search-panel__summary">
         <strong>검색 결과 {{ totalCount.toLocaleString('ko-KR') }}곳</strong>
-        <span>{{ page }}페이지</span>
+        <label>
+          <span class="sr-only">카테고리 필터</span>
+          <select v-model="categoryFilter">
+            <option value="ALL">전체 카테고리</option>
+            <option v-for="category in categoryOptions.slice(1)" :key="category" :value="category">
+              {{ category }}
+            </option>
+          </select>
+        </label>
       </div>
 
       <ul class="place-search-panel__results">
-        <li v-for="place in places" :key="placeId(place)">
+        <li v-for="place in visiblePlaces" :key="placeId(place)">
           <button
             type="button"
             :class="{ 'place-result--selected': placeId(place) === String(selectedPlaceId) }"
@@ -200,6 +261,9 @@ watch(
               <small>{{ place.categoryName || '관광지' }}</small>
               <strong>{{ place.placeName }}</strong>
               <span>{{ place.address || '주소 정보 없음' }}</span>
+              <em v-if="registeredTimeSlots(place).length">
+                {{ registeredTimeSlots(place).map((slot) => slot === 'MORNING' ? '오전' : '오후').join('·') }} 등록됨
+              </em>
             </span>
           </button>
         </li>
@@ -209,6 +273,7 @@ watch(
         v-if="selectedPlace"
         :place="selectedPlace"
         :add-disabled="scheduleDisabled"
+        :existing-time-slots="registeredTimeSlots(selectedPlace)"
         @add="emit('add', { place: selectedPlace, timeSlot: $event })"
       />
 
@@ -249,7 +314,7 @@ watch(
 }
 
 .place-search-panel__header span {
-  color: #ff5a4e;
+  color: var(--color-brand);
   font-size: 9px;
   font-weight: 850;
   letter-spacing: 0.12em;
@@ -280,6 +345,7 @@ watch(
   gap: 8px;
   margin-top: 14px;
 }
+.recent-searches { display: flex; align-items: center; gap: 6px; margin-top: 9px; overflow: hidden; }.recent-searches > span { color: #94a3b8; font-size: 9px; }.recent-searches button { max-width: 84px; padding: 4px 7px; overflow: hidden; color: #64748b; border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
 
 .place-search-panel__form input {
   min-width: 0;
@@ -292,8 +358,8 @@ watch(
 }
 
 .place-search-panel__form input:focus {
-  border-color: #ff8b82;
-  box-shadow: 0 0 0 3px rgb(255 90 78 / 12%);
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px var(--color-brand-focus);
 }
 
 .place-search-panel__form button,
@@ -302,7 +368,7 @@ watch(
   padding: 0 14px;
   border: 0;
   border-radius: 11px;
-  background: #ff5a4e;
+  background: var(--color-brand);
   color: #fff;
   font-weight: 750;
   cursor: pointer;
@@ -340,6 +406,7 @@ watch(
 .place-search-panel__summary strong {
   color: #334155;
 }
+.place-search-panel__summary select { max-width: 150px; min-height: 30px; padding: 0 8px; color: #475569; border: 1px solid #dbe2ea; border-radius: 8px; background: #fff; font-size: 10px; }
 
 .place-search-panel__results {
   display: grid;
@@ -366,8 +433,8 @@ watch(
 
 .place-search-panel__results > li > button:hover,
 .place-search-panel__results > li > .place-result--selected {
-  border-color: #ff9f97;
-  background: #fff8f7;
+  border-color: var(--color-brand-border);
+  background: var(--color-brand-soft);
 }
 
 .place-search-panel__results img,
@@ -399,9 +466,10 @@ watch(
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.place-result__body > em { display: block; margin-top: 3px; color: #16a34a; font-size: 9px; font-style: normal; font-weight: 800; }
 
 .place-result__body > small {
-  color: #ff5a4e;
+  color: var(--color-brand);
   font-size: 9px;
   font-weight: 800;
 }
@@ -446,10 +514,4 @@ watch(
   border: 0;
 }
 
-@media (max-width: 520px) {
-  .place-search-panel {
-    max-height: 440px;
-    padding: 14px;
-  }
-}
 </style>

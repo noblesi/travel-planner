@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.domain.plan.ParticipantType;
 import com.noblesi.travelplanner.domain.plan.PlanDay;
+import com.noblesi.travelplanner.domain.plan.PlanPublishStatus;
 import com.noblesi.travelplanner.domain.plan.TravelPlan;
 import com.noblesi.travelplanner.domain.region.Region;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanRequest;
@@ -57,7 +58,8 @@ class TravelPlanCreationService {
 				region.regionCode(),
 				request.startDate(),
 				request.endDate(),
-				request.visibility()
+				request.visibility(),
+				PlanPublishStatus.DRAFT
 		);
 		requireSingleRow(travelPlanCommandMapper.insertTravelPlan(travelPlan));
 		requireSingleRow(planMemberMapper.insertPlanMember(planId, memberId, ParticipantType.CREATOR));

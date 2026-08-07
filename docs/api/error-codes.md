@@ -54,12 +54,14 @@
 | `404` | `SCHEDULE_ITEM_NOT_FOUND` | 일정 항목이 없거나 대상 일차에 속하지 않음 |
 | `400` | `INVALID_SCHEDULE_ORDER` | 정렬 목록이 현재 시간대의 항목과 일치하지 않음 |
 | `409` | `PLAN_VERSION_CONFLICT` | 플랜 Metadata Version 불일치 |
+| `409` | `PLAN_SCHEDULE_REQUIRED` | 일정이 없는 플랜을 제작 완료 상태로 변경함 |
 | `409` | `PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED` | 날짜 변경으로 일정이 포함된 DAY가 제외되지만 삭제 확인이 없음 |
 | `409` | `SCHEDULE_VERSION_CONFLICT` | 일차 일정 Version 불일치 |
 | `409` | `ITEM_VERSION_CONFLICT` | 일정 항목 Version 불일치 |
 | `409` | `DUPLICATE_OPERATION` | 이미 처리된 `operationId`를 다른 Payload로 재요청 |
 | `409` | `SCHEDULE_ITEM_ALREADY_EXISTS` | 같은 일차·시간대에 동일 장소가 존재 |
 | `409` | `SCHEDULE_ITEM_LIMIT_EXCEEDED` | 시간대별 일정 100개 제한 초과 |
+| `400` | `TARGET_SCHEDULE_VERSION_REQUIRED` | DAY 간 이동 요청에 대상 DAY 일정 Version이 없음 |
 
 Version 및 Operation 오류는 자동 저장 API에서 사용합니다. 동일한 `operationId`와 동일한 Payload 재요청은 오류가 아니라 멱등 성공으로 처리합니다.
 

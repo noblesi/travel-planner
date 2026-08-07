@@ -47,6 +47,13 @@
 		          I.POSITION_NO ASC
 	</select>
 
+	<select id="countByPlanId" resultType="int">
+		SELECT COUNT(*)
+		  FROM PLAN_SCHEDULE_ITEM I
+		  JOIN PLAN_DAY D ON D.PLAN_DAY_ID = I.PLAN_DAY_ID
+		 WHERE D.PLAN_ID = #{planId}
+	</select>
+
 	<select id="nextScheduleItemId" resultType="long">
 		SELECT SEQ_PLAN_SCHEDULE_ITEM.NEXTVAL
 		  FROM DUAL
@@ -141,6 +148,18 @@
 		       UPDATED_AT = CURRENT_TIMESTAMP
 		 WHERE SCHEDULE_ITEM_ID = #{scheduleItemId}
 		   AND PLAN_DAY_ID = #{planDayId}
+		   AND ITEM_VERSION = #{itemVersion}
+	</update>
+
+	<update id="moveToDayAndTimeSlot">
+		UPDATE PLAN_SCHEDULE_ITEM
+		   SET PLAN_DAY_ID = #{targetPlanDayId},
+		       TIME_SLOT = #{timeSlot},
+		       POSITION_NO = #{positionNo},
+		       ITEM_VERSION = ITEM_VERSION + 1,
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE SCHEDULE_ITEM_ID = #{scheduleItemId}
+		   AND PLAN_DAY_ID = #{sourcePlanDayId}
 		   AND ITEM_VERSION = #{itemVersion}
 	</update>
 

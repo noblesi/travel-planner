@@ -30,6 +30,7 @@ const errorMessage = ref('')
 let mapInstance = null
 let markers = []
 let infoWindow = null
+let routeLine = null
 
 function finiteCoordinate(value) {
   const coordinate = Number(value)
@@ -53,6 +54,9 @@ const normalizedPlaces = computed(() =>
       name: place.placeName ?? place.name ?? '이름 없는 장소',
       latitude: finiteCoordinate(place.latitude ?? place.lat),
       longitude: finiteCoordinate(place.longitude ?? place.lng),
+      markerSource: place.markerSource ?? 'DEFAULT',
+      positionNo: Number(place.positionNo) || null,
+      timeSlot: place.timeSlot ?? null,
       original: place,
     }))
     .filter((place) => place.latitude !== null && place.longitude !== null),
@@ -65,6 +69,44 @@ function closeInfoWindow() {
 function clearMarkers() {
   markers.forEach(({ marker }) => marker.setMap(null))
   markers = []
+  routeLine?.setMap?.(null)
+  routeLine = null
+}
+
+function markerImage(kakao, place) {
+  if (typeof kakao.maps.MarkerImage !== 'function' || typeof kakao.maps.Size !== 'function') {
+    return undefined
+  }
+  const scheduled = place.markerSource === 'SCHEDULE'
+  const color = scheduled ? (place.timeSlot === 'MORNING' ? '#ff5a4e' : '#475569') : '#2563eb'
+  const label = scheduled && place.positionNo ? String(place.positionNo) : '•'
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="42" viewBox="0 0 34 42"><path fill="${color}" stroke="white" stroke-width="2" d="M17 1C8.2 1 1 8.2 1 17c0 12 16 24 16 24s16-12 16-24C33 8.2 25.8 1 17 1z"/><circle cx="17" cy="17" r="10" fill="white"/><text x="17" y="21" text-anchor="middle" font-family="Arial" font-size="11" font-weight="700" fill="${color}">${label}</text></svg>`
+  return new kakao.maps.MarkerImage(
+    `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+    new kakao.maps.Size(34, 42),
+  )
+}
+
+function renderScheduleRoute(kakao) {
+  if (typeof kakao.maps.Polyline !== 'function') return
+  const routePlaces = markers
+    .filter(({ place }) => place.markerSource === 'SCHEDULE')
+    .sort((left, right) => {
+      const slotOrder = { MORNING: 0, AFTERNOON: 1 }
+      return (
+        (slotOrder[left.place.timeSlot] ?? 2) - (slotOrder[right.place.timeSlot] ?? 2) ||
+        (left.place.positionNo ?? 0) - (right.place.positionNo ?? 0)
+      )
+    })
+  if (routePlaces.length < 2) return
+  routeLine = new kakao.maps.Polyline({
+    path: routePlaces.map(({ position }) => position),
+    strokeWeight: 4,
+    strokeColor: '#ff5a4e',
+    strokeOpacity: 0.72,
+    strokeStyle: 'shortdash',
+  })
+  routeLine.setMap(mapInstance)
 }
 
 function infoWindowContent(place) {
@@ -125,11 +167,14 @@ function renderMarkers() {
 
   normalizedPlaces.value.forEach((place) => {
     const position = new kakao.maps.LatLng(place.latitude, place.longitude)
-    const marker = new kakao.maps.Marker({
+    const options = {
       map: mapInstance,
       position,
       title: place.name,
-    })
+    }
+    const image = markerImage(kakao, place)
+    if (image) options.image = image
+    const marker = new kakao.maps.Marker(options)
 
     const markerEntry = { marker, place, position }
     kakao.maps.event.addListener(marker, 'click', () => {
@@ -141,6 +186,7 @@ function renderMarkers() {
     markers.push(markerEntry)
   })
 
+  renderScheduleRoute(kakao)
   fitMapToPlaces(kakao)
   showSelectedPlace()
 }

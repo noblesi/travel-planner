@@ -44,4 +44,11 @@ describe('plan route authentication guard', () => {
 
     expect(router.currentRoute.value.name).toBe('plan-editor')
   })
+
+  it('비로그인 사용자의 내 플랜 접근을 로그인 화면으로 보낸다', async () => {
+    await router.push('/my-plans')
+
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/my-plans')
+  })
 })

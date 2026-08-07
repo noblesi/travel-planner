@@ -8,11 +8,12 @@
 
 - orange 계열 brand theme와 공통 design token
 - 사용자 Header·Footer·본문 skip link를 제공하는 `DefaultLayout`
-- 관리자 Sidebar·Header·scroll 영역을 제공하는 `AdminLayout`
 - `BaseButton`, `BaseInput`, `BaseModal`, `AsyncState`
 - Pinia 기반 전역 Toast와 `ToastRegion`
 - Vue Router의 `RouterLink`, route scroll 처리와 404 fallback
-- Desktop·Mobile 반응형 및 keyboard 접근성
+- 사용자 화면의 Desktop 우선 레이아웃과 keyboard 접근성
+
+관리자 화면은 Vue 공통 레이아웃의 범위가 아닙니다. 별도 Thymeleaf 템플릿과 정적 자원으로 운영합니다.
 
 ## 2. 파일 구조와 책임
 
@@ -31,7 +32,7 @@ frontend/src/
 │       └── ToastRegion.vue
 ├── layouts/
 │   ├── DefaultLayout.vue
-│   └── AdminLayout.vue
+│   └── AdminLayout.vue              # 기존 Vue 관리자 화면, Thymeleaf 전환 대상
 └── stores/toast.js
 ```
 
@@ -73,9 +74,9 @@ frontend/src/
 
 페이지 내용의 최대 너비가 필요하면 `.app-container`를 사용합니다. 화면에서 Header 또는 Footer를 직접 다시 mount하지 않습니다.
 
-### AdminLayout
+### 플랜 제작 작업공간
 
-관리자 route의 shell입니다. `route.meta.title`을 Header 제목으로 전달하고, Sidebar를 제외한 내용 영역만 독립적으로 scroll합니다. 사용자용 `DefaultLayout`과 중첩하지 않습니다.
+플랜 제작 화면은 일정 패널과 지도 작업공간을 최대한 넓게 사용하기 위해 Header·Footer가 포함된 `DefaultLayout` 대신 전용 shell을 사용합니다. 다만 `본문 바로가기` 링크와 `<main>` landmark 등 공통 접근성 기준은 동일하게 적용합니다.
 
 ## 5. UI Component API
 
@@ -183,8 +184,8 @@ toastStore.info('새로운 안내가 있습니다.', { duration: 0 })
 | 화면 | 적용 내용 |
 | --- | --- |
 | 전체 사용자 화면 | `DefaultLayout`, 공통 Header·Footer, orange token |
-| 전체 관리자 화면 | `AdminLayout` token 정렬 |
 | 여행 계획 생성 | `AsyncState`, 생성 성공 Toast |
+| 플랜 제작·설정 | Desktop 전용 작업공간, 공통 brand token, 중앙 상단 Toast |
 | 여행 상세 신고 | `BaseModal`, `BaseButton` |
 | 여행 일정 가져오기 | `BaseModal`, `BaseInput`, `BaseButton` |
 | 미등록 URL | 404 route와 `NotFoundView` |
@@ -198,8 +199,8 @@ toastStore.info('새로운 안내가 있습니다.', { duration: 0 })
 - Modal을 닫으면 실행 버튼으로 focus가 복원되어야 합니다.
 - 상태 변화는 `status`, `alert`, `aria-live`, `aria-busy`로 전달합니다.
 - animation은 `prefers-reduced-motion: reduce`에서 제거합니다.
-- 기본 확인 viewport는 Desktop `1280 × 720`, Mobile `390 × 844`입니다.
-- Mobile에서 dialog는 viewport 좌우 12px 이상 여백을 유지하고 date field는 1열로 배치합니다.
+- 현재 우선 확인 viewport는 Desktop `1280 × 720`입니다.
+- Mobile·Tablet 전용 레이아웃은 현재 구현·인수 범위에서 제외합니다.
 
 ## 8. 테스트와 검증
 
@@ -214,13 +215,11 @@ npm run build
 
 2026-08-03 기준 검증 결과:
 
-- Vitest: 22개 test file, 83개 test 통과
+- Vitest: 32개 test file, 139개 test 통과
 - ESLint와 Oxlint 통과
 - Vite production build 통과
-- Desktop 신고 Modal과 Mobile 일정 가져오기 Modal 시각 검증 완료
+- Desktop 신고 Modal 시각 검증 완료
 - Modal focus, ESC 종료, body scroll 복원 확인
-- Mobile 공통 ErrorState viewport 내부 배치 확인
-- `PlanDetailView`를 `320px`, `390 × 844`, `760px`에서 검증하고 페이지 가로 overflow가 없음을 확인
 
 ## 9. 남은 작업
 

@@ -3,14 +3,17 @@ import { RouterLink } from 'vue-router'
 
 import { formatKoreanTravelDate } from '@/utils/travelDate'
 
-defineProps({
+const props = defineProps({
   plan: { type: Object, default: null },
   isReady: { type: Boolean, required: true },
   isSaving: { type: Boolean, required: true },
   saveStatus: { type: String, required: true },
   saveMessage: { type: String, required: true },
   pendingSaveCount: { type: Number, required: true },
+  publicationBusy: { type: Boolean, default: false },
 })
+
+defineEmits(['toggle-publication'])
 </script>
 
 <template>
@@ -45,6 +48,22 @@ defineProps({
           {{ saveMessage }}
           <small v-if="pendingSaveCount > 1">{{ pendingSaveCount }}건</small>
         </span>
+        <button
+          v-if="plan && plan.canManagePlan !== false"
+          class="complete-button"
+          type="button"
+          :disabled="!isReady || isSaving || publicationBusy"
+          :aria-busy="publicationBusy"
+          @click="$emit('toggle-publication')"
+        >
+          {{
+            publicationBusy
+              ? '처리 중...'
+              : props.plan?.publishStatus === 'PUBLISHED'
+                ? '작성 중으로 전환'
+                : '제작 완료'
+          }}
+        </button>
         <RouterLink class="exit-button" :to="{ name: 'home' }">
           {{ isSaving ? '저장 후 나가기' : '나가기' }}
         </RouterLink>
@@ -71,7 +90,8 @@ defineProps({
   padding: 12px 24px;
 }
 .back-button,
-.exit-button {
+.exit-button,
+.complete-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -83,7 +103,7 @@ defineProps({
 }
 .back-button { width: 42px; color: #334155; font-size: 20px; }
 .plan-heading { min-width: 0; }
-.plan-heading__eyebrow { color: #ff5a4e; font-size: 9px; font-weight: 850; letter-spacing: .14em; }
+.plan-heading__eyebrow { color: var(--color-brand); font-size: 9px; font-weight: 850; letter-spacing: .14em; }
 .plan-heading h1 {
   margin: 3px 0 0;
   overflow: hidden;
@@ -103,10 +123,6 @@ defineProps({
 .save-state--error > span,
 .save-state--conflict > span { background: #ef4444; }
 .exit-button { padding: 0 18px; color: #334155; }
-@media (max-width: 720px) {
-  .editor-toolbar__inner { grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; padding: 10px 12px; }
-  .save-state { display: none; }
-  .exit-button { padding: 0 12px; font-size: 12px; }
-  .plan-heading p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-}
+.complete-button { padding: 0 16px; color: var(--color-brand-on); border-color: var(--color-brand); background: var(--color-brand); font-weight: 800; cursor: pointer; }
+.complete-button:disabled { cursor: wait; opacity: .55; }
 </style>

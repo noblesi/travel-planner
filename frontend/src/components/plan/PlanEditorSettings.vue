@@ -6,6 +6,12 @@ import { usePlanEditorStore } from '@/stores/planEditor'
 import { addDaysToDate, inclusiveDayCount, todayInKorea } from '@/utils/travelDate'
 
 const emit = defineEmits(['busy-change'])
+const props = defineProps({
+  canManagePlan: {
+    type: Boolean,
+    default: true,
+  },
+})
 const editorStore = usePlanEditorStore()
 const { plan, isSaving } = storeToRefs(editorStore)
 
@@ -22,8 +28,11 @@ const dateSubmitButton = ref(null)
 const editingMetadata = ref(false)
 const metadataSubmitting = ref(false)
 const metadataError = ref('')
+const metadataErrorField = ref('')
 const editTitle = ref('')
 const editVisibility = ref('PRIVATE')
+const metadataTitleInput = ref(null)
+const metadataVisibilitySelect = ref(null)
 const busy = computed(() => dateSubmitting.value || metadataSubmitting.value)
 const today = todayInKorea()
 const isCompletedPlan = computed(() => Boolean(plan.value?.endDate && plan.value.endDate < today))
@@ -55,23 +64,34 @@ function openMetadataEditor() {
   closeDateEditor()
   syncMetadataForm()
   metadataError.value = ''
+  metadataErrorField.value = ''
   editingMetadata.value = true
 }
 
 function closeMetadataEditor() {
   editingMetadata.value = false
   metadataError.value = ''
+  metadataErrorField.value = ''
   syncMetadataForm()
+  editorStore.clearDirectSaveFailure()
 }
 
 function validateMetadata() {
   const normalizedTitle = editTitle.value.trim()
-  if (!normalizedTitle) return '플랜 제목을 입력해 주세요.'
-  if (normalizedTitle.length > 200) return '플랜 제목은 200자 이하로 입력해 주세요.'
-  if (!['PUBLIC', 'PRIVATE'].includes(editVisibility.value)) {
-    return '공개 범위를 다시 선택해 주세요.'
+  if (!normalizedTitle) return { field: 'title', message: '플랜 제목을 입력해 주세요.' }
+  if (normalizedTitle.length > 200) {
+    return { field: 'title', message: '플랜 제목은 200자 이하로 입력해 주세요.' }
   }
-  return ''
+  if (!['PUBLIC', 'PRIVATE'].includes(editVisibility.value)) {
+    return { field: 'visibility', message: '공개 범위를 다시 선택해 주세요.' }
+  }
+  return null
+}
+
+function clearMetadataFieldError(field) {
+  if (metadataErrorField.value !== field) return
+  metadataError.value = ''
+  metadataErrorField.value = ''
 }
 
 function metadataApiErrorMessage(error) {
@@ -86,9 +106,13 @@ function metadataApiErrorMessage(error) {
 
 async function submitMetadataChange() {
   if (metadataSubmitting.value) return
-  const validationMessage = validateMetadata()
-  if (validationMessage) {
-    metadataError.value = validationMessage
+  const validationError = validateMetadata()
+  if (validationError) {
+    metadataError.value = validationError.message
+    metadataErrorField.value = validationError.field
+    await nextTick()
+    if (validationError.field === 'title') metadataTitleInput.value?.focus()
+    if (validationError.field === 'visibility') metadataVisibilitySelect.value?.focus()
     return
   }
 
@@ -100,6 +124,7 @@ async function submitMetadataChange() {
 
   metadataSubmitting.value = true
   metadataError.value = ''
+  metadataErrorField.value = ''
   try {
     const data = await editorStore.savePlanMetadata({
       title: normalizedTitle,
@@ -110,6 +135,7 @@ async function submitMetadataChange() {
     editingMetadata.value = false
   } catch (error) {
     metadataError.value = metadataApiErrorMessage(error)
+    metadataErrorField.value = ''
   } finally {
     metadataSubmitting.value = false
   }
@@ -128,6 +154,7 @@ function closeDateEditor() {
   removalConfirmationOpen.value = false
   pendingDatePayload.value = null
   syncDateForm()
+  editorStore.clearDirectSaveFailure()
 }
 
 function openRemovalConfirmation(payload) {
@@ -251,7 +278,7 @@ onBeforeUnmount(() => emit('busy-change', false))
 </script>
 
 <template>
-  <div class="plan-editor-settings">
+  <div v-if="props.canManagePlan" class="plan-editor-settings">
     <section
       class="metadata-editor"
       :aria-label="editingMetadata ? undefined : '플랜 정보 변경'"
@@ -285,23 +312,42 @@ onBeforeUnmount(() => emit('busy-change', false))
           <label
             ><span>플랜 제목</span
             ><input
+              ref="metadataTitleInput"
               v-model="editTitle"
               name="editTitle"
               type="text"
               maxlength="200"
               autocomplete="off"
               :disabled="metadataSubmitting"
+              :aria-invalid="metadataErrorField === 'title'"
+              :aria-describedby="metadataErrorField === 'title' ? 'metadata-editor-error' : undefined"
+              @input="clearMetadataFieldError('title')"
           /></label>
           <label
             ><span>공개 범위</span
-            ><select v-model="editVisibility" name="editVisibility" :disabled="metadataSubmitting">
+            ><select
+              ref="metadataVisibilitySelect"
+              v-model="editVisibility"
+              name="editVisibility"
+              :disabled="metadataSubmitting"
+              :aria-invalid="metadataErrorField === 'visibility'"
+              :aria-describedby="metadataErrorField === 'visibility' ? 'metadata-editor-error' : undefined"
+              @change="clearMetadataFieldError('visibility')"
+            >
               <option value="PRIVATE">비공개</option>
               <option value="PUBLIC">공개</option>
             </select></label
           >
         </div>
         <p class="metadata-editor__notice">공개 플랜은 다른 사용자가 탐색할 수 있습니다.</p>
-        <p v-if="metadataError" class="metadata-editor__error" role="alert">{{ metadataError }}</p>
+        <p
+          v-if="metadataError"
+          id="metadata-editor-error"
+          class="metadata-editor__error"
+          role="alert"
+        >
+          {{ metadataError }}
+        </p>
         <div class="metadata-editor__actions">
           <button type="button" :disabled="metadataSubmitting" @click="closeMetadataEditor">
             취소
@@ -440,10 +486,10 @@ onBeforeUnmount(() => emit('busy-change', false))
 .date-editor__open {
   width: 100%;
   min-height: 42px;
-  color: #e8443a;
-  border: 1px solid #ffc2bd;
+  color: var(--color-brand);
+  border: 1px solid var(--color-brand-border);
   border-radius: 12px;
-  background: #fff8f7;
+  background: var(--color-brand-soft);
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
@@ -456,9 +502,9 @@ onBeforeUnmount(() => emit('busy-change', false))
 .metadata-editor__form,
 .date-editor__form {
   padding: 16px;
-  border: 1px solid #ffd0cc;
+  border: 1px solid var(--color-brand-border);
   border-radius: 16px;
-  background: #fffafa;
+  background: var(--color-brand-soft);
 }
 .metadata-editor__heading,
 .metadata-editor__actions,
@@ -472,7 +518,7 @@ onBeforeUnmount(() => emit('busy-change', false))
 }
 .metadata-editor__heading span,
 .date-editor__heading span {
-  color: #ff5a4e;
+  color: var(--color-brand);
   font-size: 9px;
   font-weight: 850;
   letter-spacing: 0.12em;
@@ -525,6 +571,11 @@ onBeforeUnmount(() => emit('busy-change', false))
   font: inherit;
   font-size: 12px;
 }
+.metadata-editor__fields input[aria-invalid='true'],
+.metadata-editor__fields select[aria-invalid='true'] {
+  border-color: var(--color-danger);
+  box-shadow: 0 0 0 3px var(--color-danger-soft);
+}
 .metadata-editor__notice,
 .metadata-editor__error,
 .date-editor__notice,
@@ -564,8 +615,8 @@ onBeforeUnmount(() => emit('busy-change', false))
 .date-editor__actions button:last-child,
 .confirmation-dialog__actions button:last-child {
   color: #fff;
-  border-color: #ff5a4e;
-  background: #ff5a4e;
+  border-color: var(--color-brand);
+  background: var(--color-brand);
 }
 .metadata-editor__actions button:disabled,
 .date-editor__actions button:disabled,
@@ -622,11 +673,6 @@ onBeforeUnmount(() => emit('busy-change', false))
 }
 .confirmation-dialog__actions {
   margin-top: 24px;
-}
-@media (max-width: 520px) {
-  .date-editor__grid {
-    grid-template-columns: 1fr;
-  }
 }
 @media (prefers-reduced-motion: reduce) {
   .date-editor__open {
