@@ -127,6 +127,39 @@ class TravelPlanEditorControllerIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.plan.publishStatus").value("PUBLISHED"))
 				.andExpect(jsonPath("$.data.plan.versionNo").value(4));
+
+		mockMvc.perform(patch("/api/plans/{planId}", Long.toString(PLAN_ID))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "title": "공개 중 자동 저장된 서울 여행",
+						  "visibility": "PUBLIC",
+						  "versionNo": 4
+						}
+						"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.publishStatus").value("PUBLISHED"))
+				.andExpect(jsonPath("$.data.plan.versionNo").value(5));
+
+		mockMvc.perform(get("/api/plans/{planId}", Long.toString(PLAN_ID)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.title").value("공개 중 자동 저장된 서울 여행"));
+
+		mockMvc.perform(patch("/api/plans/{planId}/publication", Long.toString(PLAN_ID))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "publishStatus": "DRAFT",
+						  "versionNo": 5
+						}
+						"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.publishStatus").value("DRAFT"))
+				.andExpect(jsonPath("$.data.plan.versionNo").value(6));
+
+		mockMvc.perform(get("/api/plans/{planId}", Long.toString(PLAN_ID)))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"));
 	}
 
 	@Test

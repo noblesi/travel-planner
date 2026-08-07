@@ -42,6 +42,8 @@ const plan = {
   startDate: '2026-08-10',
   endDate: '2026-08-11',
   visibility: 'PRIVATE',
+  publishStatus: 'DRAFT',
+  canManagePlan: true,
   versionNo: 0,
 }
 
@@ -231,6 +233,34 @@ describe('planEditor store', () => {
     await expect(store.waitForPendingSaves()).resolves.toBe(false)
 
     await expect(store.savePlanMetadata(payload)).resolves.toEqual(updated)
+    expect(store.hasUnsavedChanges).toBe(false)
+  })
+
+  it('제작 완료 실패를 자동 저장 실패 상태로 기록하지 않는다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const failure = {
+      response: {
+        status: 409,
+        data: {
+          code: 'PLAN_PUBLISH_REQUIRES_SCHEDULE',
+          message: '일정을 한 곳 이상 추가한 후 제작을 완료해 주세요.',
+        },
+      },
+    }
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    updatePlanPublicationMock.mockRejectedValue(failure)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await expect(store.savePlanPublication('PUBLISHED')).rejects.toBe(failure)
+
+    expect(updatePlanPublicationMock).toHaveBeenCalledWith('101', {
+      publishStatus: 'PUBLISHED',
+      versionNo: 0,
+    })
+    expect(store.saveStatus).toBe('idle')
+    expect(store.saveMessage).toBe('자동 저장 준비')
+    expect(store.hasSaveError).toBe(false)
     expect(store.hasUnsavedChanges).toBe(false)
   })
 

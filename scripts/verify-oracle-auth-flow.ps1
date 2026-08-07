@@ -75,6 +75,55 @@ function Assert-Equal {
     }
 }
 
+function Assert-NotNull {
+    param(
+        $Actual,
+        [string]$Message
+    )
+
+    if ($null -eq $Actual) {
+        throw $Message
+    }
+}
+
+function Invoke-ExpectJsonError {
+    param(
+        [scriptblock]$Action,
+        [int]$ExpectedStatus,
+        [string]$ExpectedCode,
+        [string]$Message
+    )
+
+    try {
+        & $Action | Out-Null
+    }
+    catch {
+        $response = $_.Exception.Response
+        if ($null -eq $response) {
+            throw "$Message (HTTP response was not available: $($_.Exception.Message))"
+        }
+
+        $actualStatus = [int]$response.StatusCode
+        $rawBody = $_.ErrorDetails.Message
+        if ([string]::IsNullOrWhiteSpace($rawBody)) {
+            $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
+            try {
+                $rawBody = $reader.ReadToEnd()
+            }
+            finally {
+                $reader.Dispose()
+            }
+        }
+        $payload = $rawBody | ConvertFrom-Json
+
+        Assert-Equal $actualStatus $ExpectedStatus "$Message status mismatch"
+        Assert-Equal $payload.code $ExpectedCode "$Message code mismatch"
+        return $payload
+    }
+
+    throw "$Message (request unexpectedly succeeded)"
+}
+
 function Get-CsrfContext {
     $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
     $response = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/auth/csrf" -WebSession $session
@@ -143,28 +192,61 @@ try {
     Assert-Equal $ownerLogin.data.authenticated $true 'Owner login failed'
     Update-CsrfContext -Context $owner
 
+    $today = [TimeZoneInfo]::ConvertTimeBySystemTimeZoneId(
+        [DateTimeOffset]::UtcNow,
+        'Korea Standard Time'
+    ).Date
+    $startDate = $today.AddDays(3).ToString('yyyy-MM-dd')
+    $initialEndDate = $today.AddDays(4).ToString('yyyy-MM-dd')
+    $extendedEndDate = $today.AddDays(5).ToString('yyyy-MM-dd')
+
     $plan = Invoke-JsonRequest -Method Post -Uri "$baseUrl/api/plans" -Context $owner -Body @{
         regionCode = '1'
-        startDate = '2026-08-10'
-        endDate = '2026-08-11'
-        visibility = 'PRIVATE'
+        startDate = $startDate
+        endDate = $initialEndDate
+        visibility = 'PUBLIC'
     }
     $planId = $plan.data.planId
     $dayId = $plan.data.days[0].planDayId
+    Assert-Equal $plan.data.publishStatus 'DRAFT' 'New plan must start as draft'
+    Assert-Equal $plan.data.versionNo 0 'New plan version mismatch'
 
-    $metadata = Invoke-JsonRequest -Method Patch -Uri "$baseUrl/api/plans/$planId" -Context $owner -Body @{
-        title = 'P3 Oracle Session Verification'
-        visibility = 'PRIVATE'
+    $myPlans = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans/mine" -WebSession $owner.Session
+    $ownedPlan = @($myPlans.data.plans | Where-Object { $_.planId -eq $planId })[0]
+    Assert-NotNull $ownedPlan 'New plan was not returned by my plans'
+    Assert-Equal $ownedPlan.currentMemberRole 'CREATOR' 'My plans owner role mismatch'
+    Assert-Equal $ownedPlan.publishStatus 'DRAFT' 'My plans draft status mismatch'
+
+    Invoke-ExpectJsonError -ExpectedStatus 409 -ExpectedCode 'PLAN_SCHEDULE_REQUIRED' `
+        -Message 'Empty plan publication must be rejected' -Action {
+            Invoke-JsonRequest -Method Patch -Uri "$baseUrl/api/plans/$planId/publication" -Context $owner -Body @{
+                publishStatus = 'PUBLISHED'
+                versionNo = 0
+            }
+        } | Out-Null
+
+    $dates = Invoke-JsonRequest -Method Patch -Uri "$baseUrl/api/plans/$planId/dates" -Context $owner -Body @{
+        startDate = $startDate
+        endDate = $extendedEndDate
         versionNo = 0
+        force = $false
+    }
+    Assert-Equal $dates.data.plan.endDate $extendedEndDate 'Oracle date extension failed'
+    Assert-Equal $dates.data.plan.versionNo 1 'Date extension version mismatch'
+
+    $verificationTitle = "P0 Oracle Lifecycle $planId"
+    $metadata = Invoke-JsonRequest -Method Patch -Uri "$baseUrl/api/plans/$planId" -Context $owner -Body @{
+        title = $verificationTitle
+        visibility = 'PUBLIC'
+        versionNo = 1
     }
     Assert-Equal $metadata.data.plan.planId $planId 'Owner metadata update failed'
+    Assert-Equal $metadata.data.plan.versionNo 2 'Metadata update version mismatch'
 
     $invitation = Invoke-JsonRequest -Method Post -Uri "$baseUrl/api/plans/$planId/invitations" -Context $owner -Body @{
         inviteeEmails = @('e2e.invitee@withtrip.test')
     }
     $token = $invitation.data.invitations[0].token
-
-    Invoke-JsonRequest -Method Post -Uri "$baseUrl/api/auth/logout" -Context $owner -Body $null | Out-Null
 
     $invitee = Get-CsrfContext
     $inviteeLogin = Invoke-JsonRequest -Method Post -Uri "$baseUrl/api/auth/login" -Context $invitee -Body @{
@@ -199,7 +281,76 @@ try {
     }
     Assert-Equal $item.data.resultScheduleVersion 1 'Invited member schedule edit failed'
 
+    $published = Invoke-JsonRequest -Method Patch -Uri "$baseUrl/api/plans/$planId/publication" -Context $owner -Body @{
+        publishStatus = 'PUBLISHED'
+        versionNo = 2
+    }
+    Assert-Equal $published.data.plan.publishStatus 'PUBLISHED' 'Plan publication failed'
+    Assert-Equal $published.data.plan.versionNo 3 'Plan publication version mismatch'
+
+    $publicDetail = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans/$planId"
+    Assert-Equal $publicDetail.data.plan.planId $planId 'Published plan detail was not available'
+    Assert-Equal $publicDetail.data.plan.title $verificationTitle 'Published plan title mismatch'
+
+    $updatedTitle = "$verificationTitle Updated"
+    $liveUpdate = Invoke-JsonRequest -Method Patch -Uri "$baseUrl/api/plans/$planId" -Context $owner -Body @{
+        title = $updatedTitle
+        visibility = 'PUBLIC'
+        versionNo = 3
+    }
+    Assert-Equal $liveUpdate.data.plan.publishStatus 'PUBLISHED' 'Live edit changed publication status'
+    Assert-Equal $liveUpdate.data.plan.versionNo 4 'Live edit version mismatch'
+
+    $updatedPublicDetail = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans/$planId"
+    Assert-Equal $updatedPublicDetail.data.plan.title $updatedTitle 'Published auto-save was not reflected immediately'
+
+    $searchKeyword = [Uri]::EscapeDataString($updatedTitle)
+    $search = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans?keyword=$searchKeyword&page=1&size=24"
+    $searchedPlan = @($search.data.plans | Where-Object { $_.planId -eq $planId })[0]
+    Assert-NotNull $searchedPlan 'Published plan was not returned by public search'
+
+    $draft = Invoke-JsonRequest -Method Patch -Uri "$baseUrl/api/plans/$planId/publication" -Context $owner -Body @{
+        publishStatus = 'DRAFT'
+        versionNo = 4
+    }
+    Assert-Equal $draft.data.plan.publishStatus 'DRAFT' 'Draft transition failed'
+    Assert-Equal $draft.data.plan.versionNo 5 'Draft transition version mismatch'
+
+    Invoke-ExpectJsonError -ExpectedStatus 404 -ExpectedCode 'PLAN_NOT_FOUND' `
+        -Message 'Draft plan must not have a public detail' -Action {
+            Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans/$planId"
+        } | Out-Null
+
+    $draftSearch = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans?keyword=$searchKeyword&page=1&size=24"
+    $draftSearchMatch = @($draftSearch.data.plans | Where-Object { $_.planId -eq $planId })[0]
+    Assert-Equal $draftSearchMatch $null 'Draft plan must not be returned by public search'
+
+    $deleted = Invoke-JsonRequest -Method Delete -Uri "$baseUrl/api/plans/$planId`?versionNo=5" -Context $owner -Body $null
+    Assert-Equal $deleted.data.planStatus 'DELETED' 'Plan deletion failed'
+    Assert-Equal $deleted.data.versionNo 6 'Plan deletion version mismatch'
+
+    $deletedPlans = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans/mine" -WebSession $owner.Session
+    $deletedPlan = @($deletedPlans.data.plans | Where-Object { $_.planId -eq $planId })[0]
+    Assert-NotNull $deletedPlan 'Deleted plan was not returned by my plans'
+    Assert-Equal $deletedPlan.planStatus 'DELETED' 'Deleted plan status mismatch in my plans'
+
+    Invoke-ExpectJsonError -ExpectedStatus 404 -ExpectedCode 'PLAN_NOT_FOUND' `
+        -Message 'Deleted plan editor access must be rejected' -Action {
+            Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans/$planId/editor" -WebSession $owner.Session
+        } | Out-Null
+
+    $restored = Invoke-JsonRequest -Method Post -Uri "$baseUrl/api/plans/$planId/restore" -Context $owner -Body @{
+        versionNo = 6
+    }
+    Assert-Equal $restored.data.planStatus 'ACTIVE' 'Plan restore failed'
+    Assert-Equal $restored.data.versionNo 7 'Plan restore version mismatch'
+
+    $restoredEditor = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans/$planId/editor" -WebSession $owner.Session
+    Assert-Equal $restoredEditor.data.plan.planId $planId 'Restored plan editor access failed'
+    Assert-Equal $restoredEditor.data.plan.publishStatus 'DRAFT' 'Restored plan publication status mismatch'
+
     Invoke-JsonRequest -Method Post -Uri "$baseUrl/api/auth/logout" -Context $invitee -Body $null | Out-Null
+    Invoke-JsonRequest -Method Post -Uri "$baseUrl/api/auth/logout" -Context $owner -Body $null | Out-Null
 
     [ordered]@{
         result = 'PASS'
@@ -209,6 +360,10 @@ try {
         scheduleItemId = $item.data.scheduleItemId
         invitationStatus = $accepted.data.status
         scheduleVersion = $item.data.resultScheduleVersion
+        publishedAutoSaveTitle = $updatedPublicDetail.data.plan.title
+        finalPlanStatus = $restored.data.planStatus
+        finalPublishStatus = $restoredEditor.data.plan.publishStatus
+        finalVersionNo = $restored.data.versionNo
     } | ConvertTo-Json
 }
 finally {

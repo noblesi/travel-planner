@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlanEditorView from '@/views/PlanEditorView.vue'
+import { useToastStore } from '@/stores/toast'
 
 const {
   addScheduleItemMock,
@@ -13,6 +14,7 @@ const {
   updateScheduleItemMock,
   updateTravelPlanDatesMock,
   updateTravelPlanMetadataMock,
+  updatePlanPublicationMock,
   routeLeaveState,
 } = vi.hoisted(() => ({
   addScheduleItemMock: vi.fn(),
@@ -23,6 +25,7 @@ const {
   updateScheduleItemMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
   updateTravelPlanMetadataMock: vi.fn(),
+  updatePlanPublicationMock: vi.fn(),
   routeLeaveState: { guard: null },
 }))
 
@@ -44,6 +47,7 @@ vi.mock('@/api/plans', () => ({
   updateScheduleItem: updateScheduleItemMock,
   updateTravelPlanDates: updateTravelPlanDatesMock,
   updateTravelPlanMetadata: updateTravelPlanMetadataMock,
+  updatePlanPublication: updatePlanPublicationMock,
 }))
 
 vi.mock('@/api/places', () => ({
@@ -66,6 +70,8 @@ const editor = {
     startDate: '2026-08-10',
     endDate: '2026-08-11',
     visibility: 'PRIVATE',
+    publishStatus: 'DRAFT',
+    canManagePlan: true,
     versionNo: 0,
   },
   days: [
@@ -87,10 +93,11 @@ const editor = {
 }
 
 function mountView(planId = '101', mountOptions = {}) {
-  return mount(PlanEditorView, {
+  const pinia = createPinia()
+  const wrapper = mount(PlanEditorView, {
     props: { planId },
     global: {
-      plugins: [createPinia()],
+      plugins: [pinia],
       stubs: {
         KakaoMap: KakaoMapStub,
         RouterLink: {
@@ -102,6 +109,8 @@ function mountView(planId = '101', mountOptions = {}) {
     },
     ...mountOptions,
   })
+  wrapper.pinia = pinia
+  return wrapper
 }
 
 beforeEach(() => {
@@ -111,6 +120,7 @@ beforeEach(() => {
   searchPlacesMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
   updateTravelPlanMetadataMock.mockReset()
+  updatePlanPublicationMock.mockReset()
   addScheduleItemMock.mockReset()
   updateScheduleItemMock.mockReset()
   deleteScheduleItemMock.mockReset()
@@ -136,6 +146,30 @@ describe('PlanEditorView', () => {
     expect(wrapper.findAll('.day-tab')).toHaveLength(2)
     expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
     expect(wrapper.text()).toContain('서울특별시의 관광정보를 TourAPI에서 검색합니다.')
+  })
+
+  it('제작 완료 실패를 자동 저장 실패와 분리해 안내한다', async () => {
+    updatePlanPublicationMock.mockRejectedValueOnce({
+      response: {
+        status: 409,
+        data: {
+          code: 'PLAN_PUBLISH_REQUIRES_SCHEDULE',
+          message: '일정을 한 곳 이상 추가한 후 제작을 완료해 주세요.',
+        },
+      },
+    })
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.complete-button').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('.save-state').text()).toContain('자동 저장 준비')
+    expect(wrapper.text()).not.toContain('자동 저장이 중단되었습니다.')
+    expect(useToastStore(wrapper.pinia).toasts.at(-1)).toMatchObject({
+      type: 'error',
+      message: '일정을 한 곳 이상 추가한 후 제작을 완료해 주세요.',
+    })
   })
 
   it('선택한 DAY의 오전·오후 일정 카드와 해당 DAY의 빈 상태를 표시한다', async () => {

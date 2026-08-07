@@ -319,7 +319,7 @@ GET    /api/places/search?keyword=&regionCode=&page=&size=
 | `GET /api/plans/{planId}` | 공개 상세 Backend·Frontend 구현, 조회수·일차·장소 H2 및 Oracle Browser 검증 완료 |
 | `POST /api/plans` | Backend 구현, H2 HTTP·Transaction 통합 검증 및 Oracle 임시 회원 기반 생성 검증 완료 |
 | `GET /api/plans/{planId}/editor` | Backend 구현, H2 소유권·정렬·ID 정밀도 및 Oracle 일정 변경 Snapshot 응답 검증 완료 |
-| `PATCH /api/plans/{planId}/dates` | Backend·Frontend 구현 및 H2 날짜 재구성·일정 삭제 확인 흐름 검증 완료, Oracle 검증 필요 |
+| `PATCH /api/plans/{planId}/dates` | Backend·Frontend 구현 및 H2 날짜 재구성·일정 삭제 확인 흐름·Oracle 날짜 확장 검증 완료 |
 | `GET /api/places/search` | Backend·Frontend API·검색 Panel·오류 상태·Pagination 연결과 자동 Test 완료, 실제 TourAPI Key로 서울 장소 검색 검증 완료 |
 | `POST /api/plans/{planId}/days/{dayId}/items` | 계약·Backend·Frontend 연결, H2 멱등·Transaction·충돌 및 Oracle nullable Snapshot·멱등 재시도 검증 완료 |
 | `PATCH /api/plans/{planId}/days/{dayId}/items/{itemId}` | 계약·Backend·Frontend 시간대 이동 연결, H2 순번 압축·항목 Version 및 Oracle 이동 검증 완료 |
@@ -409,6 +409,17 @@ backend/src/main/java/com/noblesi/travelplanner/
 13. 초대 링크 생성·조회·수락 및 참여자 일정 편집 권한 (완료)
 14. Spring Security session·CSRF·Oracle `MEMBER` 이메일 로그인·`CurrentMemberProvider` 연결 (Google OIDC 제외 완료)
 15. Oracle 및 외부 API 통합 검증 (Oracle 이메일 인증·일정·TourAPI·Kakao API 완료, Google OIDC 남음)
+
+## 2026-08-07 플랜 생명주기 P0 검증
+
+- 원격 Oracle에 `006_add_plan_publish_status.sql`을 적용했다. 기존 활성 공개 플랜 11건은 `PUBLISHED`로 보존했고 신규 플랜 기본값은 `DRAFT`로 변경했다.
+- `PUBLISH_STATUS`의 `NOT NULL`, `CK_PLAN_PUBLISH_STATUS`, `IX_TRAVEL_PLAN_PUBLISH`와 시·도 Seed 17건을 `004_verify_travel_plan_schema.sql`로 확인했다.
+- 실제 Oracle 회원 Session과 CSRF를 사용해 `DRAFT` 생성, 내 플랜 조회, 빈 플랜 발행 차단, 날짜 확장, 초대 수락, 공동 일정 추가, 발행, 작성 중 전환, 소프트 삭제와 복구를 검증했다.
+- `PUBLISHED` 플랜의 제목을 자동 저장해도 발행 상태가 유지되고 공개 상세와 검색에 즉시 반영되는 것을 확인했다.
+- 사용자가 명시적으로 `DRAFT`로 전환한 뒤에는 공개 상세와 검색에서 제외되는 것을 확인했다.
+- 제작 완료 요청 실패를 자동 저장 실패와 분리했다. 빈 플랜 발행이 거절되어도 자동 저장 상태는 정상으로 유지되고 발행 오류만 별도 알림으로 표시되는 것을 실제 Browser에서 확인했다.
+- 삭제 플랜은 제작 화면 접근이 차단되고, 복구 후 `ACTIVE + DRAFT`와 최신 Version으로 다시 접근되는 것을 확인했다.
+- `scripts/verify-oracle-auth-flow.ps1`을 위 생명주기 회귀 검증까지 포함하도록 확장했다. 검증용 `e2e.*@withtrip.test` 회원과 생성 데이터는 종료 후 정리했고 잔여 회원 수는 0건이다.
 
 ## 아직 미정인 항목
 

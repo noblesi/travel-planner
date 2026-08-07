@@ -197,11 +197,21 @@ function retryScheduleSave() {
 async function togglePublication() {
   if (!plan.value?.canManagePlan || publicationBusy.value) return
   publicationBusy.value = true
+  const targetStatus = plan.value.publishStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
   try {
-    const targetStatus = plan.value.publishStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
     await editorStore.savePlanPublication(targetStatus)
-  } catch {
-    // 저장 오류는 공통 자동 저장 상태 영역에서 안내합니다.
+    toastStore.success(
+      targetStatus === 'PUBLISHED'
+        ? '플랜 제작을 완료했습니다.'
+        : '플랜을 작성 중 상태로 전환했습니다.',
+    )
+  } catch (error) {
+    const message = error?.response?.data?.message ?? error?.userMessage
+    toastStore.error(
+      typeof message === 'string' && message
+        ? message
+        : '플랜 상태를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    )
   } finally {
     publicationBusy.value = false
   }

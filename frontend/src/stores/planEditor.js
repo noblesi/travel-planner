@@ -286,32 +286,30 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     })
   }
 
-  function savePlanPublication(publishStatus) {
-    return trackDirectSave(
-      publishStatus === 'PUBLISHED'
-        ? '플랜 제작을 완료하고 있습니다.'
-        : '플랜을 작성 중 상태로 변경하고 있습니다.',
-      async () => {
-        const preferredDayId = selectedDayId.value
+  async function savePlanPublication(publishStatus) {
+    const savesReady = await waitForPendingSaves()
+    if (!savesReady) {
+      throw localScheduleError('저장되지 않은 변경사항을 해결한 후 다시 시도해 주세요.')
+    }
+
+    const preferredDayId = selectedDayId.value
+    try {
+      const data = await updatePlanPublication(plan.value.planId, {
+        publishStatus,
+        versionNo: plan.value.versionNo,
+      })
+      applyEditorData(data, preferredDayId)
+      return data
+    } catch (error) {
+      if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
         try {
-          const data = await updatePlanPublication(plan.value.planId, {
-            publishStatus,
-            versionNo: plan.value.versionNo,
-          })
-          applyEditorData(data, preferredDayId)
-          return data
-        } catch (error) {
-          if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
-            try {
-              await refreshPlanEditor(preferredDayId)
-            } catch {
-              // 원래 충돌 응답을 유지합니다.
-            }
-          }
-          throw error
+          await refreshPlanEditor(preferredDayId)
+        } catch {
+          // 원래 충돌 응답을 유지합니다.
         }
-      },
-    )
+      }
+      throw error
+    }
   }
 
   function currentDay(planDayId) {
