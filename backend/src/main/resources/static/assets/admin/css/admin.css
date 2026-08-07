@@ -558,11 +558,28 @@ html, body {
 }
 
 .hero-card {
+	position: relative;
 	margin-bottom: 20px;
 	padding: 28px;
 	border-radius: 14px;
 	color: #fff;
 	background: linear-gradient(120deg, #ef986e, #efc76e);
+}
+
+.trip-hero-card {
+	background: linear-gradient(115deg, #f48639 0%, #f5a735 58%, #f5c42e 100%);
+}
+
+.trip-hero-card p {
+	margin-bottom: 0;
+}
+
+.trip-hero-id {
+	position: absolute;
+	top: 24px;
+	right: 28px;
+	font-size: 13px;
+	font-weight: 800;
 }
 
 .hero-card h2 {
@@ -594,7 +611,25 @@ html, body {
 	gap: 12px;
 	padding: 13px;
 	border-radius: 8px;
-	background: #faf7f4;
+	border: 1px solid #d9dde2;
+	background: #fff;
+}
+
+.schedule-list p {
+	margin: 6px 0 0;
+}
+
+.schedule-more-button {
+	display: block;
+	height: 38px;
+	margin: 18px auto 0;
+	padding: 0 17px;
+	border: 0;
+	border-radius: 5px;
+	color: #fff;
+	background: #252a31;
+	font-weight: 800;
+	cursor: pointer;
 }
 
 .schedule-list b {
@@ -609,10 +644,26 @@ html, body {
 
 .metric-grid {
 	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 12px;
+	margin-top: 16px;
 }
 
-.metric-grid div, .report-row {
+.metric-grid div {
+	display: block;
+	padding: 14px;
+	border: 1px solid #f5a17f;
+	border-radius: 8px;
+	background: #fff3ed;
+}
+
+.metric-grid strong {
+	display: block;
+	margin-top: 7px;
+	font-size: 20px;
+}
+
+.report-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -899,6 +950,22 @@ html, body {
 .side-stack {
 	display: grid;
 	gap: 20px;
+}
+
+.trip-top-grid .card h2, .trip-bottom-grid .card h2 {
+	margin-top: 0;
+	font-size: 19px;
+}
+
+.admin-plan-map {
+	height: 150px;
+	margin-top: 16px;
+}
+
+#admin-plan-map-message {
+	margin: 9px 0 0;
+	color: var(--muted);
+	font-size: 11px;
 }
 
 .map-placeholder {
