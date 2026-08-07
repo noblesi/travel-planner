@@ -73,6 +73,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/notices", "/api/notices/*").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/plan-search/plans", "/api/plan-search/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plan-invitations/**").permitAll()
 						.anyRequest().authenticated())
 				.exceptionHandling(exceptions -> exceptions
