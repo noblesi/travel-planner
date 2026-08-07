@@ -1,14 +1,14 @@
 # KMS 여행 플랜 개발 인수인계
 
-최종 정리일: 2026-08-04
+최종 정리일: 2026-08-07
 
 ## 저장소 상태
 
 - 원격 저장소: `https://github.com/noblesi/travel-planner.git`
 - 작업 브랜치: `KMS`
-- 현재 통합 기준: `2366508 일정 자동 저장과 Oracle 통합 검증` Commit
+- 현재 통합 기준: `808e7af 공개 플랜 수정 후 탐색 캐시 갱신` Commit
 - 인수인계 문서 최초 추가 Commit: `91f1bdf docs: KMS 여행 플랜 개발 인수인계 추가`
-- 현재 작업 묶음: 기존 `MEMBER` 기반 이메일 로그인, Oracle P3 세션·초대·공동편집 검증, 영구 데모 시드, 공개 플랜 검색·상세 API와 Frontend 연동까지 구현 완료
+- 현재 작업 묶음: 기존 `MEMBER` 기반 이메일 로그인, 플랜 생성·자동 저장·발행·탐색·상세·초대·공동편집, Oracle 생명주기 검증과 실제 TourAPI·Kakao Map Browser 흐름까지 구현 완료
 - 사용자 노출 서비스명: `WithTrip`
 - 백엔드 애플리케이션 및 산출물명: `travel-planner`
 
@@ -162,12 +162,12 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 | UI·ERD·DDL | 준비 완료 | PDF, eXERD, Oracle DDL 5개와 문서 Link 확인. 기존 Schema용 `005` 포함 |
 | Branding | 준비 완료 | Favicon, Manifest, Header·Symbol Logo 확인 |
 | Node.js·npm | 준비 완료 | 현재 환경 Node.js 24.14.0, npm 11.11.1. `package.json` Engine 범위 충족 |
-| Frontend Build | 타 담당 영역 대기 | 빈 `frontend/src/views/joinView/JoinCompleteView.vue`와 local `node_modules`의 `sass-embedded` 누락으로 Production Build 실패 |
+| Frontend Build | 준비 완료 | Production Build와 ESLint·Oxlint 통과 |
 | Oracle | 일정 범위 검증 완료 | `005` 적용, 시·도 Seed 17건 복구, Schema 검증, 임시 회원 기반 플랜 생성·일정 CRUD·정렬·멱등 재시도 완료 |
 | 실제 인증 | 부분 완료 | Spring Security session·CSRF와 Oracle `MEMBER` 이메일 로그인 완료. 회원가입·비밀번호 재설정·Google OIDC 필요 |
 | 외부 API | 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 및 localhost Kakao Map·Marker·정보창 Browser 렌더링 확인 |
-| Backend 자동 Test | 준비 완료 | 전체 80건 통과, `bootJar` 성공 |
-| Frontend Test | 준비 완료 | 30개 Test File, 전체 127건 통과, Production Build 성공. ESLint·Oxlint 통과 |
+| Backend 자동 Test | 준비 완료 | 전체 Test와 `bootJar` 성공 |
+| Frontend Test | 준비 완료 | 32개 Test File, 전체 139건 통과, Production Build 성공. ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
 
 4단계 `POST /api/plans` Controller와 H2 HTTP·Transaction 통합 검증을 `local` Profile에서 완료했다.
@@ -410,7 +410,7 @@ backend/src/main/java/com/noblesi/travelplanner/
 14. Spring Security session·CSRF·Oracle `MEMBER` 이메일 로그인·`CurrentMemberProvider` 연결 (Google OIDC 제외 완료)
 15. Oracle 및 외부 API 통합 검증 (Oracle 이메일 인증·일정·TourAPI·Kakao API 완료, Google OIDC 남음)
 
-## 2026-08-07 플랜 생명주기 P0 검증
+## 2026-08-07 플랜 생명주기 검증
 
 - 원격 Oracle에 `006_add_plan_publish_status.sql`을 적용했다. 기존 활성 공개 플랜 11건은 `PUBLISHED`로 보존했고 신규 플랜 기본값은 `DRAFT`로 변경했다.
 - `PUBLISH_STATUS`의 `NOT NULL`, `CK_PLAN_PUBLISH_STATUS`, `IX_TRAVEL_PLAN_PUBLISH`와 시·도 Seed 17건을 `004_verify_travel_plan_schema.sql`로 확인했다.
@@ -429,13 +429,33 @@ backend/src/main/java/com/noblesi/travelplanner/
 - 초대 전달 방식
 - 삭제한 일정의 복구 지원 여부
 
-## 다음 작업 시작점
+## 다음 작업 목록
 
-다음 세션에서는 이 문서를 먼저 읽고 아래 순서로 시작한다.
+### 1순위: Google OIDC 로그인
 
-1. `KMS` 브랜치와 작업 트리 상태를 확인하고 이 문서 및 README의 `.env.local` 실행 절차를 검토한다.
-2. `dev` 전용 Commit은 반영하지 않고 회원가입 담당자의 파일은 수정하지 않는다.
-3. Google OAuth Client ID·Secret·redirect URI를 준비하고 `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT` 기반 Identity를 `MemberPrincipal`로 변환한다.
-4. 이메일 회원가입·비밀번호 재설정에서 BCrypt Hash를 저장하는 흐름을 구현한다.
-5. 배포 HTTPS 환경에서 Secure Cookie와 Google Redirect URI를 최종 검증한다.
-6. 실제 Kakao JavaScript SDK의 Marker·정보창 렌더링을 배포 도메인에서 최종 확인한다.
+- [ ] 신규 Google 사용자 생성, 기존 이메일 회원 계정 연결, 탈퇴 회원 처리 UX를 확정한다. 이메일 일치만으로 기존 계정에 자동 연결하지 않는다.
+- [ ] Google OAuth Client ID·Secret·Redirect URI 환경변수 계약과 Spring Security OAuth2 Client 의존성을 추가한다.
+- [ ] `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT` 조회 Mapper와 Google Identity를 `MemberPrincipal`로 변환하는 인증 성공 흐름을 구현한다.
+- [ ] 로그인 화면의 비활성 Google 버튼을 실제 인증 시작 동작으로 교체하고 성공·취소·실패 복귀 화면을 연결한다.
+- [ ] H2 자동 Test와 Oracle 임시 회원 기반 E2E에서 세션 회전, CSRF 재발급, 기존 연결 회원 로그인과 미연결 회원 처리를 검증한다.
+
+완료 기준은 Google 로그인 후 기존 이메일 로그인과 동일한 서버 Session으로 내 플랜·제작 화면에 접근하고, 비밀값을 저장소나 로그에 남기지 않는 것이다.
+
+### 2순위: 사용자 화면의 남은 Mock API 연결
+
+- [ ] 공개 플랜의 `전체 일정 가져오기`가 새 `DRAFT` 플랜을 생성하도록 Import API 계약·Backend·Frontend를 연결한다.
+- [ ] 공개 플랜 `신고하기`가 실제 신고를 접수하도록 중복 신고·본인 플랜 신고·비로그인 정책과 API를 확정하고 연결한다.
+- [ ] 각 흐름에 로딩·성공·실패·재시도 상태와 Controller·Frontend 자동 Test를 추가한다.
+
+### 3순위: 배포 환경 검증
+
+- [ ] HTTPS 환경에서 Secure Cookie, Forwarded Header, CSRF와 Google Redirect URI를 검증한다.
+- [ ] 배포 도메인을 Kakao Developers 허용 도메인에 등록하고 지도·Marker·정보창을 최종 확인한다.
+- [ ] Oracle `006` 적용 여부, 환경변수 누락, 데모·E2E 데이터 잔존 여부와 되돌리기 절차를 Release Checklist로 확인한다.
+
+### 별도 조율 항목
+
+- 이메일 회원가입·비밀번호 재설정 화면은 다른 담당자 범위다. KMS에서 Backend API를 구현할지는 담당자와 경계를 먼저 확정한다.
+- 초대 전달 방식과 삭제 일정 복구 지원 여부는 제품 정책 결정 후 구현한다.
+- 관리자 화면의 Thymeleaf 전환은 PJW 또는 별도 통합 Branch에서 진행하며 KMS 플랜 기능 작업과 섞지 않는다.
+- `dev`에 직접 병합하지 않고 필요한 기능 Commit만 별도 통합 Branch에서 Cherry-pick한다. KMS 전용 Handoff 문서는 대상 Branch에 포함하지 않는다.
