@@ -1,0 +1,77 @@
+package com.noblesi.travelplanner.admin.trip.service;
+
+import java.util.List;
+import java.util.Set;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
+import com.noblesi.travelplanner.admin.trip.dao.AdminTripDAO;
+import com.noblesi.travelplanner.admin.trip.dto.AdminTripDetailDTO;
+import com.noblesi.travelplanner.admin.trip.dto.AdminTripListDTO;
+import com.noblesi.travelplanner.admin.trip.dto.AdminTripReportDTO;
+import com.noblesi.travelplanner.admin.trip.dto.AdminTripScheduleDTO;
+import com.noblesi.travelplanner.common.exception.BusinessException;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class AdminTripService {
+
+	private static final Set<String> VISIBILITIES = Set.of("", "PUBLIC", "PRIVATE");
+
+	private final AdminTripDAO adminTripDAO;
+
+	public List<AdminTripListDTO> getTripList(
+			String keyword,
+			String visibility,
+			String regionCode,
+			boolean reportedOnly
+	) {
+		String normalizedKeyword = keyword == null ? "" : keyword.strip();
+		String normalizedVisibility = visibility == null ? "" : visibility.strip().toUpperCase();
+		String normalizedRegionCode = regionCode == null ? "" : regionCode.strip();
+
+		if (!VISIBILITIES.contains(normalizedVisibility)) {
+			throw new BusinessException(
+					HttpStatus.BAD_REQUEST,
+					"INVALID_PLAN_VISIBILITY",
+					"올바르지 않은 플랜 공개 상태입니다."
+			);
+		}
+
+		return adminTripDAO.selectTripList(
+				normalizedKeyword,
+				normalizedVisibility,
+				normalizedRegionCode,
+				reportedOnly
+		);
+	}
+
+	public AdminTripDetailDTO getTripDetail(int planId) {
+		AdminTripDetailDTO trip = adminTripDAO.selectTripDetail(planId);
+
+		if (trip == null) {
+			throw tripNotFound();
+		}
+
+		return trip;
+	}
+
+	public List<AdminTripScheduleDTO> getTripSchedules(int planId) {
+		return adminTripDAO.selectTripSchedules(planId);
+	}
+
+	public List<AdminTripReportDTO> getTripReports(int planId) {
+		return adminTripDAO.selectTripReports(planId);
+	}
+
+	private BusinessException tripNotFound() {
+		return new BusinessException(
+				HttpStatus.NOT_FOUND,
+				"TRIP_NOT_FOUND",
+				"여행 플랜을 찾을 수 없습니다."
+		);
+	}
+}

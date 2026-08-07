@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.noblesi.travelplanner.admin.trip.dao.AdminTripDAO">
+
+	<select id="selectTripList"
+			resultType="com.noblesi.travelplanner.admin.trip.dto.AdminTripListDTO">
+		SELECT plan.PLAN_ID AS planId,
+		       plan.TITLE AS title,
+		       region.REGION_NAME AS regionName,
+		       member.MEMBER_NAME AS ownerName,
+		       plan.START_DATE AS startDate,
+		       plan.END_DATE AS endDate,
+		       (SELECT COUNT(*)
+		          FROM PLAN_LIKE plan_like
+		         WHERE plan_like.PLAN_ID = plan.PLAN_ID) AS likeCount,
+		       plan.VIEW_COUNT AS viewCount,
+		       plan.VISIBILITY AS visibility,
+		       plan.PLAN_STATUS AS planStatus,
+		       (SELECT COUNT(*)
+		          FROM REPORT report
+		         WHERE report.PLAN_ID = plan.PLAN_ID) AS reportCount
+		  FROM TRAVEL_PLAN plan
+		  JOIN MEMBER member
+		    ON member.MEMBER_ID = plan.OWNER_MEMBER_ID
+		  JOIN REGION_MASTER region
+		    ON region.REGION_CODE = plan.REGION_CODE
+		 WHERE 1 = 1
+
+		<if test="keyword != null and keyword != ''">
+		   AND (
+		        plan.TITLE LIKE '%' || #{keyword} || '%'
+		        OR member.MEMBER_NAME LIKE '%' || #{keyword} || '%'
+		       )
+		</if>
+
+		<if test="visibility != null and visibility != ''">
+		   AND plan.VISIBILITY = #{visibility}
+		</if>
+
+		<if test="regionCode != null and regionCode != ''">
+		   AND plan.REGION_CODE = #{regionCode}
+		</if>
+
+		<if test="reportedOnly">
+		   AND EXISTS (
+		       SELECT 1
+		         FROM REPORT report_filter
+		        WHERE report_filter.PLAN_ID = plan.PLAN_ID
+		   )
+		</if>
+
+		 ORDER BY plan.CREATED_AT DESC
+	</select>
+
+	<select id="selectTripDetail"
+			resultType="com.noblesi.travelplanner.admin.trip.dto.AdminTripDetailDTO">
+		SELECT plan.PLAN_ID AS planId,
+		       plan.TITLE AS title,
+		       region.REGION_NAME AS regionName,
+		       plan.OWNER_MEMBER_ID AS ownerMemberId,
+		       member.MEMBER_NAME AS ownerName,
+		       plan.START_DATE AS startDate,
+		       plan.END_DATE AS endDate,
+		       plan.VISIBILITY AS visibility,
+		       plan.PLAN_STATUS AS planStatus,
+		       (SELECT COUNT(*)
+		          FROM PLAN_MEMBER participant
+		         WHERE participant.PLAN_ID = plan.PLAN_ID) AS participantCount,
+		       (SELECT COUNT(*)
+		          FROM PLAN_LIKE plan_like
+		         WHERE plan_like.PLAN_ID = plan.PLAN_ID) AS likeCount,
+		       plan.VIEW_COUNT AS viewCount,
+		       (SELECT COUNT(*)
+		          FROM TRAVEL_PLAN copied_plan
+		         WHERE copied_plan.SOURCE_PLAN_ID = plan.PLAN_ID) AS copyCount
+		  FROM TRAVEL_PLAN plan
+		  JOIN MEMBER member
+		    ON member.MEMBER_ID = plan.OWNER_MEMBER_ID
+		  JOIN REGION_MASTER region
+		    ON region.REGION_CODE = plan.REGION_CODE
+		 WHERE plan.PLAN_ID = #{planId}
+	</select>
+
+	<select id="selectTripSchedules"
+			resultType="com.noblesi.travelplanner.admin.trip.dto.AdminTripScheduleDTO">
+		SELECT item.SCHEDULE_ITEM_ID AS scheduleItemId,
+		       plan_day.DAY_NO AS dayNo,
+		       plan_day.TRAVEL_DATE AS travelDate,
+		       item.TIME_SLOT AS timeSlot,
+		       item.POSITION_NO AS positionNo,
+		       item.PLACE_NAME_SNAPSHOT AS placeName,
+		       item.CATEGORY_SNAPSHOT AS category,
+		       item.ADDRESS_SNAPSHOT AS address,
+		       item.LATITUDE_SNAPSHOT AS latitude,
+		       item.LONGITUDE_SNAPSHOT AS longitude
+		  FROM PLAN_DAY plan_day
+		  JOIN PLAN_SCHEDULE_ITEM item
+		    ON item.PLAN_DAY_ID = plan_day.PLAN_DAY_ID
+		 WHERE plan_day.PLAN_ID = #{planId}
+		 ORDER BY plan_day.DAY_NO, item.TIME_SLOT, item.POSITION_NO
+	</select>
+
+	<select id="selectTripReports"
+			resultType="com.noblesi.travelplanner.admin.trip.dto.AdminTripReportDTO">
+		SELECT report.REPORT_ID AS reportId,
+		       report.REPORTER_MEMBER_ID AS reporterMemberId,
+		       member.MEMBER_NAME AS reporterName,
+		       report.REASON_CODE AS reasonCode,
+		       report.REASON_DETAIL AS reasonDetail,
+		       report.REPORT_STATUS AS reportStatus,
+		       report.CREATED_AT AS createAt
+		  FROM REPORT report
+		  JOIN MEMBER member
+		    ON member.MEMBER_ID = report.REPORTER_MEMBER_ID
+		 WHERE report.PLAN_ID = #{planId}
+		 ORDER BY report.CREATED_AT DESC
+	</select>
+
+</mapper>

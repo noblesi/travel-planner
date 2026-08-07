@@ -16,53 +16,10 @@ import com.noblesi.travelplanner.notice.service.NoticeService;
 @RequestMapping("/admin")
 public class AdminPageController {
 
-	private static final List<TripView> TRIPS = List.of(
-			new TripView("P-5412", "서울 궁궐 여행", "서울", "김민수", "1박 2일", 142, 233, "공개", null),
-			new TripView("P-1122", "제주 카페 투어", "제주", "이서연", "2박 3일", 52, 73, "공개", null),
-			new TripView("P-7898", "부산 서핑 드라이브", "부산", "최지호", "당일 치기", 0, 0, "비공개", null),
-			new TripView("P-9041", "제주 숨은 명소 완전 정복", "제주", "박여행", "3박 4일", 31, 128, "검토 대기", "R-221133"),
-			new TripView("P-9052", "서울 야경 명소 모음", "서울", "정하늘", "1박 2일", 18, 96, "검토 완료", "R-221144")
-	);
-
 	private final NoticeService noticeService;
 
 	public AdminPageController(NoticeService noticeService) {
 		this.noticeService = noticeService;
-	}
-
-	@GetMapping("/trips")
-	public String trips(@RequestParam(name = "keyword", defaultValue = "") String keyword, Model model) {
-		// 제목 또는 작성자가 검색어를 포함하는 공개 플랜만 화면에 전달합니다.
-		String query = keyword.strip().toLowerCase();
-		List<TripView> filtered = TRIPS.stream()
-				.filter(trip -> query.isEmpty() || trip.title().toLowerCase().contains(query)
-						|| trip.author().toLowerCase().contains(query))
-				.toList();
-		model.addAttribute("pageTitle", "여행 플랜 관리");
-		model.addAttribute("keyword", keyword);
-		model.addAttribute("trips", filtered);
-		return "admin/trip/tripFormView";
-	}
-
-	@GetMapping("/trips/{tripId}")
-	public String tripDetail(@PathVariable("tripId") String tripId, Model model) {
-		model.addAttribute("pageTitle", "여행 플랜 상세");
-		model.addAttribute("tripId", tripId);
-		model.addAttribute("schedules", List.of(
-				new ScheduleView(1, "경복궁", "오전", "37.5796, 126.9770"),
-				new ScheduleView(2, "토속촌 삼계탕", "오후", "37.5775, 126.9715"),
-				new ScheduleView(3, "창덕궁", "오후", "37.5794, 126.9910")
-		));
-		model.addAttribute("reports", List.of(
-				new ReportView("R-221133", "2026-07-13", "부적절한 내용", "검토 대기"),
-				new ReportView("R-221144", "2026-07-16", "과도한 광고", "검토 완료")
-		));
-		model.addAttribute("metrics", List.of(
-				new MetricView("좋아요", "1,067", 92),
-				new MetricView("조회", "74", 28),
-				new MetricView("저장", "60", 76)
-		));
-		return "admin/trip/tripDetailView";
 	}
 
 	@GetMapping("/reports/{reportId}")
@@ -118,11 +75,6 @@ public class AdminPageController {
 	}
 
 	// Thymeleaf 전용 읽기 모델입니다. 영속 Domain과 화면 표시 데이터를 분리합니다.
-	public record TripView(String id, String title, String region, String author, String duration,
-			int likes, int views, String status, String reportId) { }
 	public record SyncView(String id, String startedAt, int changedCount, int failedCount,
 			String status, String manager) { }
-	public record ScheduleView(int order, String name, String timeSlot, String coordinates) { }
-	public record ReportView(String id, String date, String reason, String status) { }
-	public record MetricView(String label, String value, int score) { }
 }

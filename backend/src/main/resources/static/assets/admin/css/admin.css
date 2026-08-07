@@ -487,6 +487,40 @@ html, body {
 	background: #fff;
 }
 
+.trip-filters {
+	grid-template-columns: minmax(240px, 1fr) 150px 150px auto 82px;
+	align-items: center;
+}
+
+.reported-filter {
+	display: inline-flex;
+	height: 40px;
+	align-items: center;
+	gap: 7px;
+	padding: 0 10px;
+	white-space: nowrap;
+	font-size: 12px;
+}
+
+.reported-filter input {
+	width: 15px;
+	height: 15px;
+	padding: 0;
+}
+
+.trip-filters+.table-wrapper .admin-table {
+	min-width: 1040px;
+}
+
+.trip-filters+.table-wrapper .admin-table th:nth-child(1) { width: 10%; }
+.trip-filters+.table-wrapper .admin-table th:nth-child(2) { width: 21%; }
+.trip-filters+.table-wrapper .admin-table th:nth-child(3) { width: 9%; }
+.trip-filters+.table-wrapper .admin-table th:nth-child(4) { width: 11%; }
+.trip-filters+.table-wrapper .admin-table th:nth-child(5) { width: 19%; }
+.trip-filters+.table-wrapper .admin-table th:nth-child(6) { width: 11%; }
+.trip-filters+.table-wrapper .admin-table th:nth-child(7) { width: 9%; }
+.trip-filters+.table-wrapper .admin-table th:nth-child(8) { width: 10%; }
+
 /* 상태 배지는 success, warning, danger, muted 색상 변형을 공통으로 사용합니다. */
 .badge {
 	display: inline-flex;

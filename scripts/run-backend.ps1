@@ -41,7 +41,8 @@ $backendVariableNames = @(
     'KAKAO_REST_BASE_URL',
     'KAKAO_REST_API_KEY',
     'KAKAO_REST_CONNECT_TIMEOUT',
-    'KAKAO_REST_READ_TIMEOUT'
+    'KAKAO_REST_READ_TIMEOUT',
+    'KAKAO_JAVASCRIPT_KEY'
 )
 
 $loadedVariableNames = [System.Collections.Generic.HashSet[string]]::new(
