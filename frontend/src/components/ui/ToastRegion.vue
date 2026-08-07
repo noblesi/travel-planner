@@ -3,6 +3,14 @@ import { storeToRefs } from 'pinia'
 
 import { useToastStore } from '@/stores/toast'
 
+defineProps({
+  placement: {
+    type: String,
+    default: 'default',
+    validator: (value) => ['default', 'editor'].includes(value),
+  },
+})
+
 const toastStore = useToastStore()
 const { toasts } = storeToRefs(toastStore)
 
@@ -24,7 +32,12 @@ async function runAction(toast) {
 </script>
 
 <template>
-  <TransitionGroup name="toast" tag="div" class="toast-region" aria-label="알림">
+  <TransitionGroup
+    name="toast"
+    tag="div"
+    :class="['toast-region', `toast-region--${placement}`]"
+    aria-label="알림"
+  >
     <article
       v-for="toast in toasts"
       :key="toast.id"
@@ -57,6 +70,13 @@ async function runAction(toast) {
   width: min(380px, calc(100vw - 40px));
   gap: 10px;
   pointer-events: none;
+}
+
+.toast-region--editor {
+  top: 98px;
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .toast {
@@ -127,7 +147,7 @@ async function runAction(toast) {
 .toast button:hover {
   background: var(--color-surface-muted);
 }
-.toast .toast__action { width: auto; min-width: 64px; padding: 0 10px; color: #e8443a; border: 1px solid #ffc2bd; font-size: 11px; font-weight: 800; }
+.toast .toast__action { width: auto; min-width: 64px; padding: 0 10px; color: var(--color-brand); border: 1px solid var(--color-brand-border); font-size: 11px; font-weight: 800; }
 
 .toast-enter-active,
 .toast-leave-active {

@@ -243,6 +243,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="editor-page">
+    <a class="editor-skip-link" href="#plan-editor-main">본문 바로가기</a>
     <PlanEditorToolbar
       :plan="plan"
       :is-ready="isReady"
@@ -254,7 +255,12 @@ onBeforeUnmount(() => {
       @toggle-publication="togglePublication"
     />
 
-    <main class="editor-main" :style="{ '--schedule-panel-width': `${schedulePanelWidth}px` }">
+    <main
+      id="plan-editor-main"
+      class="editor-main"
+      tabindex="-1"
+      :style="{ '--schedule-panel-width': `${schedulePanelWidth}px` }"
+    >
       <section v-if="isLoading || status === 'idle'" class="editor-state" aria-live="polite">
         <span class="editor-state__spinner" aria-hidden="true" />
         <strong>여행 계획을 불러오고 있어요.</strong>
@@ -321,10 +327,25 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .editor-page { min-width: 1180px; min-height: 100vh; color: #172033; background: #eef2f7; }
+.editor-skip-link {
+  position: fixed;
+  z-index: 1300;
+  top: 10px;
+  left: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--color-text);
+  color: var(--color-brand-on);
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(-160%);
+}
+.editor-skip-link:focus { transform: translateY(0); }
 .editor-main { display: grid; grid-template-columns: var(--schedule-panel-width, 430px) 8px minmax(0, 1fr); min-height: calc(100vh - 82px); }
+.editor-main:focus { outline: none; }
 .editor-resizer { position: relative; z-index: 8; background: #dce3ec; cursor: col-resize; outline: none; }
 .editor-resizer::after { position: absolute; top: 50%; left: 2px; width: 4px; height: 42px; border-radius: 999px; background: #94a3b8; content: ''; transform: translateY(-50%); }
-.editor-resizer:hover,.editor-resizer:focus-visible { background: #ffb7b1; }
+.editor-resizer:hover,.editor-resizer:focus-visible { background: var(--color-brand-border); }
 .editor-state {
   display: grid;
   grid-column: 1 / -1;
@@ -335,11 +356,11 @@ onBeforeUnmount(() => {
   color: #64748b;
   text-align: center;
 }
-.editor-state__spinner { width: 38px; height: 38px; margin-bottom: 16px; border: 4px solid #e2e8f0; border-top-color: #ff5a4e; border-radius: 50%; animation: spin .8s linear infinite; }
+.editor-state__spinner { width: 38px; height: 38px; margin-bottom: 16px; border: 4px solid #e2e8f0; border-top-color: var(--color-brand); border-radius: 50%; animation: spin .8s linear infinite; }
 .editor-state__icon { display: grid; width: 44px; height: 44px; margin-bottom: 14px; place-items: center; color: #b91c1c; border-radius: 50%; background: #fee2e2; font-size: 20px; font-weight: 850; }
 .editor-state strong { color: #334155; font-size: 17px; }
 .editor-state p { margin: 8px 0 0; font-size: 12px; }
-.editor-state button { min-height: 40px; margin-top: 18px; padding: 0 16px; color: #fff; border: 0; border-radius: 10px; background: #ff5a4e; font-weight: 800; cursor: pointer; }
+.editor-state button { min-height: 40px; margin-top: 18px; padding: 0 16px; color: var(--color-brand-on); border: 0; border-radius: 10px; background: var(--color-brand); font-weight: 800; cursor: pointer; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) {
   .editor-state__spinner { animation: none; }

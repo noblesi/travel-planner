@@ -146,6 +146,8 @@ describe('PlanEditorView', () => {
     expect(wrapper.findAll('.day-tab')).toHaveLength(2)
     expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
     expect(wrapper.text()).toContain('서울특별시의 관광정보를 TourAPI에서 검색합니다.')
+    expect(wrapper.get('.editor-skip-link').attributes('href')).toBe('#plan-editor-main')
+    expect(wrapper.get('main').attributes()).toMatchObject({ id: 'plan-editor-main', tabindex: '-1' })
   })
 
   it('제작 완료 실패를 자동 저장 실패와 분리해 안내한다', async () => {
@@ -335,15 +337,22 @@ describe('PlanEditorView', () => {
   })
 
   it('빈 플랜 제목은 API를 호출하지 않고 Validation 오류를 표시한다', async () => {
-    const wrapper = mountView()
+    const wrapper = mountView('101', { attachTo: document.body })
     await flushPromises()
 
     await wrapper.get('.metadata-editor__open').trigger('click')
-    await wrapper.get('[name="editTitle"]').setValue('   ')
+    const titleInput = wrapper.get('[name="editTitle"]')
+    await titleInput.setValue('   ')
     await wrapper.get('.metadata-editor__form').trigger('submit')
+    await flushPromises()
 
     expect(updateTravelPlanMetadataMock).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('플랜 제목을 입력해 주세요.')
+    expect(titleInput.attributes('aria-invalid')).toBe('true')
+    expect(titleInput.attributes('aria-describedby')).toBe('metadata-editor-error')
+    expect(document.activeElement).toBe(titleInput.element)
+
+    wrapper.unmount()
   })
 
   it('장소 검색 결과와 선택 장소를 지도에 전달한다', async () => {
