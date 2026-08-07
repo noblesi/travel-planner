@@ -2,6 +2,10 @@ package com.noblesi.travelplanner.plansearch.controller;
 
 import java.util.OptionalLong;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,6 +28,9 @@ import com.noblesi.travelplanner.security.SecurityMemberResolver;
 @RestController
 @RequestMapping("/api/plan-search")
 public class PlanSearchController {
+
+	private static final String VIEW_COOKIE_PREFIX = "plan_viewed_";
+	private static final int VIEW_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60;
 
 	private final PlanSearchService planSearchService;
 	private final CurrentMemberProvider currentMemberProvider;
@@ -53,13 +60,42 @@ public class PlanSearchController {
 		return ApiResponse.success(planSearchService.searchPlanList(request));
 	}
 
-	// 공개 플랜 상세 조회 (조회수 증가 포함)
+	// 공개 플랜 상세 조회 (같은 브라우저에서 24시간 안에 다시 보면 조회수 증가 안 함)
 	@GetMapping("/plans/{planId}")
-	public ApiResponse<PlanDetailResponseDTO> getPlanDetail(@PathVariable Long planId) {
-		planSearchService.increasePlanViewCount(planId);
+	public ApiResponse<PlanDetailResponseDTO> getPlanDetail(
+			@PathVariable Long planId,
+			HttpServletRequest httpRequest,
+			HttpServletResponse httpResponse
+	) {
+		if (!hasViewedRecently(httpRequest, planId)) {
+			planSearchService.increasePlanViewCount(planId);
+			markViewed(httpResponse, planId);
+		}
 		OptionalLong memberId = securityMemberResolver.getAuthenticatedMemberId();
 		Long memberIdOrNull = memberId.isPresent() ? memberId.getAsLong() : null;
 		return ApiResponse.success(planSearchService.searchPlanDetail(planId, memberIdOrNull));
+	}
+
+	private boolean hasViewedRecently(HttpServletRequest request, Long planId) {
+		Cookie[] cookies = request.getCookies();
+		if (cookies == null) {
+			return false;
+		}
+		String cookieName = VIEW_COOKIE_PREFIX + planId;
+		for (Cookie cookie : cookies) {
+			if (cookie.getName().equals(cookieName)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private void markViewed(HttpServletResponse response, Long planId) {
+		Cookie cookie = new Cookie(VIEW_COOKIE_PREFIX + planId, "1");
+		cookie.setPath("/");
+		cookie.setHttpOnly(true);
+		cookie.setMaxAge(VIEW_COOKIE_MAX_AGE_SECONDS);
+		response.addCookie(cookie);
 	}
 
 	// 좋아요 토글 (이미 눌렀으면 취소, 안 눌렀으면 등록)
