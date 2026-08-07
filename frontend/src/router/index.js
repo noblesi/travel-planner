@@ -26,6 +26,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/my-plans',
+      name: 'my-plans',
+      component: () => import('@/views/MyPlansView.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/plans',
       name: 'plan-search',
       component: () => import('@/views/PlanSearch/PlanSearchView.vue'),

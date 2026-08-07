@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.config.TravelTimeConfig;
 import com.noblesi.travelplanner.domain.plan.PlanEditorPlan;
+import com.noblesi.travelplanner.domain.plan.ParticipantType;
+import com.noblesi.travelplanner.domain.plan.PlanPublishStatus;
 import com.noblesi.travelplanner.domain.plan.PlanVisibility;
 
 class TravelPlanRequestValidatorTest {
@@ -62,7 +64,9 @@ class TravelPlanRequestValidatorTest {
 				LocalDate.parse(startDate),
 				LocalDate.parse(endDate),
 				PlanVisibility.PRIVATE,
-				3
+				PlanPublishStatus.DRAFT,
+				3,
+				ParticipantType.CREATOR
 		);
 	}
 }

@@ -1,6 +1,6 @@
 # 여행 플랜 API 계약
 
-- 계약 버전: `2026-08-03`
+- 계약 버전: `2026-08-06`
 - 상태: 공개 탐색·상세와 일정 자동 저장 Backend 구현 기준
 - 대상 화면: 공개 일정 탐색·상세, 여행 플랜 설정, 여행 플랜 제작·날짜 편집·일정 편집
 - 관련 Schema: `docs/database/ddl/001_create_travel_plan_schema.sql`
@@ -16,9 +16,13 @@
 | `GET` | `/api/plans/{planId}` | 공개 플랜 일정 상세 조회 |
 | `POST` | `/api/plans` | 플랜, 생성자, 여행 일차 생성 |
 | `GET` | `/api/plans/{planId}/editor` | 제작 페이지 초기 상태 조회 |
+| `GET` | `/api/plans/mine` | 내가 생성했거나 초대받은 플랜 목록 조회 |
 | `PATCH` | `/api/plans/{planId}/dates` | 여행 기간 및 일차 재구성 |
+| `PATCH` | `/api/plans/{planId}/publication` | 작성 중·제작 완료 상태 변경 |
+| `DELETE` | `/api/plans/{planId}` | 소유 플랜 소프트 삭제 |
+| `POST` | `/api/plans/{planId}/restore` | 삭제한 소유 플랜 복구 |
 | `POST` | `/api/plans/{planId}/days/{dayId}/items` | 일정 항목 추가 |
-| `PATCH` | `/api/plans/{planId}/days/{dayId}/items/{itemId}` | 일정 항목 시간대 수정 |
+| `PATCH` | `/api/plans/{planId}/days/{dayId}/items/{itemId}` | 일정 항목 시간대 또는 DAY 수정 |
 | `DELETE` | `/api/plans/{planId}/days/{dayId}/items/{itemId}` | 일정 항목 삭제 |
 | `PUT` | `/api/plans/{planId}/days/{dayId}/items/order` | 시간대별 일정 순서 변경 |
 
@@ -30,9 +34,29 @@
 | --- | --- |
 | `RegionLevel` | `SIDO`, `SIGUNGU` |
 | `PlanVisibility` | `PUBLIC`, `PRIVATE` |
+| `PlanPublishStatus` | `DRAFT`, `PUBLISHED` |
 | `PlanStatus` | `ACTIVE`, `DELETED` |
 | `ParticipantType` | `CREATOR`, `INVITEE` |
 | `TimeSlot` | `MORNING`, `AFTERNOON` |
+
+## 작성 상태와 권한
+
+- 신규 플랜은 공개 범위와 무관하게 `DRAFT`로 생성합니다.
+- 공개 탐색은 `PUBLISH_STATUS = PUBLISHED`, `VISIBILITY = PUBLIC`, `PLAN_STATUS = ACTIVE`를 모두 만족하는 플랜만 반환합니다.
+- 제작 완료(`PUBLISHED`)로 변경하려면 일정 장소가 한 곳 이상 있어야 합니다.
+- 에디터 응답의 `currentMemberRole`은 `CREATOR` 또는 `INVITEE`, `canManagePlan`은 소유자 전용 설정 가능 여부입니다.
+- `INVITEE`는 일정 편집만 가능하고 Metadata·날짜·발행·삭제·초대 관리는 할 수 없습니다.
+
+## 내 플랜 관리
+
+- `GET /api/plans/mine`은 활성 소유 플랜, 활성 초대 플랜, 삭제된 소유 플랜을 최근 수정 순으로 반환합니다.
+- `DELETE /api/plans/{planId}?versionNo={versionNo}`는 데이터를 물리 삭제하지 않고 `PLAN_STATUS`를 `DELETED`로 변경합니다.
+- `POST /api/plans/{planId}/restore`는 `{ "versionNo": 4 }` 형식으로 삭제 당시 최신 버전을 전송합니다.
+- 발행·삭제·복구는 모두 `TRAVEL_PLAN.VERSION_NO` 낙관적 잠금을 사용합니다.
+
+## DAY 간 일정 이동
+
+일정 수정 요청에 `targetPlanDayId`와 `targetScheduleVersion`을 함께 보내면 다른 DAY의 선택 시간대 마지막으로 이동합니다. 서버는 원본 DAY와 대상 DAY의 일정 버전을 하나의 Transaction에서 모두 증가시키며, 어느 한쪽이라도 충돌하면 전체 작업을 롤백합니다.
 
 ---
 

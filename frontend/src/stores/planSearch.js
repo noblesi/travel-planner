@@ -32,8 +32,13 @@ export const usePlanSearchStore = defineStore('planSearch', () => {
     }
   }
 
+  function invalidateCache() {
+    cachedSearch.value = null
+  }
+
   return {
     cacheSearch,
     restoreSearch,
+    invalidateCache,
   }
 })

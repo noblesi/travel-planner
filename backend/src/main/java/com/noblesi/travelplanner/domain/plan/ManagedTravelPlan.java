@@ -1,17 +1,19 @@
 package com.noblesi.travelplanner.domain.plan;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
-public record PlanEditorPlan(
+public record ManagedTravelPlan(
 		long planId,
 		String title,
-		String regionCode,
 		String regionName,
 		LocalDate startDate,
 		LocalDate endDate,
 		PlanVisibility visibility,
 		PlanPublishStatus publishStatus,
+		String planStatus,
 		int versionNo,
-		ParticipantType currentMemberRole
+		ParticipantType currentMemberRole,
+		OffsetDateTime updatedAt
 ) {
 }
