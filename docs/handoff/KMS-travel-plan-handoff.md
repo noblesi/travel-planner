@@ -132,7 +132,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 - Pinia 편집 Store에 직렬 자동 저장 Queue를 추가하고, Queue 실행 시점의 최신 DAY·항목 Version 사용, 동일 `operationId` 재시도, `409 Conflict` 최신 Editor Snapshot 복구 흐름을 구현했다.
 - Frontend API·Store·View Test를 확장했으며 변경 대상 ESLint·Oxlint를 통과했다.
 - 실제 TourAPI Key로 서울 지역 장소 검색 22건을 확인하고, 검색 결과를 H2 일정에 추가·오후 이동·삭제해 일정 Version이 0에서 3으로 증가하는 전체 API 흐름을 검증했다.
-- 실제 Kakao REST Key로 공식 장소 검색 API 응답을 확인하고, JavaScript Key와 localhost Referer로 공식 SDK Script가 `200 text/javascript`를 반환하는지 확인했다. Marker·정보창 브라우저 렌더링은 인앱 브라우저의 localhost URL 보안 정책으로 이번 환경에서 완료하지 못했다.
+- 실제 Kakao REST Key로 공식 장소 검색 API 응답을 확인하고, JavaScript Key와 등록 도메인 `http://localhost:5173`에서 실제 지도·Marker·정보창 브라우저 렌더링을 확인했다.
 - 원격 Oracle에 `005_add_plan_operation_request_hash.sql`을 적용하고 `REQUEST_HASH VARCHAR2(64) NOT NULL`, `CK_PLAN_OPERATION_HASH ENABLED VALIDATED` 상태를 확인했다.
 - 원격 Oracle의 활성 시·도 Seed가 0건인 상태를 발견해 멱등 `002_seed_region_master.sql`을 다시 적용하고 17건을 복구했다.
 - Oracle JDBC에서 선택 Snapshot 필드와 정렬 작업 대상 ID가 `null`일 때 발생하는 `ORA-17004`를 막도록 MyBatis Parameter에 명시적 JDBC Type을 추가했다.
@@ -165,7 +165,7 @@ git diff --name-only origin/dev...HEAD -- docs/handoff/KMS-travel-plan-handoff.m
 | Frontend Build | 타 담당 영역 대기 | 빈 `frontend/src/views/joinView/JoinCompleteView.vue`와 local `node_modules`의 `sass-embedded` 누락으로 Production Build 실패 |
 | Oracle | 일정 범위 검증 완료 | `005` 적용, 시·도 Seed 17건 복구, Schema 검증, 임시 회원 기반 플랜 생성·일정 CRUD·정렬·멱등 재시도 완료 |
 | 실제 인증 | 부분 완료 | Spring Security session·CSRF와 Oracle `MEMBER` 이메일 로그인 완료. 회원가입·비밀번호 재설정·Google OIDC 필요 |
-| 외부 API | 부분 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 검증 완료. Kakao Map·Marker 자동 Test 통과, 실제 Browser 렌더링은 localhost 보안 정책으로 미검증 |
+| 외부 API | 검증 완료 | 실제 TourAPI 검색, Kakao REST Key와 JavaScript SDK 응답 및 localhost Kakao Map·Marker·정보창 Browser 렌더링 확인 |
 | Backend 자동 Test | 준비 완료 | 전체 80건 통과, `bootJar` 성공 |
 | Frontend Test | 준비 완료 | 30개 Test File, 전체 127건 통과, Production Build 성공. ESLint·Oxlint 통과 |
 | Windows 실행 | 준비 완료 | 루트 `.env.local`을 안전하게 로드하는 `scripts/run-backend.ps1` 추가 |
@@ -402,7 +402,7 @@ backend/src/main/java/com/noblesi/travelplanner/
 6. 제작 페이지 초기 조회 Backend API 구현 (H2 HTTP 및 Oracle 일정 변경 Snapshot 검증 완료)
 7. 제작 페이지 레이아웃·Pinia 편집 상태·DAY/오전/오후 일정·날짜 변경 구현 (완료)
 8. TourAPI 장소 검색 Backend·Frontend 연동 (완료, 실제 Key 검색 및 일정 CRUD 연계 검증 완료)
-9. 공용 카카오맵과 검색 결과·저장 일정 장소 Marker 연결 (구현·자동 Test 완료, 실제 SDK Browser 렌더링은 localhost 보안 정책으로 미검증)
+9. 공용 카카오맵과 검색 결과·저장 일정 장소 Marker 연결 (구현·자동 Test·실제 localhost SDK Browser 렌더링 완료)
 10. 일정 추가·수정·삭제·순서 변경 구현 (Backend·Frontend·계약·H2 Test·Oracle 통합 검증 완료)
 11. 작업별 자동 저장과 버전 충돌 처리 (Backend 멱등·작업 이력·Version 충돌, Frontend Queue·재시도·Snapshot 복구, Oracle 요청 Hash 검증 완료)
 12. 플랜 제목과 공개 범위 수정 (완료)
@@ -418,6 +418,8 @@ backend/src/main/java/com/noblesi/travelplanner/
 - `PUBLISHED` 플랜의 제목을 자동 저장해도 발행 상태가 유지되고 공개 상세와 검색에 즉시 반영되는 것을 확인했다.
 - 사용자가 명시적으로 `DRAFT`로 전환한 뒤에는 공개 상세와 검색에서 제외되는 것을 확인했다.
 - 제작 완료 요청 실패를 자동 저장 실패와 분리했다. 빈 플랜 발행이 거절되어도 자동 저장 상태는 정상으로 유지되고 발행 오류만 별도 알림으로 표시되는 것을 실제 Browser에서 확인했다.
+- 등록된 localhost 도메인에서 플랜 생성, TourAPI 장소 검색, Kakao Map Marker·정보창, 일정 추가와 자동 저장, 발행, 탐색·상세 노출을 실제 Browser로 완주했다.
+- 공개 상태에서 제목과 일정 시간대를 수정하면 탐색·상세에 즉시 반영되고, `DRAFT` 전환 후 탐색과 공개 상세에서 즉시 제외되는 것을 확인했다. 수정·발행 직후 이전 값을 보여주던 5분 탐색 캐시는 편집 성공 시 무효화하도록 보완했다.
 - 삭제 플랜은 제작 화면 접근이 차단되고, 복구 후 `ACTIVE + DRAFT`와 최신 Version으로 다시 접근되는 것을 확인했다.
 - `scripts/verify-oracle-auth-flow.ps1`을 위 생명주기 회귀 검증까지 포함하도록 확장했다. 검증용 `e2e.*@withtrip.test` 회원과 생성 데이터는 종료 후 정리했고 잔여 회원 수는 0건이다.
 

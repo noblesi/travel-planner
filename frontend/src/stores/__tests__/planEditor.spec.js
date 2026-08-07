@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePlanEditorStore } from '@/stores/planEditor'
+import { usePlanSearchStore } from '@/stores/planSearch'
 
 const {
   addScheduleItemMock,
@@ -149,6 +150,37 @@ describe('planEditor store', () => {
     expect(updateTravelPlanMetadataMock).toHaveBeenCalledWith('101', payload)
     expect(store.plan).toEqual(updated.plan)
     expect(store.selectedDayId).toBe('202')
+  })
+
+  it('공개 플랜 수정 후 탐색 캐시를 무효화한다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const publishedPlan = { ...plan, publishStatus: 'PUBLISHED' }
+    const updated = {
+      plan: { ...publishedPlan, title: '서울 궁궐 여행', versionNo: 1 },
+      days,
+    }
+    getTravelPlanEditorMock.mockResolvedValue({ plan: publishedPlan, days })
+    updateTravelPlanMetadataMock.mockResolvedValue(updated)
+    const searchStore = usePlanSearchStore()
+    searchStore.cacheSearch({
+      keyword: '',
+      searchedKeyword: '',
+      currentPage: 1,
+      plans: [{ id: '101', title: publishedPlan.title }],
+      totalCount: 1,
+      hasNextPage: false,
+      hasSearched: false,
+    })
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await store.savePlanMetadata({
+      title: '서울 궁궐 여행',
+      visibility: 'PUBLIC',
+      versionNo: 0,
+    })
+
+    expect(searchStore.restoreSearch({ searchedKeyword: '', currentPage: 1 })).toBeNull()
   })
 
   it('플랜 Version 충돌 시 최신 Editor Snapshot을 복구하고 오류를 유지한다', async () => {

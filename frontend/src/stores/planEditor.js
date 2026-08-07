@@ -11,6 +11,7 @@ import {
   updateTravelPlanDates,
   updateTravelPlanMetadata,
 } from '@/api/plans'
+import { usePlanSearchStore } from '@/stores/planSearch'
 
 const CONFLICT_CODES = new Set([
   'SCHEDULE_VERSION_CONFLICT',
@@ -74,6 +75,7 @@ function localScheduleError(message) {
 }
 
 export const usePlanEditorStore = defineStore('planEditor', () => {
+  const planSearchStore = usePlanSearchStore()
   const status = ref('idle')
   const errorMessage = ref('')
   const plan = ref(null)
@@ -168,6 +170,12 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
       : 'success'
   }
 
+  function invalidatePublicSearch(data, force = false) {
+    if (force || data?.plan?.publishStatus === 'PUBLISHED') {
+      planSearchStore.invalidateCache()
+    }
+  }
+
   async function loadPlanEditor(planId) {
     resetSaveState()
     status.value = 'loading'
@@ -251,6 +259,7 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
       try {
         const data = await updateTravelPlanDates(plan.value.planId, payload)
         applyEditorData(data, preferredDayId)
+        invalidatePublicSearch(data)
         return data
       } catch (error) {
         if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
@@ -272,6 +281,7 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
       try {
         const data = await updateTravelPlanMetadata(plan.value.planId, payload)
         applyEditorData(data, preferredDayId)
+        invalidatePublicSearch(data)
         return data
       } catch (error) {
         if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
@@ -299,6 +309,7 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
         versionNo: plan.value.versionNo,
       })
       applyEditorData(data, preferredDayId)
+      invalidatePublicSearch(data, true)
       return data
     } catch (error) {
       if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
@@ -339,6 +350,7 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
 
       if (result?.editor) {
         applyEditorData(result.editor, operation.preferredDayId)
+        invalidatePublicSearch(result.editor)
       }
       if (lastFailedOperation.value === operation) lastFailedOperation.value = null
       saveStatus.value = 'saved'
