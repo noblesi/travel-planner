@@ -1,6 +1,6 @@
 # WithTrip (Travel Planner)
 
-여행 일정과 방문 장소, 이동 동선을 함께 관리하는 4인 팀 프로젝트입니다. **사용자 화면은 Vue 3 SPA**, **관리자 화면은 Spring MVC + Thymeleaf**로 구현합니다. Spring Boot는 사용자 화면용 REST API와 관리자용 서버 렌더링 화면을 함께 제공하며, MyBatis 데이터 접근 계층을 적용합니다.
+여행 일정과 방문 장소, 이동 동선을 함께 관리하는 4인 팀 프로젝트입니다. 사용자 화면은 **Vue 3 SPA**, 백엔드는 **Spring Boot REST API**로 구현합니다. 관리자 화면은 현재 Vue로 남아 있으며 **Spring MVC + Thymeleaf로 전환할 예정**입니다.
 
 > 서비스명 `WithTrip`은 임시명이며 저장소와 백엔드 산출물 이름은 `travel-planner`를 사용합니다.
 
@@ -9,13 +9,15 @@
 | 영역 | 기술 |
 | --- | --- |
 | 사용자 화면 | Vue 3, Vite 8, Vue Router, Pinia, Axios |
-| 관리자 화면 | Thymeleaf, Spring MVC, HTML Form |
+| 관리자 화면 | 현재 Vue, 전환 목표 Thymeleaf·Spring MVC |
 | 백엔드 | Java 21, Spring Boot 4.0.7, Spring MVC, Spring Security |
 | 데이터 접근 | MyBatis 3 |
 | 데이터베이스 | Oracle Database |
 | 테스트 | Vitest, JUnit 5, MockMvc |
-| 배포 | Linux, Vue 정적 파일 + REST API·관리자 Thymeleaf를 포함한 Spring Boot 실행 JAR |
+| 배포 | Linux, Vue 정적 파일 + Spring Boot 실행 JAR |
 | 문자 인코딩 | UTF-8 |
+
+관리자 전환 목표 구조는 다음과 같습니다.
 
 ```mermaid
 flowchart LR
@@ -31,13 +33,9 @@ flowchart LR
 
 ### 화면 구현 기준
 
-- 사용자용 홈·플랜 제작·탐색·마이페이지는 기존 Vue SPA에서 구현합니다.
-- 관리자 로그인·대시보드·회원·플랜·신고·공지 관리는 Spring Boot의 Thymeleaf Template으로 구현합니다.
-- 관리자 URL은 `/admin/**`, Vue 사용자 API는 `/api/**`를 기본 경계로 사용합니다.
-- 기존 `frontend/src/views/admin`과 `AdminLayout`은 Thymeleaf 전환 대상입니다. 전환이 끝날 때까지 참고할 수 있지만 새로운 관리자 기능을 Vue에 추가하지 않습니다.
-- Thymeleaf 관리자 화면도 기존 Service·Mapper를 재사용하며 Controller에서 업무 규칙이나 SQL을 직접 처리하지 않습니다.
-
-> 현재 저장소에는 Vue 관리자 화면이 남아 있으며 Thymeleaf 의존성·Template 구조는 아직 추가되지 않았습니다. 위 내용은 확정된 전환 기준이고, 실제 전환은 관리자 전용 작업 Branch에서 화면 단위로 진행합니다.
+- 사용자 화면과 `/api/**`는 기존 Vue SPA·REST API 구조를 유지합니다.
+- 기존 Vue 관리자 화면에는 신규 기능을 추가하지 않고, 별도 Branch에서 `/admin/**` Thymeleaf 화면으로 전환합니다.
+- 관리자 Controller는 기존 Service·Mapper를 재사용합니다.
 
 UI 및 데이터 모델 원본은 [설계 자료](docs/README.md)에서 확인합니다. Vue 사용자 화면의 공통 레이아웃, orange design token과 공통 UI Component 사용법은 [공통 레이아웃·UI Component 가이드](docs/frontend/common-layout-ui.md)를 기준으로 합니다. 관리자 Thymeleaf UI의 Layout·Fragment·정적 자원 규칙은 전환 작업에서 별도로 정리합니다.
 
@@ -52,148 +50,12 @@ UI 및 데이터 모델 원본은 [설계 자료](docs/README.md)에서 확인�
 | Node.js | 24.12 이상(24 LTS 권장) | `node -v` |
 | npm | Node.js에 포함 | `npm -v` |
 | Oracle Database | 팀 지정 버전 | DB 접속 테스트 |
-| Eclipse | 전체 애플리케이션 개발·실행, Java 21 지원 버전 | `Help > About Eclipse IDE` |
-| VS Code | 전체 애플리케이션 개발·실행, 최신 안정 버전 | `Help > About` |
 
 - Gradle은 별도로 설치하지 않고 `backend`의 Gradle Wrapper를 사용합니다.
 - Node.js 버전은 루트의 `.nvmrc`에 맞춥니다.
-- Eclipse와 VS Code 중 어느 것을 사용해도 Spring Boot와 Vue를 모두 실행할 수 있어야 합니다.
+- IDE는 Java 21과 Vue 3를 지원하는 최신 버전을 사용합니다.
 - Java와 Gradle JVM은 모두 Java 21로 지정합니다.
 - 모든 파일은 UTF-8, 줄바꿈은 LF를 사용합니다.
-
-### Eclipse에서 전체 애플리케이션 실행
-
-Eclipse를 주 IDE로 사용하는 팀원도 Spring Boot 백엔드와 Vue 프론트엔드를 모두 실행합니다. 백엔드는 Eclipse 프로젝트로 가져오고, 프론트엔드는 Eclipse Terminal에서 실행합니다.
-
-#### 설치·업데이트 항목
-
-| 항목 | 조치 |
-| --- | --- |
-| JDK 21 | 반드시 설치합니다. Java 17 이하 또는 Java 22 이상만 설치되어 있어도 프로젝트용 JDK 21을 추가합니다. |
-| Node.js | 24.12 이상을 설치합니다. npm은 Node.js에 포함됩니다. |
-| Eclipse IDE | Java 21을 지원하는 버전으로 설치하거나 업데이트합니다. |
-| Spring Tools 4 | 선택 설치를 권장합니다. Spring Boot 실행과 설정 파일 편집이 편리해집니다. |
-| Gradle | 별도로 설치하지 않습니다. 저장소의 `gradlew.bat`이 Gradle 9.5.1을 자동으로 내려받습니다. |
-| Tomcat | 별도로 설치하거나 Server에 등록하지 않습니다. Spring Boot 내장 서버를 사용합니다. |
-| Oracle JDBC 드라이버 | 직접 설치하지 않습니다. Gradle이 `ojdbc11`을 자동으로 내려받습니다. |
-
-#### 프로젝트 가져오기와 최초 설치
-
-1. `File > Import > Gradle > Existing Gradle Project`를 선택합니다.
-2. `travel-planner/backend`를 Gradle 프로젝트 루트로 지정합니다.
-3. Gradle 배포 방식은 프로젝트의 **Gradle Wrapper**를 사용합니다.
-4. `Installed JRE`, `Project JRE`, `Java Compiler`, `Gradle JVM`을 모두 Java 21로 지정합니다.
-5. 프로젝트와 워크스페이스 문자 인코딩을 UTF-8로 지정합니다.
-6. 프론트엔드 소스도 Eclipse에서 편집하려면 `File > Open Projects from File System`으로 `travel-planner/frontend`를 추가합니다.
-7. Eclipse Terminal에서 다음 최초 설치 명령을 실행합니다.
-
-아래 Eclipse 명령은 Terminal의 현재 위치가 `travel-planner`를 포함하는 상위 폴더인 경우를 기준으로 합니다. Terminal이 이미 저장소 루트에서 열렸다면 경로에서 `travel-planner/`를 생략합니다.
-
-```powershell
-cd travel-planner/frontend
-npm ci
-
-cd ../backend
-.\gradlew.bat test
-```
-
-#### 백엔드와 프론트엔드 동시 실행
-
-Eclipse에서 Terminal을 두 개 열고 각각 실행합니다. Oracle을 먼저 실행하고 백엔드 환경변수는 [4. 환경변수 설정](#4-환경변수-설정)의 값을 적용합니다.
-
-터미널 1 — Spring Boot:
-
-```powershell
-cd travel-planner
-.\scripts\run-backend.ps1
-```
-
-터미널 2 — Vue:
-
-```powershell
-cd travel-planner/frontend
-npm run dev
-```
-
-Spring Tools를 설치했다면 백엔드는 Boot Dashboard에서 실행해도 됩니다. 이 경우 `Run Configurations > Environment`에 `ORACLE_URL`, `ORACLE_USERNAME`, `ORACLE_PASSWORD`, `SERVER_PORT`를 등록합니다. Spring Tools가 없다면 `TravelPlannerApiApplication`을 Java Application으로 실행할 수도 있습니다.
-
-정상 실행 주소:
-
-- Vue: `http://localhost:5173`
-- Spring Boot: `http://localhost:8080`
-- 관리자 화면: `http://localhost:8080/admin/**` (Thymeleaf 전환 후)
-- API 상태 확인: `http://localhost:8080/api/health`
-
-Eclipse에서도 JSP·JSTL·외부 Tomcat 설정은 사용하지 않습니다. 사용자 화면은 Vue 개발 서버가 제공하고, REST API와 관리자 Thymeleaf 화면은 Spring Boot 내장 서버가 제공합니다.
-
-### VS Code에서 전체 애플리케이션 실행
-
-VS Code를 주 IDE로 사용하는 팀원도 Vue 프론트엔드와 Spring Boot 백엔드를 모두 실행합니다. 저장소 루트를 열고 VS Code Terminal 두 개를 사용하면 됩니다.
-
-#### 설치·업데이트 항목
-
-| 항목 | 조치 |
-| --- | --- |
-| JDK 21 | 반드시 설치하고 VS Code의 Java Runtime을 Java 21로 지정합니다. |
-| Node.js | 24.12 이상을 설치합니다. 팀 표준은 루트 `.nvmrc`에 맞춘 Node 24 LTS입니다. |
-| npm | Node.js에 포함되므로 별도로 설치하지 않습니다. |
-| VS Code | 최신 안정 버전으로 설치하거나 업데이트합니다. |
-| Vue - Official | 필수 권장 확장입니다. Vue SFC 문법과 자동완성을 지원합니다. |
-| ESLint | 필수 권장 확장입니다. 저장소의 ESLint 규칙을 편집기에 표시합니다. |
-| Extension Pack for Java | 백엔드 코드 편집·실행·디버깅을 위해 설치를 권장합니다. |
-| Spring Boot Extension Pack | Spring Boot Dashboard 실행을 원하면 선택 설치합니다. |
-| Prettier | 선택 확장입니다. 실제 포맷 기준은 저장소 설정과 npm 스크립트를 따릅니다. |
-| Vetur | 설치되어 있다면 비활성화하거나 제거합니다. `Vue - Official`과 함께 사용하지 않습니다. |
-| Vue·Vite 등 npm 패키지 | 전역 설치하지 않습니다. `npm ci`가 `package-lock.json` 기준으로 설치합니다. |
-
-#### 프로젝트 열기와 최초 설치
-
-1. VS Code에서 `travel-planner` 저장소 루트를 엽니다.
-2. `Java: Configure Java Runtime`에서 프로젝트 JDK를 Java 21로 지정합니다.
-3. VS Code Terminal에서 Java, Node.js, npm 버전을 확인합니다.
-4. 프론트엔드와 백엔드의 최초 설치·테스트를 실행합니다.
-
-```powershell
-java -version
-node -v
-npm -v
-
-cd frontend
-npm ci
-
-cd ../backend
-.\gradlew.bat test
-```
-
-#### 프론트엔드와 백엔드 동시 실행
-
-VS Code에서 Terminal을 두 개 열고 각각 실행합니다. Oracle을 먼저 실행하고 백엔드 환경변수는 [4. 환경변수 설정](#4-환경변수-설정)의 값을 적용합니다.
-
-터미널 1 — Spring Boot:
-
-```powershell
-.\scripts\run-backend.ps1
-```
-
-터미널 2 — Vue:
-
-```powershell
-cd frontend
-npm run dev
-```
-
-Spring Boot Extension Pack을 설치했다면 백엔드는 Spring Boot Dashboard에서 실행해도 됩니다. 이 경우 실행 구성에 Oracle 환경변수를 등록해야 합니다. Vue는 VS Code Terminal에서 `npm run dev`로 실행합니다.
-
-정상 실행 주소:
-
-- Vue: `http://localhost:5173`
-- Spring Boot: `http://localhost:8080`
-- 관리자 화면: `http://localhost:8080/admin/**` (Thymeleaf 전환 후)
-- API 상태 확인: `http://localhost:8080/api/health`
-
-Vite 개발 서버의 `/api` 요청은 실행 중인 Spring Boot 서버로 전달됩니다. 따라서 어떤 IDE를 사용하든 두 서버가 모두 실행 중이어야 전체 화면과 API 연동을 확인할 수 있습니다.
-
-팀원이 개별적으로 `npm update`, `npm install <패키지>@latest`, Gradle 또는 Spring Boot 버전 변경을 수행하지 않습니다. 공통 의존성 업그레이드는 별도 브랜치에서 테스트한 후 PR로 반영합니다.
 
 ## 2. 저장소 내려받기
 
@@ -215,11 +77,8 @@ git pull origin dev
 ```text
 travel-planner/
 ├── backend/
-│   ├── src/main/java/                 # REST API·관리자 MVC와 백엔드 계층
+│   ├── src/main/java/                 # REST API와 백엔드 계층
 │   ├── src/main/resources/mapper/     # MyBatis XML Mapper
-│   ├── src/main/resources/templates/  # Thymeleaf Template, 전환 작업에서 추가
-│   │   └── admin/                     # 관리자 화면·Layout·Fragment, 추가 예정
-│   ├── src/main/resources/static/     # 관리자용 CSS·JavaScript·이미지, 추가 예정
 │   ├── src/main/resources/application.yml
 │   ├── src/test/java/                 # JUnit·MockMvc 테스트
 │   ├── build.gradle
@@ -233,8 +92,7 @@ travel-planner/
 │   ├── src/layouts/                   # Vue 사용자 화면 공통 레이아웃
 │   ├── src/router/                    # Vue Router 설정
 │   ├── src/stores/                    # Pinia 전역 상태
-│   ├── src/views/                     # 사용자 라우트 단위 화면
-│   │   └── admin/                     # 기존 Vue 관리자 화면, Thymeleaf 전환 대상
+│   ├── src/views/                     # 사용자 화면과 기존 Vue 관리자 화면
 │   ├── package.json
 │   └── vite.config.js
 ├── scripts/                           # Windows·Linux 빌드 및 실행 스크립트
@@ -264,6 +122,8 @@ Copy-Item .env.example .env.local
 | `ORACLE_USERNAME` | `travel_planner` | DB 계정 |
 | `ORACLE_PASSWORD` | `change-me` | DB 비밀번호 |
 | `SERVER_PORT` | `8080` | 백엔드 포트 |
+| `AUTH_ENFORCE_SECURITY` | `false` | 로컬 개발용 인증 강제 여부. 통합 검증·배포에서는 `true` |
+| `SESSION_COOKIE_SECURE` | `true` | HTTPS에서는 `true`, 로컬 HTTP에서는 `false` |
 | `TOUR_API_SERVICE_KEY` | `change-me` | TourAPI 서비스 인증키 |
 | `KAKAO_REST_API_KEY` | `change-me` | Kakao REST API 키 |
 
@@ -311,7 +171,7 @@ cd backend
 ./gradlew bootRun --args='--spring.profiles.active=local'
 ```
 
-`local` Database는 Application 종료 시 초기화되며 운영 또는 실제 Oracle 검증을 대체하지 않습니다. 현재는 국내 지역 조회 개발에 필요한 `REGION_MASTER`와 시·도 17개 Seed를 제공합니다.
+`local` Database는 Application 종료 시 초기화되며 운영 또는 실제 Oracle 검증을 대체하지 않습니다. 시·도 17개와 인증·공지 개발용 관리자·회원·공지 Seed가 포함되어 있습니다. 계정 정보는 [`backend/src/main/resources/db/local/data.sql`](backend/src/main/resources/db/local/data.sql)에서 확인합니다.
 
 ### 프론트엔드
 
@@ -469,7 +329,7 @@ chore: 프론트엔드 의존성 설정 수정
 ### 사용자 화면(Vue)
 
 - `views`는 라우트 단위 화면, `components`는 재사용 UI로 구분합니다.
-- 사용자 화면은 `DefaultLayout`을 기본 레이아웃으로 사용합니다.
+- 사용자 화면은 `DefaultLayout`을 기본으로 사용하되, 플랜 제작 화면은 지도·일정 작업공간을 위한 전용 Layout을 사용합니다.
 - 공통 버튼·입력·Modal·비동기 상태 UI는 `src/components/ui`의 Component를 우선 사용합니다.
 - 색상과 layout 수치는 `src/assets/main.css`의 design token을 사용하고 화면별로 brand 색상을 다시 정의하지 않습니다.
 - Axios 호출은 컴포넌트에서 직접 작성하지 않고 `src/api` 모듈에 둡니다.
@@ -495,9 +355,10 @@ chore: 프론트엔드 의존성 설정 수정
 - [ ] 로딩·빈 결과·서버 오류 화면 확인
 - [ ] 로그인 전후와 데이터 소유권 확인
 - [ ] DB 저장·수정·삭제 결과 확인
-- [ ] Vue 사용자 경로 새로고침과 Thymeleaf 관리자 URL 직접 접근 확인
+- [ ] Vue 사용자 경로 새로고침과 직접 접근 확인
 - [ ] 한글·공백·특수문자·날짜 경계값 확인
-- [ ] Vue 린트·테스트·빌드와 Thymeleaf Controller·View MockMvc 테스트 통과
+- [ ] Vue 린트·테스트·빌드 통과
+- [ ] Thymeleaf 전환 작업은 Controller·View MockMvc 테스트 통과
 - [ ] 백엔드 테스트·JAR 빌드 통과
 - [ ] 비밀값과 담당 범위 밖 파일이 커밋에 포함되지 않음
 
@@ -510,7 +371,6 @@ chore: 프론트엔드 의존성 설정 수정
 | Oracle 연결 실패 | Listener, 서비스명, URL, 계정·비밀번호 확인 |
 | `ORA-12505` | SID 대신 실제 서비스명과 `@//host:port/service` 형식인지 확인 |
 | Vue에서 API 호출 실패 | Spring Boot 실행 여부와 Vite 프록시 대상 확인 |
-| 관리자 화면 Template 오류 | `templates/admin`의 View 경로, Fragment 이름과 Model Attribute 확인 |
 | 8080·5173 포트 충돌 | 기존 프로세스 종료 또는 포트 설정 변경 |
 | Mapper 오류 | XML namespace, 인터페이스 경로, statement id 확인 |
 | 배포 후 Vue 경로 404 | 웹 서버가 알 수 없는 경로를 `index.html`로 보내는지 확인 |
@@ -520,8 +380,8 @@ chore: 프론트엔드 의존성 설정 수정
 
 - `frontend/dist`는 Nginx 등 정적 웹 서버에서 제공합니다.
 - `/api/**` 요청은 `travel-planner.jar`가 실행 중인 백엔드로 전달합니다.
-- `/admin/**` 요청은 Thymeleaf 화면을 제공하는 `travel-planner.jar`로 전달합니다.
-- Vue Router가 history 모드를 사용하므로 알 수 없는 사용자 화면 경로는 `index.html`로 fallback하되 `/api/**`와 `/admin/**`는 SPA fallback에서 제외합니다.
+- Thymeleaf 전환 후 `/admin/**` 요청은 `travel-planner.jar`로 전달합니다.
+- Vue Router가 history 모드를 사용하므로 알 수 없는 사용자 화면 경로는 `index.html`로 fallback합니다. Thymeleaf 전환 후에는 `/admin/**`를 SPA fallback에서 제외합니다.
 - 운영 DB 정보와 API 키는 Linux 환경변수로 등록합니다.
 - 배포 전 DB 백업과 되돌리기 절차를 준비합니다.
 
@@ -535,7 +395,6 @@ chore: 프론트엔드 의존성 설정 수정
 - [ ] `npm ci`, 린트, 테스트, 빌드 통과
 - [ ] Spring Boot와 Vue 개발 서버 실행 성공
 - [ ] 메인 화면에서 API 연결 상태 확인
-- [ ] 관리자 Thymeleaf 화면과 관리자 인증 경로 확인
 - [ ] 개인 `.env` 파일이 Git 추적 대상이 아님
 
 설치 방법, 실행 명령, 환경변수 또는 폴더 구조가 바뀌면 관련 코드와 같은 PR에서 이 README도 수정합니다.
