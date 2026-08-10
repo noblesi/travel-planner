@@ -5,7 +5,9 @@
 <mapper namespace="com.noblesi.travelplanner.plansearch.dao.PlanSearchDAO">
 
 	<sql id="publicPlanCondition">
+		<!-- 공개 탐색의 도메인 기준은 작성 완료(PUBLISHED)까지 포함한다. DRAFT는 작성 중 데이터이므로 외부에 노출하지 않는다. -->
 		WHERE P.VISIBILITY = 'PUBLIC'
+		  AND P.PUBLISH_STATUS = 'PUBLISHED'
 		  AND P.PLAN_STATUS = 'ACTIVE'
 		  AND M.MEMBER_STATUS = 'ACTIVE'
 		<if test="keyword != null and keyword != ''">
@@ -60,7 +62,9 @@
 		  FROM TRAVEL_PLAN P
 		  JOIN MEMBER M ON M.MEMBER_ID = P.OWNER_MEMBER_ID
 		 WHERE P.PLAN_ID = #{planId}
+		   <!-- 목록과 상세의 공개 기준을 동일하게 유지해 URL 직접 접근으로 DRAFT가 노출되는 것을 막는다. -->
 		   AND P.VISIBILITY = 'PUBLIC'
+		   AND P.PUBLISH_STATUS = 'PUBLISHED'
 		   AND P.PLAN_STATUS = 'ACTIVE'
 		   AND M.MEMBER_STATUS = 'ACTIVE'
 	</select>
@@ -69,7 +73,9 @@
 		UPDATE TRAVEL_PLAN
 		   SET VIEW_COUNT = VIEW_COUNT + 1
 		 WHERE PLAN_ID = #{planId}
+		   <!-- 공개 완료된 플랜만 조회수 집계 대상으로 인정해 DRAFT 접근 흔적이 남지 않도록 한다. -->
 		   AND VISIBILITY = 'PUBLIC'
+		   AND PUBLISH_STATUS = 'PUBLISHED'
 		   AND PLAN_STATUS = 'ACTIVE'
 	</update>
 
@@ -100,7 +106,9 @@
 		SELECT REGION_CODE
 		  FROM TRAVEL_PLAN
 		 WHERE PLAN_ID = #{planId}
+		   <!-- 가져오기 역시 공개 완료된 원본만 허용해 작성 중 플랜의 복제를 차단한다. -->
 		   AND VISIBILITY = 'PUBLIC'
+		   AND PUBLISH_STATUS = 'PUBLISHED'
 		   AND PLAN_STATUS = 'ACTIVE'
 	</select>
 

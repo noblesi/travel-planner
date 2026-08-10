@@ -5,11 +5,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import defaultPlanThumbnail from '@/assets/plan/default-plan-thumbnail.svg'
 import PlanSearchView from '@/views/PlanSearch/PlanSearchView.vue'
 
-const { pushMock, replaceMock, route, searchPublicPlansMock } = vi.hoisted(() => ({
+const { pushMock, replaceMock, route, getPlanListMock } = vi.hoisted(() => ({
   pushMock: vi.fn(),
   replaceMock: vi.fn(),
   route: { query: {} },
-  searchPublicPlansMock: vi.fn(),
+  getPlanListMock: vi.fn(),
 }))
 
 vi.mock('vue-router', () => ({
@@ -17,20 +17,21 @@ vi.mock('vue-router', () => ({
   useRoute: () => route,
 }))
 
-vi.mock('@/api/plans', () => ({
-  searchPublicPlans: searchPublicPlansMock,
+// 화면이 신규 공개 탐색 계약을 사용하므로 테스트도 동일 모듈과 응답 필드를 mock해 회귀를 정확히 검출한다.
+vi.mock('@/api/planSearch', () => ({
+  getPlanList: getPlanListMock,
 }))
 
 const publicPlan = {
   planId: '101',
   title: '서울 미식 여행',
-  regionName: '서울특별시',
-  dayCount: 2,
+  region: '서울특별시',
+  days: 2,
   likeCount: 12,
   viewCount: 345,
   authorName: '길동',
-  authorProfileImageUrl: null,
-  thumbnailImageUrl: null,
+  authorImage: null,
+  thumbnailImage: null,
 }
 
 function mountView(pinia = createPinia()) {
@@ -47,7 +48,7 @@ function mountView(pinia = createPinia()) {
 beforeEach(() => {
   vi.clearAllMocks()
   route.query = {}
-  searchPublicPlansMock.mockResolvedValue({
+  getPlanListMock.mockResolvedValue({
     keyword: '',
     page: 1,
     size: 8,
@@ -63,7 +64,7 @@ describe('PlanSearchView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(searchPublicPlansMock).toHaveBeenCalledWith({ keyword: '', page: 1, size: 8 })
+    expect(getPlanListMock).toHaveBeenCalledWith({ keyword: '', page: 1, size: 8 })
     expect(wrapper.text()).toContain('서울 미식 여행')
 
     await wrapper.get('.card').trigger('click')
@@ -75,20 +76,20 @@ describe('PlanSearchView', () => {
   it('검색어를 정리해 API와 URL query에 반영한다', async () => {
     const wrapper = mountView()
     await flushPromises()
-    searchPublicPlansMock.mockClear()
+    getPlanListMock.mockClear()
 
     await wrapper.get('.search-input').setValue('  서울  ')
     await wrapper.get('.search-input').trigger('keyup.enter')
     await flushPromises()
 
     expect(replaceMock).toHaveBeenCalledWith({ query: { keyword: '서울' } })
-    expect(searchPublicPlansMock).toHaveBeenCalledWith({ keyword: '서울', page: 1, size: 8 })
+    expect(getPlanListMock).toHaveBeenCalledWith({ keyword: '서울', page: 1, size: 8 })
 
     wrapper.unmount()
   })
 
   it('더 보기를 누르면 다음 서버 페이지를 이어 붙인다', async () => {
-    searchPublicPlansMock
+    getPlanListMock
       .mockResolvedValueOnce({
         keyword: '',
         page: 1,
@@ -113,7 +114,7 @@ describe('PlanSearchView', () => {
     await wrapper.get('.more-btn').trigger('click')
     await flushPromises()
 
-    expect(searchPublicPlansMock).toHaveBeenLastCalledWith({ keyword: '', page: 2, size: 8 })
+    expect(getPlanListMock).toHaveBeenLastCalledWith({ keyword: '', page: 2, size: 8 })
     expect(wrapper.text()).toContain('서울 미식 여행')
     expect(wrapper.text()).toContain('부산 바다 여행')
     expect(replaceMock).toHaveBeenLastCalledWith({ query: { page: 2 } })
@@ -123,7 +124,7 @@ describe('PlanSearchView', () => {
 
   it('상세에서 돌아오면 같은 검색 페이지를 캐시로 복원한다', async () => {
     const pinia = createPinia()
-    searchPublicPlansMock
+    getPlanListMock
       .mockResolvedValueOnce({
         keyword: '',
         page: 1,
@@ -150,12 +151,12 @@ describe('PlanSearchView', () => {
 
     route.query = { page: '2' }
     firstView.unmount()
-    searchPublicPlansMock.mockClear()
+    getPlanListMock.mockClear()
 
     const restoredView = mountView(pinia)
     await flushPromises()
 
-    expect(searchPublicPlansMock).not.toHaveBeenCalled()
+    expect(getPlanListMock).not.toHaveBeenCalled()
     expect(restoredView.text()).toContain('서울 미식 여행')
     expect(restoredView.text()).toContain('부산 바다 여행')
 
@@ -164,7 +165,7 @@ describe('PlanSearchView', () => {
 
   it('더 보기 도중 새 검색을 실행하면 늦은 이전 응답을 무시한다', async () => {
     let resolveOldPage
-    searchPublicPlansMock
+    getPlanListMock
       .mockResolvedValueOnce({
         keyword: '',
         page: 1,
@@ -220,7 +221,7 @@ describe('PlanSearchView', () => {
 
   it('검색 도중 초기화하면 늦은 검색 응답을 무시한다', async () => {
     let resolveOldSearch
-    searchPublicPlansMock
+    getPlanListMock
       .mockResolvedValueOnce({
         keyword: '',
         page: 1,
@@ -280,14 +281,14 @@ describe('PlanSearchView', () => {
     expect(wrapper.html()).not.toContain('picsum.photos')
     wrapper.unmount()
 
-    searchPublicPlansMock.mockResolvedValueOnce({
+    getPlanListMock.mockResolvedValueOnce({
       keyword: '',
       page: 1,
       size: 8,
       totalCount: 1,
       totalPages: 1,
       hasNext: false,
-      plans: [{ ...publicPlan, thumbnailImageUrl: 'https://images.example/broken.jpg' }],
+      plans: [{ ...publicPlan, thumbnailImage: 'https://images.example/broken.jpg' }],
     })
     const failedImageView = mountView()
     await flushPromises()
@@ -300,7 +301,7 @@ describe('PlanSearchView', () => {
   })
 
   it('조회가 실패하면 재시도 가능한 오류 상태를 표시한다', async () => {
-    searchPublicPlansMock.mockRejectedValue(new Error('network error'))
+    getPlanListMock.mockRejectedValue(new Error('network error'))
 
     const wrapper = mountView()
     await flushPromises()
