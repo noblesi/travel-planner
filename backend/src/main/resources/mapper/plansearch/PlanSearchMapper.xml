@@ -102,14 +102,17 @@
 		          I.POSITION_NO ASC
 	</select>
 
-	<select id="selectPlanRegionCode" resultType="string">
-		SELECT REGION_CODE
-		  FROM TRAVEL_PLAN
-		 WHERE PLAN_ID = #{planId}
-		   <!-- 가져오기 역시 공개 완료된 원본만 허용해 작성 중 플랜의 복제를 차단한다. -->
-		   AND VISIBILITY = 'PUBLIC'
-		   AND PUBLISH_STATUS = 'PUBLISHED'
-		   AND PLAN_STATUS = 'ACTIVE'
+	<select id="selectPublishedPlanTarget" resultType="com.noblesi.travelplanner.plansearch.dao.PublishedPlanTargetDTO">
+		<!-- 좋아요·신고·가져오기가 동일한 공개 완료 기준과 활성 작성자 조건을 공유하도록 단일 조회로 관리한다. -->
+		SELECT P.OWNER_MEMBER_ID AS OWNER_MEMBER_ID,
+		       P.REGION_CODE AS REGION_CODE
+		  FROM TRAVEL_PLAN P
+		  JOIN MEMBER M ON M.MEMBER_ID = P.OWNER_MEMBER_ID
+		 WHERE P.PLAN_ID = #{planId}
+		   AND P.VISIBILITY = 'PUBLIC'
+		   AND P.PUBLISH_STATUS = 'PUBLISHED'
+		   AND P.PLAN_STATUS = 'ACTIVE'
+		   AND M.MEMBER_STATUS = 'ACTIVE'
 	</select>
 
 	<select id="nextTravelPlanId" resultType="long">
@@ -126,7 +129,9 @@
 			REGION_CODE,
 			START_DATE,
 			END_DATE,
-			VISIBILITY
+			VISIBILITY,
+			PUBLISH_STATUS,
+			PLAN_STATUS
 		) VALUES (
 			#{planId},
 			#{sourcePlanId},
@@ -135,7 +140,10 @@
 			#{regionCode},
 			#{startDate},
 			#{endDate},
-			'PRIVATE'
+			'PRIVATE',
+			<!-- 복사본은 편집 중인 비공개 플랜으로 시작해야 하므로 DB 기본값에 의존하지 않고 상태를 명시한다. -->
+			'DRAFT',
+			'ACTIVE'
 		)
 	</insert>
 

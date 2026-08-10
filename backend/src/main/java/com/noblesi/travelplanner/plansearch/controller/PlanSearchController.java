@@ -25,6 +25,8 @@ import com.noblesi.travelplanner.plansearch.service.PlanSearchService;
 import com.noblesi.travelplanner.security.CurrentMemberProvider;
 import com.noblesi.travelplanner.security.SecurityMemberResolver;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/plan-search")
 public class PlanSearchController {
@@ -107,16 +109,19 @@ public class PlanSearchController {
 
 	// 플랜 신고
 	@PostMapping("/plans/{planId}/report")
-	public ApiResponse<Void> reportPlan(@PathVariable Long planId, @RequestBody ReportRequestDTO request) {
-		request.setPlanId(planId);
+	public ApiResponse<Void> reportPlan(@PathVariable Long planId, @Valid @RequestBody ReportRequestDTO request) {
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		planSearchService.reportPlan(memberId, request);
+		// 식별자는 request body가 아닌 path variable만 신뢰해 서로 다른 planId가 전달될 여지를 제거한다.
+		planSearchService.reportPlan(memberId, planId, request);
 		return ApiResponse.successWithoutData();
 	}
 
 	// 탐색 플랜을 내 플랜으로 복사
 	@PostMapping("/plans/{sourcePlanId}/copy")
-	public ApiResponse<Long> copyPlan(@PathVariable Long sourcePlanId, @RequestBody PlanCopyRequestDTO request) {
+	public ApiResponse<Long> copyPlan(
+			@PathVariable Long sourcePlanId,
+			@Valid @RequestBody PlanCopyRequestDTO request
+	) {
 		long memberId = currentMemberProvider.getCurrentMemberId();
 		return ApiResponse.success(planSearchService.copyPlan(memberId, sourcePlanId, request));
 	}

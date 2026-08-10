@@ -54,9 +54,9 @@ public class PlanSearchDAO {
 		return sqlSession.selectList(NAMESPACE + "selectPlanSchedule", planId);
 	}
 
-	// 원본 플랜 지역코드 조회 (공개/활성 상태만)
-	public String selectPlanRegionCode(Long planId) {
-		return sqlSession.selectOne(NAMESPACE + "selectPlanRegionCode", planId);
+	// 모든 사용자 액션이 같은 공개 완료 조건을 사용하도록 대상 플랜의 최소 정보만 한 번에 조회한다.
+	public PublishedPlanTargetDTO selectPublishedPlanTarget(Long planId) {
+		return sqlSession.selectOne(NAMESPACE + "selectPublishedPlanTarget", planId);
 	}
 
 	// 새 여행 플랜 ID 채번

@@ -86,8 +86,8 @@ class PlanSearchControllerIntegrationTest {
 				.content("""
 						{
 						  "title": "Copied plan",
-						  "startDate": "2026-08-10",
-						  "endDate": "2026-08-11"
+						  "startDate": "2099-08-10",
+						  "endDate": "2099-08-11"
 						}
 						"""))
 				.andExpect(status().isNotFound())
@@ -95,21 +95,56 @@ class PlanSearchControllerIntegrationTest {
 	}
 
 	@Test
-	void storesReportWithLocalSchema() throws Exception {
+	void rejectsLikeAndReportForDraftPlan() throws Exception {
+		MockHttpSession session = login();
+
+		mockMvc.perform(post("/api/plan-search/plans/{planId}/like", DRAFT_PLAN_ID)
+				.session(session)
+				.with(csrf().asHeader()))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"));
+
+		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", DRAFT_PLAN_ID)
+				.session(session)
+				.with(csrf().asHeader())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(reportRequest("FALSE_INFO", "Draft report")))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"));
+
+		Integer likeCount = jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM PLAN_LIKE WHERE PLAN_ID = ?",
+				Integer.class,
+				DRAFT_PLAN_ID
+		);
+		Integer reportCount = jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM REPORT WHERE PLAN_ID = ?",
+				Integer.class,
+				DRAFT_PLAN_ID
+		);
+		assertThat(likeCount).isZero();
+		assertThat(reportCount).isZero();
+	}
+
+	@Test
+	void storesOneReportAndRejectsDuplicate() throws Exception {
 		MockHttpSession session = login();
 
 		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
-				.content("""
-						{
-						  "reason": "FALSE_INFO",
-						  "detail": "Integration test report"
-						}
-						"""))
+				.content(reportRequest("FALSE_INFO", "Integration test report")))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true));
+
+		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", PUBLISHED_PLAN_ID)
+				.session(session)
+				.with(csrf().asHeader())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(reportRequest("SPAM", "Duplicate report")))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("REPORT_ALREADY_EXISTS"));
 
 		Integer reportCount = jdbcTemplate.queryForObject(
 				"SELECT COUNT(*) FROM REPORT WHERE PLAN_ID = ? AND REASON_CODE = 'FALSE_INFO'",
@@ -117,6 +152,88 @@ class PlanSearchControllerIntegrationTest {
 				PUBLISHED_PLAN_ID
 		);
 		assertThat(reportCount).isEqualTo(1);
+	}
+
+	@Test
+	void validatesReportReasonAndRejectsSelfReport() throws Exception {
+		MockHttpSession session = login();
+
+		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", PUBLISHED_PLAN_ID)
+				.session(session)
+				.with(csrf().asHeader())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(reportRequest("UNKNOWN", "Invalid reason")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+		Long currentMemberId = jdbcTemplate.queryForObject(
+				"SELECT MEMBER_ID FROM MEMBER WHERE EMAIL = ?",
+				Long.class,
+				MEMBER_EMAIL
+		);
+		long selfOwnedPlanId = 81_003L;
+		insertPlan(selfOwnedPlanId, currentMemberId, "Self owned plan", "PUBLISHED", 0);
+
+		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", selfOwnedPlanId)
+				.session(session)
+				.with(csrf().asHeader())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(reportRequest("OTHER", "Self report")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("SELF_PLAN_REPORT_NOT_ALLOWED"));
+	}
+
+	@Test
+	void validatesCopyRequestAndCreatesExplicitDraftState() throws Exception {
+		MockHttpSession session = login();
+
+		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", PUBLISHED_PLAN_ID)
+				.session(session)
+				.with(csrf().asHeader())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "title": "   ",
+						  "startDate": "2099-08-10",
+						  "endDate": "2099-08-11"
+						}
+						"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+
+		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", PUBLISHED_PLAN_ID)
+				.session(session)
+				.with(csrf().asHeader())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "title": "Too long trip",
+						  "startDate": "2099-08-01",
+						  "endDate": "2099-08-15"
+						}
+						"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("TRAVEL_PLAN_DURATION_EXCEEDED"));
+
+		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", PUBLISHED_PLAN_ID)
+				.session(session)
+				.with(csrf().asHeader())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "title": "  Copied plan  ",
+						  "startDate": "2099-08-10",
+						  "endDate": "2099-08-11"
+						}
+						"""))
+				.andExpect(status().isOk());
+
+		String copiedState = jdbcTemplate.queryForObject("""
+				SELECT TITLE || ':' || VISIBILITY || ':' || PUBLISH_STATUS || ':' || PLAN_STATUS
+				  FROM TRAVEL_PLAN
+				 WHERE SOURCE_PLAN_ID = ?
+				""", String.class, PUBLISHED_PLAN_ID);
+		assertThat(copiedState).isEqualTo("Copied plan:PRIVATE:DRAFT:ACTIVE");
 	}
 
 	private void insertPlan(long planId, Long ownerMemberId, String title, String publishStatus, int viewCount) {
@@ -144,12 +261,27 @@ class PlanSearchControllerIntegrationTest {
 		return (MockHttpSession) result.getRequest().getSession(false);
 	}
 
+	private String reportRequest(String reason, String detail) {
+		return """
+				{
+				  "reason": "%s",
+				  "detail": "%s"
+				}
+				""".formatted(reason, detail);
+	}
+
 	private void deleteFixtures() {
-		jdbcTemplate.update("DELETE FROM REPORT WHERE PLAN_ID IN (?, ?)", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
-		jdbcTemplate.update("DELETE FROM PLAN_SCHEDULE_ITEM WHERE PLAN_DAY_ID IN (SELECT PLAN_DAY_ID FROM PLAN_DAY WHERE PLAN_ID IN (?, ?))", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
-		jdbcTemplate.update("DELETE FROM PLAN_DAY WHERE PLAN_ID IN (?, ?)", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
-		jdbcTemplate.update("DELETE FROM PLAN_MEMBER WHERE PLAN_ID IN (?, ?)", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
-		jdbcTemplate.update("DELETE FROM PLAN_LIKE WHERE PLAN_ID IN (?, ?)", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
-		jdbcTemplate.update("DELETE FROM TRAVEL_PLAN WHERE PLAN_ID IN (?, ?)", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
+		// 복사 테스트가 생성한 동적 ID까지 제거해 테스트 순서와 무관한 격리를 보장한다.
+		jdbcTemplate.update("DELETE FROM REPORT WHERE PLAN_ID IN (SELECT PLAN_ID FROM TRAVEL_PLAN WHERE SOURCE_PLAN_ID IN (?, ?))", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM PLAN_SCHEDULE_ITEM WHERE PLAN_DAY_ID IN (SELECT PLAN_DAY_ID FROM PLAN_DAY WHERE PLAN_ID IN (SELECT PLAN_ID FROM TRAVEL_PLAN WHERE SOURCE_PLAN_ID IN (?, ?)))", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM PLAN_DAY WHERE PLAN_ID IN (SELECT PLAN_ID FROM TRAVEL_PLAN WHERE SOURCE_PLAN_ID IN (?, ?))", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM PLAN_MEMBER WHERE PLAN_ID IN (SELECT PLAN_ID FROM TRAVEL_PLAN WHERE SOURCE_PLAN_ID IN (?, ?))", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM TRAVEL_PLAN WHERE SOURCE_PLAN_ID IN (?, ?)", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM REPORT WHERE PLAN_ID BETWEEN 81_001 AND 81_003");
+		jdbcTemplate.update("DELETE FROM PLAN_SCHEDULE_ITEM WHERE PLAN_DAY_ID IN (SELECT PLAN_DAY_ID FROM PLAN_DAY WHERE PLAN_ID BETWEEN 81_001 AND 81_003)");
+		jdbcTemplate.update("DELETE FROM PLAN_DAY WHERE PLAN_ID BETWEEN 81_001 AND 81_003");
+		jdbcTemplate.update("DELETE FROM PLAN_MEMBER WHERE PLAN_ID BETWEEN 81_001 AND 81_003");
+		jdbcTemplate.update("DELETE FROM PLAN_LIKE WHERE PLAN_ID BETWEEN 81_001 AND 81_003");
+		jdbcTemplate.update("DELETE FROM TRAVEL_PLAN WHERE PLAN_ID BETWEEN 81_001 AND 81_003");
 	}
 }

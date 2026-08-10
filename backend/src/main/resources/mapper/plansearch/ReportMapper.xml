@@ -13,11 +13,19 @@
 			REASON_DETAIL
 		) VALUES (
 			SEQ_REPORT.NEXTVAL,
-			#{request.planId},
+			<!-- planId는 요청 본문이 아닌 검증된 path variable을 사용해 대상 변조를 방지한다. -->
+			#{planId},
 			#{memberId},
 			#{request.reason},
 			#{request.detail}
 		)
 	</insert>
+
+	<select id="existsReport" resultType="boolean">
+		SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END
+		  FROM REPORT
+		 WHERE PLAN_ID = #{planId}
+		   AND REPORTER_MEMBER_ID = #{memberId}
+	</select>
 
 </mapper>
