@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
-import { getPublicTravelPlan } from '@/api/plans'
+import { getPlanDetail, toggleLike as toggleLikeApi } from '@/api/planSearch'
 import PublicPlanDayMap from '@/components/plan/PublicPlanDayMap.vue'
 import PublicPlanDetailHeader from '@/components/plan/PublicPlanDetailHeader.vue'
 import PublicPlanSchedule from '@/components/plan/PublicPlanSchedule.vue'
@@ -39,27 +39,25 @@ const currentDay = computed(
 )
 
 function mapPlanDetail(detail) {
-  const summary = detail.plan
   return {
-    id: summary.planId,
-    title: summary.title,
-    authorName: summary.authorName,
-    periodLabel: `${formatPeriodDate(summary.startDate)} - ${formatPeriodDate(summary.endDate)} (${summary.dayCount}일)`,
-    likeCount: summary.likeCount,
-    viewCount: summary.viewCount,
-    liked: false,
+    id: detail.planId,
+    title: detail.title,
+    authorName: detail.authorName,
+    periodLabel: `${formatPeriodDate(detail.startDate)} - ${formatPeriodDate(detail.endDate)} (${detail.days.length}일)`,
+    likeCount: detail.likeCount,
+    viewCount: detail.viewCount,
+    liked: detail.liked,
     days: detail.days.map((day) => ({
-      dayNumber: day.dayNo,
-      dateLabel: formatShortTravelDate(day.travelDate),
-      fullDateLabel: formatKoreanTravelDate(day.travelDate),
-      places: day.items.map((item) => ({
-        id: item.scheduleItemId,
-        timeSlot: item.timeSlot === 'MORNING' ? '오전' : '오후',
-        name: item.placeName,
-        description:
-          item.description || item.address || item.categoryName || '장소 설명이 없습니다.',
-        lat: item.latitude == null ? null : Number(item.latitude),
-        lng: item.longitude == null ? null : Number(item.longitude),
+      dayNumber: day.dayNumber,
+      dateLabel: formatShortTravelDate(day.visitDate),
+      fullDateLabel: formatKoreanTravelDate(day.visitDate),
+      places: day.places.map((place, index) => ({
+        id: `${day.dayNumber}-${index}`,
+        timeSlot: place.timeSlot === 'MORNING' ? '오전' : '오후',
+        name: place.placeName,
+        description: place.description || '장소 설명이 없습니다.',
+        lat: place.latitude,
+        lng: place.longitude,
       })),
     })),
   }
@@ -70,7 +68,7 @@ async function loadPlan() {
   loading.value = true
   errorMessage.value = ''
   try {
-    plan.value = mapPlanDetail(await getPublicTravelPlan(planId))
+    plan.value = mapPlanDetail(await getPlanDetail(planId))
     const queryDay = Number(route.query.day)
     selectedDay.value = plan.value.days.some((day) => day.dayNumber === queryDay)
       ? queryDay
@@ -92,14 +90,18 @@ function selectDay(dayNumber) {
   router.replace({ query: { ...route.query, day: dayNumber } })
 }
 
-function toggleLike() {
-  plan.value.liked = !plan.value.liked
-  plan.value.likeCount += plan.value.liked ? 1 : -1
-}
-
-function handleReportSubmit(payload) {
-  // 신고 API가 연결되기 전까지 모달의 완료 화면만 유지합니다.
-  console.log('신고 접수:', payload)
+async function toggleLike() {
+  try {
+    const liked = await toggleLikeApi(plan.value.id)
+    plan.value.liked = liked
+    plan.value.likeCount += liked ? 1 : -1
+  } catch (error) {
+    if (error?.response?.status === 401) {
+      alert('로그인 후 좋아요를 누를 수 있습니다.')
+      return
+    }
+    alert('좋아요 처리에 실패했어요. 잠시 후 다시 시도해 주세요.')
+  }
 }
 
 watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
@@ -140,8 +142,8 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
 
       <ReportModal
         v-if="plan && showReportModal"
+        :plan-id="plan.id"
         @close="showReportModal = false"
-        @submit="handleReportSubmit"
       />
       <ImportModal
         v-if="plan && showImportModal"
