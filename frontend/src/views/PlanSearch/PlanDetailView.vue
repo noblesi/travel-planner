@@ -7,6 +7,7 @@ import PublicPlanDayMap from '@/components/plan/PublicPlanDayMap.vue'
 import PublicPlanDetailHeader from '@/components/plan/PublicPlanDetailHeader.vue'
 import PublicPlanSchedule from '@/components/plan/PublicPlanSchedule.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import { useToastStore } from '@/stores/toast'
 import {
   formatKoreanTravelDate,
   formatPeriodDate,
@@ -21,6 +22,7 @@ const props = defineProps({
 
 const router = useRouter()
 const route = useRoute()
+const toast = useToastStore()
 const plan = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
@@ -96,11 +98,12 @@ async function toggleLike() {
     plan.value.liked = liked
     plan.value.likeCount += liked ? 1 : -1
   } catch (error) {
+    // blocking alert 대신 공통 접근성 Toast를 사용해 기존 화면 흐름과 알림 정책을 일치시킨다.
     if (error?.response?.status === 401) {
-      alert('로그인 후 좋아요를 누를 수 있습니다.')
+      toast.info('로그인 후 좋아요를 누를 수 있습니다.')
       return
     }
-    alert('좋아요 처리에 실패했어요. 잠시 후 다시 시도해 주세요.')
+    toast.error('좋아요 처리에 실패했어요. 잠시 후 다시 시도해 주세요.')
   }
 }
 

@@ -124,6 +124,11 @@ Copy-Item .env.example .env.local
 | `SERVER_PORT` | `8080` | 백엔드 포트 |
 | `AUTH_ENFORCE_SECURITY` | `false` | 로컬 개발용 인증 강제 여부. 통합 검증·배포에서는 `true` |
 | `SESSION_COOKIE_SECURE` | `true` | HTTPS에서는 `true`, 로컬 HTTP에서는 `false` |
+| `MAIL_HOST`, `MAIL_PORT` | `smtp.gmail.com`, `587` | 초대 메일 SMTP endpoint |
+| `MAIL_USERNAME`, `MAIL_PASSWORD` | `change-me` | SMTP 인증정보 |
+| `MAIL_FROM` | `no-reply@withtrip.com` | 초대 메일 발신 주소 |
+| `MAIL_CONNECTION_TIMEOUT_MS`, `MAIL_READ_TIMEOUT_MS`, `MAIL_WRITE_TIMEOUT_MS` | `5000` | SMTP 연결·읽기·쓰기 대기 상한 |
+| `FRONTEND_BASE_URL` | `https://service.example.com` | 초대 수락 링크를 생성할 실제 Frontend 주소 |
 | `TOUR_API_SERVICE_KEY` | `change-me` | TourAPI 서비스 인증키 |
 | `KAKAO_REST_API_KEY` | `change-me` | Kakao REST API 키 |
 

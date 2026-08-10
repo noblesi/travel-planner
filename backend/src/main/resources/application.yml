@@ -17,6 +17,10 @@ spring:
           auth: true
           starttls:
             enable: true
+          # 초대 API가 SMTP 장애로 무기한 대기하지 않도록 모든 네트워크 구간에 명시적인 상한을 둔다.
+          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${MAIL_READ_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml

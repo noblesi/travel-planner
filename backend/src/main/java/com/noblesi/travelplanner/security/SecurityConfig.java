@@ -110,7 +110,9 @@ public class SecurityConfig {
 				.csrf(csrf -> csrf
 						.csrfTokenRepository(csrfTokenRepository)
 						.ignoringRequestMatchers(
+								// local profile의 공개 플랜 mutation도 기존 플랜 API와 같은 개발용 CSRF 예외 정책을 적용한다.
 								"/api/plans/**",
+								"/api/plan-search/**",
 								"/api/plan-invitations/**"))
 				.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
 		return http.build();

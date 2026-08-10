@@ -3,11 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getAdminSession, loginAdmin, logoutAdmin } from '@/api/adminAuth'
 import http from '@/api/http'
 
+const { clearCsrfTokenCacheMock } = vi.hoisted(() => ({
+  clearCsrfTokenCacheMock: vi.fn(),
+}))
+
 vi.mock('@/api/http', () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
   },
+  clearCsrfTokenCache: clearCsrfTokenCacheMock,
 }))
 
 beforeEach(() => {
@@ -26,6 +31,7 @@ describe('admin authentication API', () => {
 
     expect(http.post).toHaveBeenCalledWith('/admin/auth/login', credentials)
     expect(http.get).toHaveBeenCalledWith('/admin/auth/session')
+    expect(clearCsrfTokenCacheMock).toHaveBeenCalledTimes(1)
   })
 
   it('관리자 로그아웃 요청을 전송한다', async () => {
@@ -33,5 +39,6 @@ describe('admin authentication API', () => {
 
     await expect(logoutAdmin()).resolves.toBeNull()
     expect(http.post).toHaveBeenCalledWith('/admin/auth/logout')
+    expect(clearCsrfTokenCacheMock).toHaveBeenCalledTimes(1)
   })
 })

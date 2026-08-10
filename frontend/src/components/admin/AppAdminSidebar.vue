@@ -1,12 +1,17 @@
 <script setup>
+import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 
+import { logoutAdmin } from '@/api/adminAuth'
 import logoSymbol from '@/assets/branding/travel-planner-logo-symbol.webp'
+import { useToastStore } from '@/stores/toast'
 
 defineProps({ open: Boolean })
 defineEmits(['close'])
 
 const router = useRouter()
+const toast = useToastStore()
+const loggingOut = ref(false)
 
 // 공통 사이드바 메뉴입니다. path는 adminRouter.js의 경로와 일치해야 합니다.
 const menuItems = [
@@ -32,10 +37,18 @@ const menuItems = [
   },
 ]
 
-const logout = () => {
-  // 백엔드 로그아웃 API 및 Pinia 인증 상태 초기화와 연결합니다.
-  localStorage.removeItem('adminAccessToken')
-  router.push('/admin/login')
+const logout = async () => {
+  if (loggingOut.value) return
+  loggingOut.value = true
+  try {
+    // 관리자 인증은 server session 기반이므로 존재하지 않는 local token 대신 실제 logout API로 session을 폐기한다.
+    await logoutAdmin()
+    await router.replace('/admin/login')
+  } catch {
+    toast.error('로그아웃하지 못했습니다. 잠시 후 다시 시도해 주세요.')
+  } finally {
+    loggingOut.value = false
+  }
 }
 </script>
 
@@ -73,8 +86,8 @@ const logout = () => {
     </nav>
 
     <div class="sidebar-footer">
-      <button class="logout-button" type="button" @click="logout">
-        로그아웃
+      <button class="logout-button" type="button" :disabled="loggingOut" @click="logout">
+        {{ loggingOut ? '로그아웃 중...' : '로그아웃' }}
       </button>
     </div>
   </aside>

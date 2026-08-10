@@ -78,6 +78,42 @@ function Assert-ConfiguredValues {
     }
 }
 
+function Assert-ReleaseHttpsUrl {
+    param(
+        [hashtable]$Values,
+        [string]$Name
+    )
+
+    $uri = $null
+    $isAbsolute = [System.Uri]::TryCreate(
+        $Values[$Name],
+        [System.UriKind]::Absolute,
+        [ref]$uri
+    )
+    # example/localhost 주소로 생성된 초대 링크가 사용자에게 발송되는 배포 사고를 차단한다.
+    if (-not $isAbsolute -or
+        $uri.Scheme -ne 'https' -or
+        $uri.IsLoopback -or
+        $uri.Host.EndsWith('.example')) {
+        throw "$Name must be an absolute, non-loopback HTTPS URL for a release."
+    }
+}
+
+function Assert-PositiveIntegerValue {
+    param(
+        [hashtable]$Values,
+        [string]$Name,
+        [int]$Maximum = [int]::MaxValue
+    )
+
+    $parsed = 0
+    if (-not [int]::TryParse($Values[$Name], [ref]$parsed) -or
+        $parsed -le 0 -or
+        $parsed -gt $Maximum) {
+        throw "$Name must be a positive integer no greater than $Maximum."
+    }
+}
+
 $backendValues = Read-EnvironmentFile $EnvironmentFile
 $frontendValues = Read-EnvironmentFile $FrontendEnvironmentFile
 
@@ -86,12 +122,28 @@ Assert-ConfiguredValues $backendValues @(
     'ORACLE_USERNAME',
     'ORACLE_PASSWORD',
     'TOUR_API_SERVICE_KEY',
-    'KAKAO_REST_API_KEY'
+    'KAKAO_REST_API_KEY',
+    # 초대 메일이 성공 응답 뒤 실제로 발송되고 수락 링크가 운영 도메인을 가리키도록 release 필수값으로 검증한다.
+    'MAIL_HOST',
+    'MAIL_PORT',
+    'MAIL_USERNAME',
+    'MAIL_PASSWORD',
+    'MAIL_FROM',
+    'MAIL_CONNECTION_TIMEOUT_MS',
+    'MAIL_READ_TIMEOUT_MS',
+    'MAIL_WRITE_TIMEOUT_MS',
+    'FRONTEND_BASE_URL'
 ) 'Backend environment'
 Assert-ConfiguredValues $frontendValues @(
     'VITE_API_BASE_URL',
     'VITE_KAKAO_MAP_KEY'
 ) 'Frontend environment'
+
+Assert-ReleaseHttpsUrl $backendValues 'FRONTEND_BASE_URL'
+Assert-PositiveIntegerValue $backendValues 'MAIL_PORT' 65535
+Assert-PositiveIntegerValue $backendValues 'MAIL_CONNECTION_TIMEOUT_MS'
+Assert-PositiveIntegerValue $backendValues 'MAIL_READ_TIMEOUT_MS'
+Assert-PositiveIntegerValue $backendValues 'MAIL_WRITE_TIMEOUT_MS'
 
 if ($backendValues.ContainsKey('AUTH_ENFORCE_SECURITY') -and
     $backendValues.AUTH_ENFORCE_SECURITY -ne 'true') {
