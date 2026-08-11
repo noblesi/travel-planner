@@ -44,7 +44,7 @@
 		                  JOIN REGION_MASTER R ON R.REGION_CODE = P.REGION_CODE
 		                  JOIN MEMBER M ON M.MEMBER_ID = P.OWNER_MEMBER_ID
 		                <include refid="publicPlanCondition" />
-		                 ORDER BY P.UPDATED_AT DESC, P.PLAN_ID DESC
+		                 ORDER BY P.VIEW_COUNT DESC, P.UPDATED_AT DESC, P.PLAN_ID DESC
 		               ) a
 		         WHERE ROWNUM &lt;= (#{page} * #{size})
 		       )
@@ -91,7 +91,7 @@
 		SELECT D.DAY_NO AS DAY_NUMBER,
 		       I.TIME_SLOT AS TIME_SLOT,
 		       I.PLACE_NAME_SNAPSHOT AS PLACE_NAME,
-		       I.DESCRIPTION_SNAPSHOT AS DESCRIPTION,
+		       I.ADDRESS_SNAPSHOT AS ADDRESS,
 		       I.LATITUDE_SNAPSHOT AS LATITUDE,
 		       I.LONGITUDE_SNAPSHOT AS LONGITUDE
 		  FROM PLAN_SCHEDULE_ITEM I

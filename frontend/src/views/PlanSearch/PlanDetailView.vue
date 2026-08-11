@@ -57,7 +57,7 @@ function mapPlanDetail(detail) {
         id: `${day.dayNumber}-${index}`,
         timeSlot: place.timeSlot === 'MORNING' ? '오전' : '오후',
         name: place.placeName,
-        description: place.description || '장소 설명이 없습니다.',
+        address: place.address || '주소 정보가 없습니다.',
         lat: place.latitude,
         lng: place.longitude,
       })),
