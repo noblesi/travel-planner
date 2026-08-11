@@ -1,6 +1,6 @@
 # WithTrip 배포·시연 체크리스트
 
-- 기준일: `2026-08-03`
+- 기준일: `2026-08-11`
 - 대상: Linux, Nginx 정적 Frontend, Spring Boot 실행 JAR, Oracle `WITHTRIP_DEV`
 
 ## 빌드 전 검증
@@ -113,15 +113,25 @@ VITE_KAKAO_MAP_KEY=javascript-key
 
 배포 전 확인:
 
-1. `GET /api/health`가 `UP`인지 확인
-2. `GET /api/plans?page=1&size=24`가 데모 플랜과 페이지 메타데이터를 반환하는지 확인
-3. 공개 상세에서 날짜·장소·조회수가 표시되는지 확인
-4. `e2e.*@withtrip.test` 임시 회원이 0건인지 확인
+1. `004_verify_travel_plan_schema.sql`로 `THUMBNAIL_IMG`, `PUBLISH_STATUS`, 제약·인덱스 누락이 없는지 확인
+2. `008_backfill_plan_thumbnails.sql`을 실행한 뒤 `009_verify_plan_thumbnails.sql`의 두 Query가 0행인지 확인
+3. `GET /api/health`가 `UP`인지 확인
+4. `GET /api/plans?page=1&size=24`가 데모 플랜과 페이지 메타데이터를 반환하는지 확인
+5. 공개 탐색 카드에서 관광 장소 이미지가 표시되고, 후보·정상 URL이 없으면 로컬 기본 이미지가 표시되는지 확인
+6. `e2e.*@withtrip.test` 임시 회원이 0건인지 확인
+
+환경파일의 비밀값을 명령행에 노출하지 않고 SQL을 실행하려면 다음 도구를 사용합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\invoke-oracle-sql.ps1 `
+  -SqlFile .\docs\database\ddl\009_verify_plan_thumbnails.sql
+```
 
 ## 배포 완료 조건
 
 - HTTPS에서 로그인 후 Session Cookie에 `Secure`, `HttpOnly`, `SameSite=Lax`가 적용됨
 - 로그인 후 새 CSRF 토큰으로 플랜 상태 변경이 성공함
 - 공개 탐색·상세·Kakao Marker가 Desktop과 Mobile에서 표시됨
+- 일정 추가 Request의 장소명·카테고리·이미지를 변조해도 서버 검색 결과 Snapshot과 대표 이미지가 유지됨
 - Vue Router 직접 접근과 새로고침이 `404`가 아닌 `index.html`로 연결됨
 - Oracle 접속정보와 API 키가 Git 및 정적 파일에 포함되지 않음

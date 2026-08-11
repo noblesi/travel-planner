@@ -594,7 +594,7 @@ Content-Type: application/json
 }
 ```
 
-장소 Snapshot 필드는 직전에 `GET /api/places/search`가 반환한 값을 전달합니다. `placeProvider`는 현재 `TOUR_API`만 허용합니다. 서버는 전달받은 값을 `PLAN_SCHEDULE_ITEM`에 Snapshot으로 저장하고 선택 시간대의 마지막 순서에 추가합니다.
+일정 추가 전에 `GET /api/places/search`로 장소를 조회해야 합니다. `placeProvider`는 현재 `TOUR_API`만 허용합니다. 서버는 `placeProvider + externalPlaceId`로 `PLACE_MASTER`를 다시 조회하고, 서버가 보관한 장소명·유형·카테고리·주소·좌표·이미지를 `PLAN_SCHEDULE_ITEM` Snapshot으로 저장합니다. Request의 나머지 장소 필드는 하위 호환용이며 썸네일이나 Snapshot 결정에 사용하지 않습니다.
 
 | Property | Required | Validation |
 | --- | --- | --- |
@@ -603,7 +603,7 @@ Content-Type: application/json
 | `timeSlot` | Yes | `MORNING` 또는 `AFTERNOON` |
 | `placeProvider` | Yes | `TOUR_API` |
 | `externalPlaceId` | Yes | 1~100자 |
-| `placeName` | Yes | 1~200자 |
+| `placeName` | No | 하위 호환용, 최대 200자, 서버 값 사용 |
 | `categoryName` | No | 최대 100자 |
 | `address` | No | 최대 500자 |
 | `latitude` | No | -90~90 |
@@ -683,6 +683,7 @@ Content-Type: application/json
 | `400` | `MALFORMED_JSON` | JSON 또는 Enum 형식 오류 |
 | `400` | `INVALID_PATH_PARAMETER` | `planId`, `dayId` 또는 `itemId` 형식 오류 |
 | `400` | `INVALID_SCHEDULE_ORDER` | 정렬 목록 ID 형식 오류 또는 목록의 누락·추가·중복 |
+| `400` | `PLACE_REFERENCE_NOT_FOUND` | 서버 장소 검색 이력이 없거나 비활성 장소를 추가하려고 함 |
 | `404` | `PLAN_NOT_FOUND` | 플랜이 없거나 삭제 상태이거나 현재 회원 소유가 아님 |
 | `404` | `PLAN_DAY_NOT_FOUND` | DAY가 없거나 대상 플랜에 속하지 않음 |
 | `404` | `SCHEDULE_ITEM_NOT_FOUND` | 항목이 없거나 대상 DAY에 속하지 않음 |
@@ -717,11 +718,14 @@ X-CSRF-TOKEN: server-generated-token
 ## 11. 플랜 대표 이미지 자동 결정
 
 - 사용자는 대표 이미지를 직접 선택하거나 업로드하지 않습니다.
-- 일정에 저장된 장소 이미지 Snapshot 중 관광 성격이 강한 카테고리를 자동 후보로 사용합니다.
+- `PLACE_MASTER.PLACE_TYPE`을 우선 사용하고, 기존 일정은 카테고리 Snapshot을 호환 기준으로 사용합니다.
 - 우선순위는 `관광지 → 문화시설 → 축제·공연·행사 → 여행코스 → 레포츠 → 관광정보 → 쇼핑`입니다.
 - 같은 카테고리 안에서는 DAY, 오전·오후, 일정 순서를 따릅니다.
 - `음식점`, `숙박` 이미지는 대표 이미지 후보에서 제외합니다.
+- 절대 `http` 또는 `https` URL만 후보로 인정하며, Frontend는 실제 이미지 로딩 실패 시 로컬 기본 썸네일로 교체합니다.
 - 제작 완료와 일정 추가·수정·삭제·정렬 시 `THUMBNAIL_IMG`를 다시 계산합니다.
+- 이미 `PUBLISHED`인 플랜도 제작 완료 요청을 다시 받으면 썸네일을 재계산하며 Version은 증가시키지 않습니다.
+- 계산 결과가 기존 값과 같으면 DB Update를 수행하지 않습니다.
 - 후보가 없으면 `THUMBNAIL_IMG = null`을 유지하고 Frontend가 로컬 기본 썸네일을 표시합니다.
 
 ## 12. 플랜 초대

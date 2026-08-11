@@ -72,6 +72,11 @@
 		   SET THUMBNAIL_IMG = #{thumbnailImageUrl,jdbcType=VARCHAR}
 		 WHERE PLAN_ID = #{planId}
 		   AND PLAN_STATUS = 'ACTIVE'
+		   AND (
+		       THUMBNAIL_IMG &lt;&gt; #{thumbnailImageUrl,jdbcType=VARCHAR}
+		       OR (THUMBNAIL_IMG IS NULL AND #{thumbnailImageUrl,jdbcType=VARCHAR} IS NOT NULL)
+		       OR (THUMBNAIL_IMG IS NOT NULL AND #{thumbnailImageUrl,jdbcType=VARCHAR} IS NULL)
+		   )
 	</update>
 
 	<update id="softDeleteTravelPlan">

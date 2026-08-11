@@ -70,6 +70,11 @@ class TravelPlanManagementService {
 			);
 		}
 		if (request.publishStatus() == plan.publishStatus()) {
+			if (request.publishStatus() == PlanPublishStatus.PUBLISHED) {
+				thumbnailDerivationService.refresh(planId);
+				PlanEditorPlan refreshedPlan = planAccessService.requireOwnedPlan(planId, memberId);
+				return editorQueryService.buildResponse(planId, refreshedPlan);
+			}
 			return editorQueryService.buildResponse(planId, plan);
 		}
 		String fallbackThumbnailImageUrl = request.publishStatus() == PlanPublishStatus.PUBLISHED

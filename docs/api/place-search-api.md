@@ -30,6 +30,7 @@ GET /api/places/search?keyword=한강&regionCode=1&page=1&size=10
         "placeProvider": "TOUR_API",
         "externalPlaceId": "1001",
         "placeName": "여의도 한강공원",
+        "placeType": "ATTRACTION",
         "categoryName": "관광지",
         "address": "서울 영등포구 여의동로 330",
         "latitude": 37.5284,
@@ -46,8 +47,10 @@ GET /api/places/search?keyword=한강&regionCode=1&page=1&size=10
 ```
 
 - `externalPlaceId`는 TourAPI `contentid`이며 문자열로 반환합니다.
+- `placeType`은 TourAPI `contenttypeid`를 서버 내부 유형으로 정규화한 값입니다. 썸네일 우선순위는 이 값을 사용합니다.
 - `latitude`, `longitude`, `address`, `imageUrl`은 원본 관광정보에 값이 없으면 `null`입니다.
-- 장소를 일정에 추가할 때 `placeProvider`부터 `imageUrl`까지를 Snapshot으로 저장합니다.
+- 검색 결과는 `PLACE_MASTER`에 서버 권위 데이터로 저장됩니다. 일정 추가 시에는 `placeProvider + externalPlaceId`로 이 데이터를 다시 조회해 Snapshot을 생성합니다.
+- `imageUrl`은 절대 `http` 또는 `https` URL이고 호스트가 있으며 사용자정보를 포함하지 않을 때만 저장합니다. 그 외에는 `null`로 정규화합니다.
 
 ### 외부 호출
 

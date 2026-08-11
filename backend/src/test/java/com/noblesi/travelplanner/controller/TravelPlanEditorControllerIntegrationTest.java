@@ -237,6 +237,42 @@ class TravelPlanEditorControllerIntegrationTest {
 	}
 
 	@Test
+	void refreshesMissingThumbnailWhenPlanIsAlreadyPublished() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+		insertPlanDay(FIRST_DAY_ID, PLAN_ID, 1, "2026-08-10", 0);
+		insertScheduleItem(
+				9_007_199_254_740_998L,
+				FIRST_DAY_ID,
+				"MORNING",
+				1,
+				"tour-100",
+				"경복궁",
+				"관광지",
+				"https://example.com/palace.jpg"
+		);
+		jdbcTemplate.update("""
+				UPDATE TRAVEL_PLAN
+				   SET VISIBILITY = 'PUBLIC',
+				       PUBLISH_STATUS = 'PUBLISHED',
+				       THUMBNAIL_IMG = NULL
+				 WHERE PLAN_ID = ?
+				""", PLAN_ID);
+
+		mockMvc.perform(patch("/api/plans/{planId}/publication", Long.toString(PLAN_ID))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "publishStatus": "PUBLISHED",
+						  "versionNo": 3
+						}
+						"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.thumbnailImageUrl")
+						.value("https://example.com/palace.jpg"))
+				.andExpect(jsonPath("$.data.plan.versionNo").value(3));
+	}
+
+	@Test
 	void listsDeletesAndRestoresOwnedPlan() throws Exception {
 		insertPlan(PLAN_ID, 1L, "ACTIVE");
 
@@ -489,6 +525,8 @@ class TravelPlanEditorControllerIntegrationTest {
 				"100",
 				"경복궁"
 		);
+		jdbcTemplate.update("UPDATE TRAVEL_PLAN SET THUMBNAIL_IMG = ? WHERE PLAN_ID = ?",
+				"https://example.com/place.jpg", PLAN_ID);
 
 		mockMvc.perform(patch("/api/plans/{planId}/dates", Long.toString(PLAN_ID))
 					.contentType(MediaType.APPLICATION_JSON)
@@ -502,6 +540,7 @@ class TravelPlanEditorControllerIntegrationTest {
 							"""))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.plan.versionNo").value(4))
+				.andExpect(jsonPath("$.data.plan.thumbnailImageUrl").value(nullValue()))
 				.andExpect(jsonPath("$.data.days", hasSize(1)))
 				.andExpect(jsonPath("$.data.days[0].planDayId").value(Long.toString(SECOND_DAY_ID)))
 				.andExpect(jsonPath("$.data.days[0].dayNo").value(1))

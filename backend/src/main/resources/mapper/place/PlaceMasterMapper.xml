@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.PlaceMasterMapper">
+
+	<resultMap id="placeCatalogEntryResultMap" type="com.noblesi.travelplanner.domain.place.PlaceCatalogEntry">
+		<constructor>
+			<arg column="PLACE_PROVIDER" javaType="string" />
+			<arg column="EXTERNAL_PLACE_ID" javaType="string" />
+			<arg column="PLACE_TYPE" javaType="com.noblesi.travelplanner.domain.place.PlaceType" />
+			<arg column="PLACE_NAME" javaType="string" />
+			<arg column="CATEGORY_NAME" javaType="string" />
+			<arg column="ADDRESS" javaType="string" />
+			<arg column="DESCRIPTION" javaType="string" />
+			<arg column="LATITUDE" javaType="java.math.BigDecimal" />
+			<arg column="LONGITUDE" javaType="java.math.BigDecimal" />
+			<arg column="IMAGE_URL" javaType="string" />
+		</constructor>
+	</resultMap>
+
+	<select id="findActiveByProviderAndExternalId" resultMap="placeCatalogEntryResultMap">
+		SELECT PLACE_PROVIDER,
+		       EXTERNAL_PLACE_ID,
+		       PLACE_TYPE,
+		       PLACE_NAME,
+		       CATEGORY_NAME,
+		       ADDRESS,
+		       DESCRIPTION,
+		       LATITUDE,
+		       LONGITUDE,
+		       IMAGE_URL
+		  FROM PLACE_MASTER
+		 WHERE PLACE_PROVIDER = #{placeProvider}
+		   AND EXTERNAL_PLACE_ID = #{externalPlaceId}
+		   AND ACTIVE_YN = 'Y'
+	</select>
+
+	<update id="updatePlace" parameterType="com.noblesi.travelplanner.domain.place.PlaceCatalogEntry">
+		UPDATE PLACE_MASTER
+		   SET PLACE_TYPE = #{placeType},
+		       PLACE_NAME = #{placeName},
+		       CATEGORY_NAME = #{categoryName,jdbcType=VARCHAR},
+		       ADDRESS = #{address,jdbcType=VARCHAR},
+		       DESCRIPTION = #{description,jdbcType=VARCHAR},
+		       LATITUDE = #{latitude,jdbcType=DECIMAL},
+		       LONGITUDE = #{longitude,jdbcType=DECIMAL},
+		       IMAGE_URL = #{imageUrl,jdbcType=VARCHAR},
+		       ACTIVE_YN = 'Y',
+		       SYNCED_AT = CURRENT_TIMESTAMP,
+		       UPDATED_AT = CURRENT_TIMESTAMP
+		 WHERE PLACE_PROVIDER = #{placeProvider}
+		   AND EXTERNAL_PLACE_ID = #{externalPlaceId}
+	</update>
+
+	<insert id="insertPlace" parameterType="com.noblesi.travelplanner.domain.place.PlaceCatalogEntry">
+		INSERT INTO PLACE_MASTER (
+			PLACE_PROVIDER,
+			EXTERNAL_PLACE_ID,
+			PLACE_TYPE,
+			PLACE_NAME,
+			CATEGORY_NAME,
+			ADDRESS,
+			DESCRIPTION,
+			LATITUDE,
+			LONGITUDE,
+			IMAGE_URL,
+			ACTIVE_YN,
+			SYNCED_AT
+		) VALUES (
+			#{placeProvider},
+			#{externalPlaceId},
+			#{placeType},
+			#{placeName},
+			#{categoryName,jdbcType=VARCHAR},
+			#{address,jdbcType=VARCHAR},
+			#{description,jdbcType=VARCHAR},
+			#{latitude,jdbcType=DECIMAL},
+			#{longitude,jdbcType=DECIMAL},
+			#{imageUrl,jdbcType=VARCHAR},
+			'Y',
+			CURRENT_TIMESTAMP
+		)
+	</insert>
+
+</mapper>

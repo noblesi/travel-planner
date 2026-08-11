@@ -7,6 +7,7 @@ import com.noblesi.travelplanner.domain.plan.PlanDay;
 import com.noblesi.travelplanner.domain.plan.PlanEditOperation;
 import com.noblesi.travelplanner.domain.plan.PlanScheduleItem;
 import com.noblesi.travelplanner.domain.plan.ScheduleOperationType;
+import com.noblesi.travelplanner.domain.place.PlaceCatalogEntry;
 import com.noblesi.travelplanner.dto.plan.AddScheduleItemRequest;
 import com.noblesi.travelplanner.dto.plan.ScheduleMutationResponse;
 import com.noblesi.travelplanner.mapper.PlanScheduleItemMapper;
@@ -20,6 +21,7 @@ class PlanScheduleAddService {
 	private final ScheduleOperationLedger operationLedger;
 	private final ScheduleMutationResponseFactory responseFactory;
 	private final PlanScheduleItemMapper planScheduleItemMapper;
+	private final PlaceCatalogService placeCatalogService;
 
 	PlanScheduleAddService(
 			PlanScheduleMutationSupport support,
@@ -27,7 +29,8 @@ class PlanScheduleAddService {
 			PlanAccessService planAccessService,
 			ScheduleOperationLedger operationLedger,
 			ScheduleMutationResponseFactory responseFactory,
-			PlanScheduleItemMapper planScheduleItemMapper
+			PlanScheduleItemMapper planScheduleItemMapper,
+			PlaceCatalogService placeCatalogService
 	) {
 		this.support = support;
 		this.idParser = idParser;
@@ -35,6 +38,7 @@ class PlanScheduleAddService {
 		this.operationLedger = operationLedger;
 		this.responseFactory = responseFactory;
 		this.planScheduleItemMapper = planScheduleItemMapper;
+		this.placeCatalogService = placeCatalogService;
 	}
 
 	@Transactional
@@ -43,19 +47,14 @@ class PlanScheduleAddService {
 		long planDayId = idParser.parse(planDayIdValue, "dayId");
 		long memberId = planAccessService.currentMemberId();
 		planAccessService.requireAccessiblePlan(planId, memberId);
+		String placeProvider = request.placeProvider().trim();
+		String externalPlaceId = request.externalPlaceId().trim();
 		String operationId = operationLedger.normalizeOperationId(request.operationId());
 		String requestHash = operationLedger.requestHash(
 				request.scheduleVersion(),
 				request.timeSlot(),
-				request.placeProvider(),
-				request.externalPlaceId().trim(),
-				request.placeName().trim(),
-				support.normalizeNullable(request.categoryName()),
-				support.normalizeNullable(request.address()),
-				request.latitude(),
-				request.longitude(),
-				support.normalizeNullable(request.imageUrl()),
-				support.normalizeNullable(request.description())
+				placeProvider,
+				externalPlaceId
 		);
 
 		PlanEditOperation replay = operationLedger.findReplay(
@@ -69,6 +68,7 @@ class PlanScheduleAddService {
 		if (replay != null) {
 			return responseFactory.fromReplay(replay, planIdValue);
 		}
+		PlaceCatalogEntry place = placeCatalogService.requireActivePlace(placeProvider, externalPlaceId);
 
 		PlanDay day = support.requireOwnedDay(planDayId, planId);
 		support.requireScheduleVersion(day, request.scheduleVersion());
@@ -79,8 +79,8 @@ class PlanScheduleAddService {
 		support.requireNoDuplicatePlace(
 				planDayId,
 				request.timeSlot(),
-				request.placeProvider(),
-				request.externalPlaceId().trim(),
+				place.placeProvider(),
+				place.externalPlaceId(),
 				null
 		);
 
@@ -91,15 +91,15 @@ class PlanScheduleAddService {
 				planDayId,
 				request.timeSlot(),
 				itemCount + 1,
-				request.placeProvider(),
-				request.externalPlaceId().trim(),
-				request.placeName().trim(),
-				support.normalizeNullable(request.categoryName()),
-				support.normalizeNullable(request.address()),
-				request.latitude(),
-				request.longitude(),
-				support.normalizeNullable(request.imageUrl()),
-				support.normalizeNullable(request.description()),
+				place.placeProvider(),
+				place.externalPlaceId(),
+				place.placeName(),
+				place.categoryName(),
+				place.address(),
+				place.latitude(),
+				place.longitude(),
+				place.imageUrl(),
+				place.description(),
 				0
 		);
 		support.requireSingleRow(planScheduleItemMapper.insertScheduleItem(item));
