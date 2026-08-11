@@ -16,6 +16,7 @@ Windows 실행 정책상 로컬 스크립트 실행이 제한된 환경에서도
 검증 항목:
 
 - Oracle Application 계정과 TourAPI·Kakao REST 키
+- SMTP 계정·발신 주소와 실제 HTTPS `FRONTEND_BASE_URL`
 - Frontend `/api` 경로와 Kakao JavaScript 키
 - 배포 시 `AUTH_ENFORCE_SECURITY=true`, `SESSION_COOKIE_SECURE=true`
 - Backend 전체 Test와 `travel-planner.jar`
@@ -72,6 +73,15 @@ AUTH_ENFORCE_SECURITY=true
 SESSION_COOKIE_SECURE=true
 TOUR_API_SERVICE_KEY=secret
 KAKAO_REST_API_KEY=secret
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=secret
+MAIL_PASSWORD=secret
+MAIL_FROM=no-reply@service.example.com
+MAIL_CONNECTION_TIMEOUT_MS=5000
+MAIL_READ_TIMEOUT_MS=5000
+MAIL_WRITE_TIMEOUT_MS=5000
+FRONTEND_BASE_URL=https://service.example.com
 ```
 
 Frontend Build 필수값:
@@ -82,6 +92,13 @@ VITE_KAKAO_MAP_KEY=javascript-key
 ```
 
 `VITE_` 값은 Browser Bundle에 포함됩니다. 비밀값을 넣지 말고 Kakao JavaScript 키에는 허용 도메인을 반드시 설정합니다.
+
+## 인증 운영 조건
+
+- 현재 서버 session 저장소는 단일 인스턴스 기준입니다. Backend를 2대 이상 운영하기 전에는 Spring Session Redis 등 공유 저장소를 먼저 적용합니다.
+- 회원·관리자 로그인 endpoint에는 Reverse Proxy 또는 API Gateway에서 IP 기준 rate limit과 반복 실패 모니터링을 적용합니다.
+- 권장 초기값은 IP당 분당 5회이며, 실제 NAT·사내망 사용자 패턴을 관찰한 뒤 조정합니다.
+- 애플리케이션 내부의 단순 메모리 limiter는 다중 인스턴스에서 우회되고 재시작 시 상태가 사라지므로 현재 코드에 추가하지 않습니다.
 
 ## Kakao Map
 
@@ -97,7 +114,7 @@ VITE_KAKAO_MAP_KEY=javascript-key
 배포 전 확인:
 
 1. `GET /api/health`가 `UP`인지 확인
-2. `GET /api/plans?limit=100`이 데모 플랜을 반환하는지 확인
+2. `GET /api/plans?page=1&size=24`가 데모 플랜과 페이지 메타데이터를 반환하는지 확인
 3. 공개 상세에서 날짜·장소·조회수가 표시되는지 확인
 4. `e2e.*@withtrip.test` 임시 회원이 0건인지 확인
 

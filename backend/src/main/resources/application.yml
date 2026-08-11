@@ -6,6 +6,21 @@ spring:
     username: ${ORACLE_USERNAME:travel_planner}
     password: ${ORACLE_PASSWORD:travel_planner}
     driver-class-name: oracle.jdbc.OracleDriver
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          # 초대 API가 SMTP 장애로 무기한 대기하지 않도록 모든 네트워크 구간에 명시적인 상한을 둔다.
+          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT_MS:5000}
+          timeout: ${MAIL_READ_TIMEOUT_MS:5000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml
@@ -26,6 +41,10 @@ server:
 app:
   auth:
     enforce-security: ${AUTH_ENFORCE_SECURITY:true}
+  mail:
+    from: ${MAIL_FROM:no-reply@withtrip.com}
+  frontend:
+    base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
   external-api:
     tour:
       base-url: ${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}

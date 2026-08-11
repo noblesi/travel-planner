@@ -151,6 +151,8 @@ describe('PlanSetupView', () => {
     await wrapper.get('#visibility').setValue(false)
 
     expect(wrapper.text()).toContain('3일 여행으로 계획을 시작합니다.')
+    expect(wrapper.text()).toContain('비공개 여행')
+    expect(wrapper.text()).toContain('초대한 동행자만 이 여행을 볼 수 있어요.')
 
     await wrapper.get('form').trigger('submit')
 
@@ -186,6 +188,51 @@ describe('PlanSetupView', () => {
 
     expect(wrapper.get('#endDate').attributes('min')).toBe(startDate)
     expect(wrapper.get('#endDate').attributes('max')).toBe(dateFromToday(16))
+  })
+
+  it('시작일이 기존 종료일보다 늦어지면 종료일을 초기화하고 이유를 안내한다', async () => {
+    const wrapper = mount(PlanSetupForm, {
+      props: { regions },
+    })
+
+    await wrapper.get('#startDate').setValue(dateFromToday(2))
+    await wrapper.get('#endDate').setValue(dateFromToday(5))
+    await wrapper.get('#startDate').setValue(dateFromToday(6))
+
+    expect(wrapper.get('#endDate').element.value).toBe('')
+    expect(wrapper.get('[role="status"]').text()).toContain(
+      '시작 날짜가 기존 종료 날짜보다 늦어 종료 날짜를 초기화했습니다.',
+    )
+  })
+
+  it('시작일 변경으로 14일을 초과하면 종료일을 초기화하고 이유를 안내한다', async () => {
+    const wrapper = mount(PlanSetupForm, {
+      props: { regions },
+    })
+
+    await wrapper.get('#startDate').setValue(dateFromToday(2))
+    await wrapper.get('#endDate').setValue(dateFromToday(15))
+    await wrapper.get('#startDate').setValue(dateFromToday(1))
+
+    expect(wrapper.get('#endDate').element.value).toBe('')
+    expect(wrapper.get('[role="status"]').text()).toContain(
+      '여행 기간이 14일을 초과해 종료 날짜를 초기화했습니다.',
+    )
+  })
+
+  it('로컬 검증 오류를 서버 필드 오류보다 우선 표시한다', async () => {
+    const wrapper = mount(PlanSetupForm, {
+      props: {
+        regions,
+        serverFieldErrors: { endDate: '서버에서 전달한 종료 날짜 오류' },
+      },
+    })
+
+    await wrapper.get('#startDate').setValue(dateFromToday(2))
+    await wrapper.get('form').trigger('submit')
+
+    expect(wrapper.get('#endDate-error').text()).toBe('종료 날짜를 선택해 주세요.')
+    expect(wrapper.text()).not.toContain('서버에서 전달한 종료 날짜 오류')
   })
 
   it('플랜 생성 API의 필드 오류를 입력 항목에 표시하고 수정 시 제거한다', async () => {
@@ -253,6 +300,28 @@ describe('PlanSetupView', () => {
 
     expect(routerPushMock).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('여행 계획을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.')
+  })
+
+  it('플랜 생성 후 화면 이동만 실패하면 중복 생성 없이 다시 이동한다', async () => {
+    routerPushMock.mockResolvedValueOnce({ type: 4 }).mockResolvedValueOnce(undefined)
+    const wrapper = mountView()
+    await flushPromises()
+
+    await selectRegion(wrapper)
+    await wrapper.get('#startDate').setValue(dateFromToday(7))
+    await wrapper.get('#endDate').setValue(dateFromToday(9))
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(createTravelPlanMock).toHaveBeenCalledOnce()
+    expect(wrapper.text()).toContain('여행 계획은 만들어졌지만 제작 화면으로 이동하지 못했습니다.')
+    expect(wrapper.find('form').exists()).toBe(false)
+
+    await wrapper.get('.created-plan-recovery button').trigger('click')
+    await flushPromises()
+
+    expect(routerPushMock).toHaveBeenCalledTimes(2)
+    expect(createTravelPlanMock).toHaveBeenCalledOnce()
   })
 
   it('생성 요청이 진행 중일 때 중복 제출을 차단한다', async () => {

@@ -3,11 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   addScheduleItem,
   deleteScheduleItem,
+  deleteTravelPlan,
+  getMyTravelPlans,
   getPublicTravelPlan,
   getTravelPlanEditor,
   reorderScheduleItems,
+  restoreTravelPlan,
   searchPublicPlans,
   updateScheduleItem,
+  updatePlanPublication,
   updateTravelPlanMetadata,
 } from '@/api/plans'
 import http from '@/api/http'
@@ -81,13 +85,13 @@ describe('getTravelPlanEditor', () => {
 })
 
 describe('public plan reads', () => {
-  it('검색어와 제한 건수를 전달해 공개 플랜을 조회한다', async () => {
+  it('검색어와 페이지 정보를 전달해 공개 플랜을 조회한다', async () => {
     const result = { keyword: '서울', totalCount: 1, plans: [{ planId: '11' }] }
     http.get.mockResolvedValue({ data: { data: result } })
 
-    await expect(searchPublicPlans({ keyword: '서울', limit: 24 })).resolves.toEqual(result)
+    await expect(searchPublicPlans({ keyword: '서울', page: 2, size: 8 })).resolves.toEqual(result)
     expect(http.get).toHaveBeenCalledWith('/plans', {
-      params: { keyword: '서울', limit: 24 },
+      params: { keyword: '서울', page: 2, size: 8 },
     })
   })
 
@@ -108,5 +112,30 @@ describe('updateTravelPlanMetadata', () => {
 
     await expect(updateTravelPlanMetadata('101', payload)).resolves.toEqual(editor)
     expect(http.patch).toHaveBeenCalledWith('/plans/101', payload)
+  })
+})
+
+describe('plan management', () => {
+  it('내 플랜 목록을 조회한다', async () => {
+    const result = { plans: [{ planId: '101' }] }
+    http.get.mockResolvedValue({ data: { data: result } })
+
+    await expect(getMyTravelPlans()).resolves.toEqual(result)
+    expect(http.get).toHaveBeenCalledWith('/plans/mine')
+  })
+
+  it('발행 상태를 변경하고 플랜을 삭제·복구한다', async () => {
+    const payload = { publishStatus: 'PUBLISHED', versionNo: 2 }
+    http.patch.mockResolvedValue({ data: { data: { plan: { planId: '101' } } } })
+    http.delete.mockResolvedValue({ data: { data: { planStatus: 'DELETED' } } })
+    http.post.mockResolvedValue({ data: { data: { planStatus: 'ACTIVE' } } })
+
+    await updatePlanPublication('101', payload)
+    await deleteTravelPlan('101', 3)
+    await restoreTravelPlan('101', 4)
+
+    expect(http.patch).toHaveBeenCalledWith('/plans/101/publication', payload)
+    expect(http.delete).toHaveBeenCalledWith('/plans/101', { params: { versionNo: 3 } })
+    expect(http.post).toHaveBeenCalledWith('/plans/101/restore', { versionNo: 4 })
   })
 })

@@ -1,0 +1,29 @@
+-- 동일 회원의 중복 신고와 정의되지 않은 사유 코드가 운영 데이터에 유입되지 않도록 REPORT 무결성을 강화한다.
+-- 기존 중복 데이터를 임의 삭제하지 않고 배포를 중단해 운영자가 신고 이력을 확인한 뒤 정리하도록 한다.
+DECLARE
+    DUPLICATE_GROUP_COUNT NUMBER;
+BEGIN
+    SELECT COUNT(*)
+      INTO DUPLICATE_GROUP_COUNT
+      FROM (
+            SELECT 1
+              FROM REPORT
+             GROUP BY PLAN_ID, REPORTER_MEMBER_ID
+            HAVING COUNT(*) > 1
+           );
+
+    IF DUPLICATE_GROUP_COUNT > 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'REPORT contains duplicate member/plan pairs.');
+    END IF;
+END;
+/
+
+CREATE UNIQUE INDEX UK_REPORT_MEMBER
+    ON REPORT (PLAN_ID, REPORTER_MEMBER_ID);
+
+ALTER TABLE REPORT
+    ADD CONSTRAINT UK_REPORT_MEMBER UNIQUE (PLAN_ID, REPORTER_MEMBER_ID);
+
+ALTER TABLE REPORT
+    ADD CONSTRAINT CK_REPORT_REASON
+    CHECK (REASON_CODE IN ('INAPPROPRIATE', 'FALSE_INFO', 'SPAM', 'OTHER'));

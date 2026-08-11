@@ -60,11 +60,23 @@ public class SecurityConfig {
 			CsrfTokenRepository csrfTokenRepository
 	) throws Exception {
 		http
-				.csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
+				.csrf(csrf -> csrf
+						.csrfTokenRepository(csrfTokenRepository)
+						.ignoringRequestMatchers("/api/admin/**"))
 				.authorizeHttpRequests(authorize -> authorize
-						.requestMatchers("/api/auth/**", "/api/users/**", "/api/health", "/error").permitAll()
+						.requestMatchers(
+							"/api/users/**",
+								"/api/auth/**",
+								"/admin/**",
+								"/assets/admin/**",
+								"/api/health",
+								"/error").permitAll()
+						.requestMatchers("/api/admin/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/regions", "/api/places/search").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/notices", "/api/notices/*").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/plan-search/plans", "/api/plan-search/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plan-invitations/**").permitAll()
 						.anyRequest().authenticated())
 				.exceptionHandling(exceptions -> exceptions
@@ -97,10 +109,15 @@ public class SecurityConfig {
 			HttpSecurity http,
 			CsrfTokenRepository csrfTokenRepository
 	) throws Exception {
-		http
+			http
 				.csrf(csrf -> csrf
 						.csrfTokenRepository(csrfTokenRepository)
-						.ignoringRequestMatchers("/api/plans/**", "/api/plan-invitations/**"))
+						.ignoringRequestMatchers(
+								// local profile의 mutation API에는 개발용 CSRF 예외 정책을 적용한다.
+								"/api/plans/**",
+								"/api/plan-search/**",
+								"/api/plan-invitations/**",
+								"/api/admin/**"))
 				.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
 		return http.build();
 	}

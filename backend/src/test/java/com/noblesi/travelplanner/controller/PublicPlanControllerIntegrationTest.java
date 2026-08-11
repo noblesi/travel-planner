@@ -46,9 +46,9 @@ class PublicPlanControllerIntegrationTest {
 		jdbcTemplate.update("""
 				INSERT INTO TRAVEL_PLAN (
 				    PLAN_ID, OWNER_MEMBER_ID, TITLE, REGION_CODE, START_DATE, END_DATE,
-				    VISIBILITY, PLAN_STATUS, VERSION_NO, THUMBNAIL_IMG, VIEW_COUNT
+				    VISIBILITY, PUBLISH_STATUS, PLAN_STATUS, VERSION_NO, THUMBNAIL_IMG, VIEW_COUNT
 				) VALUES (?, ?, '서울 공개 산책', '1', DATE '2026-08-10', DATE '2026-08-11',
-				          'PUBLIC', 'ACTIVE', 0, 'https://example.com/seoul.jpg', 41)
+				          'PUBLIC', 'PUBLISHED', 'ACTIVE', 0, 'https://example.com/seoul.jpg', 41)
 				""", PUBLIC_PLAN_ID, ownerMemberId);
 		jdbcTemplate.update("""
 				INSERT INTO TRAVEL_PLAN (
@@ -100,12 +100,33 @@ class PublicPlanControllerIntegrationTest {
 	void searchesOnlyActivePublicPlansWithoutAuthentication() throws Exception {
 		mockMvc.perform(get("/api/plans").queryParam("limit", "1"))
 				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.page").value(1))
+				.andExpect(jsonPath("$.data.size").value(1))
 				.andExpect(jsonPath("$.data.totalCount").value(1))
+				.andExpect(jsonPath("$.data.totalPages").value(1))
+				.andExpect(jsonPath("$.data.hasNext").value(false))
 				.andExpect(jsonPath("$.data.plans[0].planId").value(Long.toString(PUBLIC_PLAN_ID)))
 				.andExpect(jsonPath("$.data.plans[0].regionName").value("서울특별시"))
 				.andExpect(jsonPath("$.data.plans[0].dayCount").value(2))
 				.andExpect(jsonPath("$.data.plans[0].likeCount").value(2))
 				.andExpect(jsonPath("$.data.plans[0].viewCount").value(41));
+	}
+
+	@Test
+	void requiresAuthenticationForMyPlans() throws Exception {
+		mockMvc.perform(get("/api/plans/mine"))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("CURRENT_MEMBER_NOT_AVAILABLE"));
+	}
+
+	@Test
+	void returnsAnEmptyPageWhenTheRequestedPageIsPastTheLastPage() throws Exception {
+		mockMvc.perform(get("/api/plans").queryParam("page", "2").queryParam("size", "1"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.page").value(2))
+				.andExpect(jsonPath("$.data.totalCount").value(1))
+				.andExpect(jsonPath("$.data.hasNext").value(false))
+				.andExpect(jsonPath("$.data.plans").isEmpty());
 	}
 
 	@Test

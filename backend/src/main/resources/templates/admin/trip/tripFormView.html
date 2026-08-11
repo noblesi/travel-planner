@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>여행 플랜 관리 | WithTrip</title>
+	<link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+	<div class="admin-layout">
+		<aside th:replace="~{admin/fragments/layout :: sidebar('trips')}"></aside>
+		<div class="admin-main">
+			<header th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+			<main class="admin-content">
+				<div class="page-header">
+					<div>
+						<h1>여행 플랜 관리</h1>
+						<p>여행 플랜의 공개 상태와 신고 현황을 조회합니다.</p>
+					</div>
+					<div class="header-actions">
+						<span>검색 결과 <strong th:text="${totalCount}">0</strong>건</span>
+						<button class="button" type="button" data-modal-open="recommendation-rule-modal">추천 점수 규칙</button>
+					</div>
+				</div>
+
+				<section class="card">
+					<div class="tabs">
+						<a th:href="@{/admin/trips}"
+							th:classappend="${#strings.isEmpty(visibility) and !reportedOnly} ? 'active'">전체 플랜</a>
+						<a th:href="@{/admin/trips(visibility='PUBLIC')}"
+							th:classappend="${visibility == 'PUBLIC' and !reportedOnly} ? 'active'">공개 플랜</a>
+						<a th:href="@{/admin/trips(visibility='PRIVATE')}"
+							th:classappend="${visibility == 'PRIVATE' and !reportedOnly} ? 'active'">비공개 플랜</a>
+						<a th:href="@{/admin/trips(reportedOnly=true)}"
+							th:classappend="${reportedOnly} ? 'active'">신고 접수</a>
+					</div>
+
+					<form class="filters trip-filters" method="get" th:action="@{/admin/trips}">
+						<input name="keyword" th:value="${keyword}" placeholder="플랜 제목 또는 작성자 검색">
+						<select th:unless="${reportedOnly}" name="visibility" aria-label="공개 상태">
+							<option value="">상태 전체</option>
+							<option value="PUBLIC" th:selected="${visibility == 'PUBLIC'}">공개</option>
+							<option value="PRIVATE" th:selected="${visibility == 'PRIVATE'}">비공개</option>
+						</select>
+						<select th:if="${reportedOnly}" name="reportStatus" aria-label="신고 처리 상태"
+							onchange="this.form.requestSubmit()">
+							<option value="">상태 전체</option>
+							<option value="COMPLETED" th:selected="${reportStatus == 'COMPLETED'}">신고 처리 완료</option>
+							<option value="INCOMPLETE" th:selected="${reportStatus == 'INCOMPLETE'}">신고 처리 미완료</option>
+						</select>
+						<input th:if="${reportedOnly}" type="hidden" name="reportedOnly" value="true">
+						<button class="button" type="submit">검색</button>
+					</form>
+
+					<div class="table-wrapper">
+						<table class="admin-table">
+							<thead>
+								<tr>
+									<th class="text-column">플랜 번호</th>
+									<th class="text-column">제목</th>
+									<th>지역</th>
+									<th class="text-column">작성자</th>
+									<th>기간</th>
+									<th>좋아요/조회</th>
+									<th>상태</th>
+									<th>관리</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="trip : ${trips}">
+									<td class="text-column" th:text="${trip.planId}">1</td>
+									<td class="title">
+						<a th:if="${reportedOnly}" th:href="@{/admin/reports/{reportId}(reportId=${trip.latestReportId},planId=${trip.planId})}" th:text="${trip.title}">제목</a>
+										<a th:unless="${reportedOnly}" th:href="@{/admin/trips/{planId}(planId=${trip.planId})}" th:text="${trip.title}">제목</a>
+									</td>
+									<td th:text="${trip.regionName}">지역</td>
+									<td class="text-column" th:text="${trip.ownerName}">작성자</td>
+									<td th:text="|${#dates.format(trip.startDate, 'yyyy.MM.dd')} ~ ${#dates.format(trip.endDate, 'yyyy.MM.dd')}|">기간</td>
+									<td th:text="|${trip.likeCount} / ${trip.viewCount}|">0 / 0</td>
+									<td>
+									<span class="badge"
+										th:classappend="${reportedOnly} ? (${trip.reportStatusLabel == '신고 처리 완료'} ? ' success' : ' warning') : (${trip.visibilityLabel == '공개'} ? ' success' : ' muted')"
+										th:text="${reportedOnly ? trip.reportStatusLabel : trip.visibilityLabel}">공개</span>
+									</td>
+									<td>
+									<a class="mini-button" th:if="${reportedOnly}"
+										th:href="@{/admin/reports/{reportId}(reportId=${trip.latestReportId},planId=${trip.planId})}">신고 상세</a>
+									<a class="mini-button" th:unless="${reportedOnly}"
+										th:href="@{/admin/trips/{planId}(planId=${trip.planId})}">플랜 상세</a>
+									</td>
+								</tr>
+								<tr th:if="${#lists.isEmpty(trips)}">
+									<td colspan="8">조회된 여행 플랜이 없습니다.</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+					<nav class="pagination" aria-label="여행 플랜 목록 페이지" th:if="${totalPages > 1}">
+						<a th:if="${currentPage > 1}" th:href="@{/admin/trips(page=${currentPage - 1},keyword=${keyword},visibility=${visibility},regionCode=${regionCode},reportedOnly=${reportedOnly},reportStatus=${reportStatus})}">이전</a>
+						<a th:each="number : ${#numbers.sequence(1, totalPages)}"
+							th:href="@{/admin/trips(page=${number},keyword=${keyword},visibility=${visibility},regionCode=${regionCode},reportedOnly=${reportedOnly},reportStatus=${reportStatus})}"
+							th:text="${number}" th:classappend="${number == currentPage} ? ' active'">1</a>
+						<a th:if="${currentPage < totalPages}" th:href="@{/admin/trips(page=${currentPage + 1},keyword=${keyword},visibility=${visibility},regionCode=${regionCode},reportedOnly=${reportedOnly},reportStatus=${reportStatus})}">다음</a>
+					</nav>
+				</section>
+			</main>
+		</div>
+	</div>
+
+	<div id="recommendation-rule-modal" class="modal-overlay" role="presentation" hidden>
+		<section class="recommendation-modal" role="dialog" aria-modal="true" aria-labelledby="recommendation-modal-title">
+			<header class="recommendation-modal-header">
+				<div><h2 id="recommendation-modal-title">추천 점수 규칙 설정</h2><p>추천 콘텐츠 노출 순위를 계산하는 기준입니다.</p></div>
+				<button class="modal-close" type="button" aria-label="추천 점수 규칙 닫기" data-modal-close>×</button>
+			</header>
+			<form class="weight-form" data-recommendation-form>
+				<label><span>좋아요 수</span><span class="weight-input"><input name="likes" type="number" min="0" max="100" value="40"><small>%</small></span></label>
+				<label><span>조회 수</span><span class="weight-input"><input name="views" type="number" min="0" max="100" value="20"><small>%</small></span></label>
+				<label><span>플랜 복사 수</span><span class="weight-input"><input name="copies" type="number" min="0" max="100" value="40"><small>%</small></span></label>
+				<p class="weight-total" data-weight-total>합계 100%</p>
+				<div class="modal-actions"><button class="modal-reset" type="button" data-rule-reset>초기화</button><button class="modal-save" type="submit">규칙 저장</button></div>
+			</form>
+		</section>
+	</div>
+	<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>

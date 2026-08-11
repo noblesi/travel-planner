@@ -3,6 +3,8 @@ package com.noblesi.travelplanner.mapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.OffsetDateTime;
+
 import com.noblesi.travelplanner.domain.plan.PlanInvitation;
 import com.noblesi.travelplanner.domain.plan.PlanInvitationDetails;
 
@@ -13,7 +15,8 @@ public interface PlanInvitationMapper {
 
 	int cancelPendingInvitations(
 			@Param("planId") long planId,
-			@Param("inviteeEmail") String inviteeEmail
+			@Param("inviteeEmail") String inviteeEmail,
+			@Param("respondedAt") OffsetDateTime respondedAt
 	);
 
 	int insertPlanInvitation(PlanInvitation invitation);
@@ -24,7 +27,8 @@ public interface PlanInvitationMapper {
 
 	int acceptInvitation(
 			@Param("invitationId") long invitationId,
-			@Param("memberId") long memberId
+			@Param("memberId") long memberId,
+			@Param("respondedAt") OffsetDateTime respondedAt
 	);
 
 	int countPlanMember(

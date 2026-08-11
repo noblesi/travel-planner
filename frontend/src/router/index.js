@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
-import adminRoutes from './adminRouter'
+import { useAuthStore } from '@/stores/auth'
 
 // 사용자 라우트와 기능별로 분리한 관리자 라우트를 하나의 Router에 등록합니다.
 const router = createRouter({
@@ -11,18 +11,25 @@ const router = createRouter({
       name: 'home',
       component: HomeView,
     },
-    ...adminRoutes, // adminRouter.js의 라우트 배열을 이 위치에 펼쳐서 추가합니다.
     // 등록되지 않은 모든 URL은 마지막에 404 화면으로 보냅니다.
     {
       path: '/plans/new',
       name: 'plan-setup',
       component: () => import('@/views/PlanSetupView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/plans/:planId/edit',
       name: 'plan-editor',
       component: () => import('@/views/PlanEditorView.vue'),
       props: true,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/my-plans',
+      name: 'my-plans',
+      component: () => import('@/views/MyPlansView.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/plans',
@@ -60,28 +67,28 @@ const router = createRouter({
     {
       path: '/loginView',
       name: 'login',
-      component: () => import('@/views/LoginView/LoginView.vue'),
+      component: () => import('@/views/loginView/LoginView.vue'),
     },
     {
       path: '/emailFind',
       name: 'emailFind',
-      component: () => import('@/views/LoginView/EmailFindView.vue'),
+      component: () => import('@/views/loginView/EmailFindView.vue'),
     },
     {
       path: '/passwordFind',
       name: 'passwordFind',
-      component: () => import('@/views/LoginView/PasswordFindView.vue'),
+      component: () => import('@/views/loginView/PasswordFindView.vue'),
     },
     //회원 가입
     {
       path: '/joinView',
       name: 'join',
-      component: () => import('@/views/JoinView/JoinView.vue'),
+      component: () => import('@/views/joinView/JoinView.vue'),
     },
     {
       path: '/joinProfileView',
       name: 'joinProfile',
-      component: () => import('@/views/JoinView/JoinProfileView.vue'),
+      component: () => import('@/views/joinView/JoinProfileView.vue'),
       beforeEnter: (to, from, next) => {
       const store = useSignupStore()
       // Step 1에서 반드시 넘겨야 하는 데이터(예: userId)가 있는지 확인
@@ -96,18 +103,18 @@ const router = createRouter({
     {
       path: '/joinComplete',
       name: 'complete',
-      component: () => import('@/views/JoinView/JoinCompleteView.vue'),
+      component: () => import('@/views/joinView/JoinCompleteView.vue'),
     },
     //마이 페이지
     {
       path: '/myPage',
       name: 'myPage',
-      component: () => import('@/views/MyPage/MyPage.vue'),
+      component: () => import('@/views/myPage/MyPage.vue'),
     },
      {
       path: '/testView',
       name: 'testView',
-      component: () => import('@/views/MyPage/testView.vue'),
+      component: () => import('@/views/myPage/testView.vue'),
     },
     {
       path: '/:pathMatch(.*)*',
@@ -121,10 +128,23 @@ const router = createRouter({
     }
 
     if (to.path === from.path) {
-      return false  // 스크롤 유지,  아무 것도 안 함
+      return false // 스크롤 유지,  아무 것도 안 함
     }
     return { top: 0 }
   },
+})
+
+router.beforeEach(async (to) => {
+  if (!to.meta.requiresAuth) return true
+
+  const authStore = useAuthStore()
+  if (!authStore.initialized) await authStore.restoreSession()
+  if (authStore.isAuthenticated) return true
+
+  return {
+    name: 'login',
+    query: { redirect: to.fullPath },
+  }
 })
 
 export default router

@@ -77,8 +77,8 @@
 <script setup>
 import { ref } from 'vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import PansleImg from '@/assets/myPageImage/pansle.png'
-import DefaultImg from '@/assets/myPageImage/default_profile.png'
+import PansleImg from '@/assets/myPageImage/pansle.webp'
+import DefaultImg from '@/assets/myPageImage/default_profile.webp'
 
 const isReadOnly = ref(true)
 const nickName = ref('')

@@ -24,6 +24,12 @@ public record UpdateScheduleItemRequest(
 		Integer itemVersion,
 
 		@NotNull(message = "일정 시간대는 필수 값입니다.")
-		TimeSlot timeSlot
+		TimeSlot timeSlot,
+
+		@Pattern(regexp = "^[1-9]\\d*$", message = "대상 일차 ID는 양의 정수여야 합니다.")
+		String targetPlanDayId,
+
+		@PositiveOrZero(message = "대상 일정 버전은 0 이상이어야 합니다.")
+		Integer targetScheduleVersion
 ) {
 }

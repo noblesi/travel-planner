@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 로그인 | WithTrip</title>
+    <link rel="stylesheet" th:href="@{/assets/admin/css/login.css}">
+</head>
+<body>
+<main class="admin-login-page">
+    <section class="brand-section" aria-labelledby="brand-title">
+        <div class="brand-content">
+            <p class="brand-name">WithTrip</p>
+            <h1 id="brand-title">여행 콘텐츠와<br>서비스 운영을 한곳에서</h1>
+            <p class="brand-description">
+                회원, 공개 여행 플랜, 추천 노출 규칙과 공지사항을 효율적으로 관리합니다.
+            </p>
+        </div>
+    </section>
+
+    <section class="login-section">
+        <div class="service-logo" aria-hidden="true">
+            <span>W</span>
+            <p>WITH TRIP ADMIN</p>
+        </div>
+
+        <form class="login-card" th:action="@{/admin/login}" th:object="${adminDTO}" method="post" novalidate>
+            <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+
+            <h2>관리자 로그인</h2>
+            <p class="login-description">인가된 관리자 계정으로 로그인해 주세요.</p>
+
+            <div class="form-field">
+                <label for="loginId">관리자 아이디</label>
+                <input
+                    id="loginId"
+                    type="text"
+                    th:field="*{loginId}"
+                    placeholder="아이디 입력"
+                    autocomplete="username"
+                    th:attr="aria-invalid=${#fields.hasErrors('loginId')}"
+                    aria-describedby="loginIdError"
+                    autofocus
+                >
+                <p id="loginIdError" class="field-error" th:if="${#fields.hasErrors('loginId')}">
+                    관리자 아이디를 입력해 주세요.
+                </p>
+            </div>
+
+            <div class="form-field">
+                <label for="password">비밀번호</label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    placeholder="비밀번호 입력"
+                    autocomplete="current-password"
+                    th:attr="aria-invalid=${#fields.hasErrors('password')}"
+                    aria-describedby="passwordError"
+                >
+                <p id="passwordError" class="field-error" th:if="${#fields.hasErrors('password')}">
+                    비밀번호를 입력해 주세요.
+                </p>
+            </div>
+
+            <p class="feedback-message" th:if="${loginError}" th:text="${loginError}" role="alert"></p>
+
+            <button type="submit" class="login-button">로그인</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>

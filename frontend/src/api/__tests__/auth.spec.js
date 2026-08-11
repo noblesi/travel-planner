@@ -8,11 +8,16 @@ import {
 } from '@/api/auth'
 import http from '@/api/http'
 
+const { clearCsrfTokenCacheMock } = vi.hoisted(() => ({
+  clearCsrfTokenCacheMock: vi.fn(),
+}))
+
 vi.mock('@/api/http', () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
   },
+  clearCsrfTokenCache: clearCsrfTokenCacheMock,
 }))
 
 beforeEach(() => {
@@ -36,10 +41,8 @@ describe('authentication API', () => {
     expect(http.get).toHaveBeenCalledWith('/auth/csrf')
   })
 
-  it('로그인과 로그아웃 요청에 서버가 발급한 CSRF token을 포함한다', async () => {
-    const csrf = { headerName: 'X-CSRF-TOKEN', token: 'csrf-token' }
+  it('로그인과 로그아웃 요청을 공통 HTTP client로 전송한다', async () => {
     const session = { authenticated: true, member: { memberId: '7' } }
-    http.get.mockResolvedValue({ data: { data: csrf } })
     http.post
       .mockResolvedValueOnce({ data: { data: session } })
       .mockResolvedValueOnce({ data: { data: null } })
@@ -48,11 +51,8 @@ describe('authentication API', () => {
     await expect(loginWithLocalAccount(credentials)).resolves.toEqual(session)
     await expect(logoutAuthenticationSession()).resolves.toBeNull()
 
-    expect(http.post).toHaveBeenNthCalledWith(1, '/auth/login', credentials, {
-      headers: { 'X-CSRF-TOKEN': 'csrf-token' },
-    })
-    expect(http.post).toHaveBeenNthCalledWith(2, '/auth/logout', undefined, {
-      headers: { 'X-CSRF-TOKEN': 'csrf-token' },
-    })
+    expect(http.post).toHaveBeenNthCalledWith(1, '/auth/login', credentials)
+    expect(http.post).toHaveBeenNthCalledWith(2, '/auth/logout')
+    expect(clearCsrfTokenCacheMock).toHaveBeenCalledTimes(2)
   })
 })

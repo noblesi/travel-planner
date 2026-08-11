@@ -3,6 +3,8 @@ package com.noblesi.travelplanner.dto.plan;
 import java.time.LocalDate;
 
 import com.noblesi.travelplanner.domain.plan.PlanEditorPlan;
+import com.noblesi.travelplanner.domain.plan.ParticipantType;
+import com.noblesi.travelplanner.domain.plan.PlanPublishStatus;
 import com.noblesi.travelplanner.domain.plan.PlanVisibility;
 
 public record PlanEditorSummaryResponse(
@@ -13,7 +15,10 @@ public record PlanEditorSummaryResponse(
 		LocalDate startDate,
 		LocalDate endDate,
 		PlanVisibility visibility,
-		int versionNo
+		PlanPublishStatus publishStatus,
+		int versionNo,
+		ParticipantType currentMemberRole,
+		boolean canManagePlan
 ) {
 
 	public static PlanEditorSummaryResponse from(PlanEditorPlan plan) {
@@ -25,7 +30,10 @@ public record PlanEditorSummaryResponse(
 				plan.startDate(),
 				plan.endDate(),
 				plan.visibility(),
-				plan.versionNo()
+				plan.publishStatus(),
+				plan.versionNo(),
+				plan.currentMemberRole(),
+				plan.currentMemberRole() == ParticipantType.CREATOR
 		);
 	}
 }

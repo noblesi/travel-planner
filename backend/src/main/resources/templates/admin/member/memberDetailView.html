@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+	<title>회원 상세 | WithTrip</title>
+	<link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+	<div class="admin-layout">
+		<aside th:replace="~{admin/fragments/layout :: sidebar('members')}"></aside>
+		<div class="admin-main">
+			<header th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+			<main class="admin-content">
+				<div class="page-header">
+					<div>
+						<h1>회원 상세</h1>
+						<p>회원 기본 정보와 활동 현황, 계정 상태를 확인합니다.</p>
+					</div>
+					<div class="header-actions">
+						<a class="button secondary" th:href="@{/admin/members}">목록으로</a>
+						<form method="post"
+							th:action="@{/admin/members/{memberId}/status(memberId=${member.memberId})}">
+							<input type="hidden" name="memberStatus"
+								th:value="${member.memberStatus == 'ACTIVE' ? 'WITHDRAWN' : 'ACTIVE'}">
+							<button class="button" type="submit"
+								th:classappend="${member.memberStatus == 'ACTIVE'} ? ' danger' : ''"
+								th:text="${member.memberStatus == 'ACTIVE' ? '탈퇴 처리' : '상태 복구'}">상태 변경</button>
+						</form>
+					</div>
+				</div>
+
+				<p th:if="${message}" class="alert success" th:text="${message}">처리가 완료되었습니다.</p>
+
+				<section class="card member-card">
+					<div class="detail-heading">
+						<div>
+							<div class="name-line">
+								<h2 th:text="${member.memberName}">회원 이름</h2>
+								<span class="badge"
+									th:classappend="${member.memberStatus == 'ACTIVE'} ? ' success' : ' muted'"
+									th:text="${member.memberStatus == 'ACTIVE' ? '정상 회원' : '탈퇴 회원'}">정상 회원</span>
+							</div>
+							<p th:text="${member.email}">member@example.com</p>
+						</div>
+					</div>
+
+					<dl class="info-grid">
+						<div>
+							<dt>회원 번호</dt>
+							<dd th:text="${member.memberId}">1</dd>
+						</div>
+						<div>
+							<dt>가입일</dt>
+							<dd th:text="${#dates.format(member.createAt, 'yyyy.MM.dd')}">2026.08.07</dd>
+						</div>
+						<div>
+							<dt>닉네임</dt>
+							<dd th:text="${member.nickName}">닉네임</dd>
+						</div>
+						<div>
+							<dt>이메일</dt>
+							<dd th:text="${member.email}">member@example.com</dd>
+						</div>
+						<div>
+							<dt>휴대전화</dt>
+							<dd th:text="${#strings.isEmpty(member.phoneNumber) ? '-' : member.phoneNumber}">-</dd>
+						</div>
+						<div>
+							<dt>생년월일</dt>
+							<dd th:text="${member.birthDate == null ? '-' : #dates.format(member.birthDate, 'yyyy.MM.dd')}">-</dd>
+						</div>
+					</dl>
+				</section>
+
+				<div class="member-detail-grid">
+					<section class="card member-management-card">
+						<div class="account-section">
+							<h2>계정 상태</h2>
+							<div class="account-grid">
+								<div>
+									<span>현재 상태</span>
+									<strong class="status-text"
+										th:classappend="${member.memberStatus != 'ACTIVE'} ? ' danger-text'"
+										th:text="${member.memberStatus == 'ACTIVE' ? '정상 회원' : '탈퇴 회원'}">정상 회원</strong>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<aside class="card member-activity-card">
+						<h2>활동 요약</h2>
+						<div class="member-activity-list">
+							<article class="summary-card">
+								<span>여행 플랜</span>
+								<strong th:text="${member.planCount}">0</strong>
+								<small>작성한 플랜 수</small>
+							</article>
+							<article class="summary-card">
+								<span>신고받은 플랜</span>
+								<strong th:text="${member.reportedPlanCount}">0</strong>
+								<small>신고가 접수된 플랜 수</small>
+							</article>
+						</div>
+					</aside>
+				</div>
+			</main>
+		</div>
+	</div>
+	<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>

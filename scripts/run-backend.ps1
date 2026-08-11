@@ -41,7 +41,18 @@ $backendVariableNames = @(
     'KAKAO_REST_BASE_URL',
     'KAKAO_REST_API_KEY',
     'KAKAO_REST_CONNECT_TIMEOUT',
-    'KAKAO_REST_READ_TIMEOUT'
+    'KAKAO_REST_READ_TIMEOUT',
+    'KAKAO_JAVASCRIPT_KEY',
+    'MAIL_HOST',
+    'MAIL_PORT',
+    'MAIL_USERNAME',
+    'MAIL_PASSWORD',
+    'MAIL_FROM',
+    # application.yml의 SMTP timeout 변수를 전달해 로컬 실행도 운영과 같은 bounded I/O 설정을 사용한다.
+    'MAIL_CONNECTION_TIMEOUT_MS',
+    'MAIL_READ_TIMEOUT_MS',
+    'MAIL_WRITE_TIMEOUT_MS',
+    'FRONTEND_BASE_URL'
 )
 
 $loadedVariableNames = [System.Collections.Generic.HashSet[string]]::new(

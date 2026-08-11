@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.PlanAccessMapper">
+
+	<resultMap id="planEditorResultMap" type="com.noblesi.travelplanner.domain.plan.PlanEditorPlan">
+		<constructor>
+			<idArg column="PLAN_ID" javaType="_long" />
+			<arg column="TITLE" javaType="string" />
+			<arg column="REGION_CODE" javaType="string" />
+			<arg column="REGION_NAME" javaType="string" />
+			<arg column="START_DATE" javaType="java.time.LocalDate" />
+			<arg column="END_DATE" javaType="java.time.LocalDate" />
+			<arg column="VISIBILITY" javaType="com.noblesi.travelplanner.domain.plan.PlanVisibility" />
+			<arg column="PUBLISH_STATUS" javaType="com.noblesi.travelplanner.domain.plan.PlanPublishStatus" />
+			<arg column="VERSION_NO" javaType="_int" />
+			<arg column="CURRENT_MEMBER_ROLE" javaType="com.noblesi.travelplanner.domain.plan.ParticipantType" />
+		</constructor>
+	</resultMap>
+
+	<select id="findActiveOwnedPlanForEditor" resultMap="planEditorResultMap">
+		SELECT P.PLAN_ID,
+		       P.TITLE,
+		       P.REGION_CODE,
+		       R.REGION_NAME,
+		       P.START_DATE,
+		       P.END_DATE,
+		       P.VISIBILITY,
+		       P.PUBLISH_STATUS,
+		       P.VERSION_NO,
+		       'CREATOR' AS CURRENT_MEMBER_ROLE
+		  FROM TRAVEL_PLAN P
+		  JOIN REGION_MASTER R
+		    ON R.REGION_CODE = P.REGION_CODE
+		 WHERE P.PLAN_ID = #{planId}
+		   AND P.OWNER_MEMBER_ID = #{memberId}
+		   AND P.PLAN_STATUS = 'ACTIVE'
+	</select>
+
+	<select id="findActiveAccessiblePlanForEditor" resultMap="planEditorResultMap">
+		SELECT P.PLAN_ID,
+		       P.TITLE,
+		       P.REGION_CODE,
+		       R.REGION_NAME,
+		       P.START_DATE,
+		       P.END_DATE,
+		       P.VISIBILITY,
+		       P.PUBLISH_STATUS,
+		       P.VERSION_NO,
+		       CASE
+		           WHEN P.OWNER_MEMBER_ID = #{memberId} THEN 'CREATOR'
+		           ELSE 'INVITEE'
+		       END AS CURRENT_MEMBER_ROLE
+		  FROM TRAVEL_PLAN P
+		  JOIN REGION_MASTER R
+		    ON R.REGION_CODE = P.REGION_CODE
+		 WHERE P.PLAN_ID = #{planId}
+		   AND P.PLAN_STATUS = 'ACTIVE'
+		   AND (
+		       P.OWNER_MEMBER_ID = #{memberId}
+		       OR EXISTS (
+		           SELECT 1
+		             FROM PLAN_MEMBER PM
+		            WHERE PM.PLAN_ID = P.PLAN_ID
+		              AND PM.MEMBER_ID = #{memberId}
+		              AND PM.PARTICIPANT_TYPE = 'INVITEE'
+		       )
+		   )
+	</select>
+
+</mapper>

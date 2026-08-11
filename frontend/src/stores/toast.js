@@ -16,7 +16,13 @@ export const useToastStore = defineStore('toast', () => {
     timers.delete(id)
   }
 
-  function show({ message, type = 'info', duration = DEFAULT_DURATION }) {
+  function show({
+    message,
+    type = 'info',
+    duration = DEFAULT_DURATION,
+    actionLabel = '',
+    action = null,
+  }) {
     const normalizedMessage = typeof message === 'string' ? message.trim() : ''
     if (!normalizedMessage) return null
 
@@ -25,6 +31,10 @@ export const useToastStore = defineStore('toast', () => {
       id,
       message: normalizedMessage,
       type: VALID_TYPES.has(type) ? type : 'info',
+    }
+    if (typeof action === 'function' && typeof actionLabel === 'string' && actionLabel.trim()) {
+      toast.actionLabel = actionLabel.trim()
+      toast.action = action
     }
     toasts.value.push(toast)
 

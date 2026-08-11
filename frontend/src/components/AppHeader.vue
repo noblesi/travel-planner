@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
-import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.png'
+import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.webp'
 import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
@@ -54,6 +54,14 @@ const handleLogout = async () => {
         <RouterLink class="navigation__link" :to="{ name: 'home' }" @click="closeMenu">홈</RouterLink>
         <RouterLink class="navigation__link" :to="{ name: 'plan-search' }" @click="handlePlanSearchClick">
           일정 탐색
+        </RouterLink>
+        <RouterLink
+          v-if="authStore.isAuthenticated"
+          class="navigation__link"
+          :to="{ name: 'my-plans' }"
+          @click="closeMenu"
+        >
+          내 플랜
         </RouterLink>
         <RouterLink
           class="navigation__link"

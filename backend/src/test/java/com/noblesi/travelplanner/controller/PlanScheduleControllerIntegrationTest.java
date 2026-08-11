@@ -28,6 +28,7 @@ class PlanScheduleControllerIntegrationTest {
 
 	private static final long PLAN_ID = 9_007_199_254_740_993L;
 	private static final long DAY_ID = 9_007_199_254_740_994L;
+	private static final long TARGET_DAY_ID = 9_007_199_254_741_004L;
 	private static final long FIRST_ITEM_ID = 9_007_199_254_740_995L;
 	private static final long SECOND_ITEM_ID = 9_007_199_254_740_996L;
 	private static final long THIRD_ITEM_ID = 9_007_199_254_740_997L;
@@ -220,6 +221,34 @@ class PlanScheduleControllerIntegrationTest {
 	}
 
 	@Test
+	void movesItemToAnotherDayAndUpdatesBothDayVersions() throws Exception {
+		insertPlan(1L);
+		insertPlanDay(1);
+		insertPlanDay(TARGET_DAY_ID, 2, "2026-08-11", 4);
+		insertScheduleItem(FIRST_ITEM_ID, "MORNING", 1, "100", "경복궁", 0);
+
+		mockMvc.perform(patch(itemsPath() + "/" + FIRST_ITEM_ID)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "operationId": "%s",
+						  "scheduleVersion": 1,
+						  "itemVersion": 0,
+						  "timeSlot": "AFTERNOON",
+						  "targetPlanDayId": "%s",
+						  "targetScheduleVersion": 4
+						}
+						""".formatted(UPDATE_OPERATION_ID, TARGET_DAY_ID)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.editor.days[0].scheduleVersion").value(2))
+				.andExpect(jsonPath("$.data.editor.days[0].items", hasSize(0)))
+				.andExpect(jsonPath("$.data.editor.days[1].scheduleVersion").value(5))
+				.andExpect(jsonPath("$.data.editor.days[1].items[0].scheduleItemId")
+						.value(Long.toString(FIRST_ITEM_ID)))
+				.andExpect(jsonPath("$.data.editor.days[1].items[0].timeSlot").value("AFTERNOON"));
+	}
+
+	@Test
 	void rejectsStaleItemVersionAndRollsBackDayVersion() throws Exception {
 		insertPlan(1L);
 		insertPlanDay(2);
@@ -390,16 +419,20 @@ class PlanScheduleControllerIntegrationTest {
 				    PLAN_ID, OWNER_MEMBER_ID, TITLE, REGION_CODE,
 				    START_DATE, END_DATE, VISIBILITY, PLAN_STATUS, VERSION_NO
 				) VALUES (?, ?, '서울특별시 여행', '1', DATE '2026-08-10',
-				          DATE '2026-08-10', 'PRIVATE', 'ACTIVE', 0)
+				          DATE '2026-08-11', 'PRIVATE', 'ACTIVE', 0)
 				""", PLAN_ID, ownerMemberId);
 	}
 
 	private void insertPlanDay(int scheduleVersion) {
+		insertPlanDay(DAY_ID, 1, "2026-08-10", scheduleVersion);
+	}
+
+	private void insertPlanDay(long planDayId, int dayNo, String travelDate, int scheduleVersion) {
 		jdbcTemplate.update("""
 				INSERT INTO PLAN_DAY (
 				    PLAN_DAY_ID, PLAN_ID, DAY_NO, TRAVEL_DATE, SCHEDULE_VERSION
-				) VALUES (?, ?, 1, DATE '2026-08-10', ?)
-				""", DAY_ID, PLAN_ID, scheduleVersion);
+				) VALUES (?, ?, ?, CAST(? AS DATE), ?)
+				""", planDayId, PLAN_ID, dayNo, travelDate, scheduleVersion);
 	}
 
 	private void insertPlanMember(long memberId, String participantType) {

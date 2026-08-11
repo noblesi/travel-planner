@@ -14,9 +14,13 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  selectedScheduleItemId: {
+    type: [String, Number],
+    default: null,
+  },
 })
 
-defineEmits(['move-up', 'move-down', 'move-time-slot', 'remove'])
+defineEmits(['select', 'drag-start', 'drag-end', 'drop-before', 'move-up', 'move-down', 'move-time-slot', 'remove'])
 </script>
 
 <template>
@@ -29,6 +33,11 @@ defineEmits(['move-up', 'move-down', 'move-time-slot', 'remove'])
       :first="index === 0"
       :last="index === items.length - 1"
       :disabled="disabled"
+      :selected="String(item.scheduleItemId) === String(selectedScheduleItemId)"
+      @select="$emit('select', item)"
+      @drag-start="$emit('drag-start', item)"
+      @drag-end="$emit('drag-end')"
+      @drop-before="$emit('drop-before', item)"
       @move-up="$emit('move-up', item)"
       @move-down="$emit('move-down', item)"
       @move-time-slot="$emit('move-time-slot', item)"

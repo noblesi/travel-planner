@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { usePlanEditorStore } from '@/stores/planEditor'
+import { usePlanSearchStore } from '@/stores/planSearch'
 
 const {
   addScheduleItemMock,
@@ -11,6 +12,7 @@ const {
   updateScheduleItemMock,
   updateTravelPlanDatesMock,
   updateTravelPlanMetadataMock,
+  updatePlanPublicationMock,
 } = vi.hoisted(() => ({
   addScheduleItemMock: vi.fn(),
   deleteScheduleItemMock: vi.fn(),
@@ -19,6 +21,7 @@ const {
   updateScheduleItemMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
   updateTravelPlanMetadataMock: vi.fn(),
+  updatePlanPublicationMock: vi.fn(),
 }))
 
 vi.mock('@/api/plans', () => ({
@@ -29,6 +32,7 @@ vi.mock('@/api/plans', () => ({
   updateScheduleItem: updateScheduleItemMock,
   updateTravelPlanDates: updateTravelPlanDatesMock,
   updateTravelPlanMetadata: updateTravelPlanMetadataMock,
+  updatePlanPublication: updatePlanPublicationMock,
 }))
 
 const plan = {
@@ -39,6 +43,8 @@ const plan = {
   startDate: '2026-08-10',
   endDate: '2026-08-11',
   visibility: 'PRIVATE',
+  publishStatus: 'DRAFT',
+  canManagePlan: true,
   versionNo: 0,
 }
 
@@ -47,6 +53,7 @@ beforeEach(() => {
   getTravelPlanEditorMock.mockReset()
   updateTravelPlanDatesMock.mockReset()
   updateTravelPlanMetadataMock.mockReset()
+  updatePlanPublicationMock.mockReset()
   addScheduleItemMock.mockReset()
   updateScheduleItemMock.mockReset()
   deleteScheduleItemMock.mockReset()
@@ -145,6 +152,37 @@ describe('planEditor store', () => {
     expect(store.selectedDayId).toBe('202')
   })
 
+  it('공개 플랜 수정 후 탐색 캐시를 무효화한다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const publishedPlan = { ...plan, publishStatus: 'PUBLISHED' }
+    const updated = {
+      plan: { ...publishedPlan, title: '서울 궁궐 여행', versionNo: 1 },
+      days,
+    }
+    getTravelPlanEditorMock.mockResolvedValue({ plan: publishedPlan, days })
+    updateTravelPlanMetadataMock.mockResolvedValue(updated)
+    const searchStore = usePlanSearchStore()
+    searchStore.cacheSearch({
+      keyword: '',
+      searchedKeyword: '',
+      currentPage: 1,
+      plans: [{ id: '101', title: publishedPlan.title }],
+      totalCount: 1,
+      hasNextPage: false,
+      hasSearched: false,
+    })
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await store.savePlanMetadata({
+      title: '서울 궁궐 여행',
+      visibility: 'PUBLIC',
+      versionNo: 0,
+    })
+
+    expect(searchStore.restoreSearch({ searchedKeyword: '', currentPage: 1 })).toBeNull()
+  })
+
   it('플랜 Version 충돌 시 최신 Editor Snapshot을 복구하고 오류를 유지한다', async () => {
     const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
     const latest = { plan: { ...plan, title: '동료가 변경한 제목', versionNo: 1 }, days }
@@ -162,6 +200,100 @@ describe('planEditor store', () => {
 
     expect(getTravelPlanEditorMock).toHaveBeenCalledTimes(2)
     expect(store.plan).toEqual(latest.plan)
+    expect(store.hasUnsavedChanges).toBe(true)
+  })
+
+  it('메타정보 저장도 pending 저장으로 추적하고 완료될 때까지 기다린다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const updated = {
+      plan: { ...plan, title: '서울 맛집 여행', versionNo: 1 },
+      days,
+    }
+    let resolveSave
+    updateTravelPlanMetadataMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const saveRequest = store.savePlanMetadata({
+      title: '서울 맛집 여행',
+      visibility: 'PRIVATE',
+      versionNo: 0,
+    })
+    await Promise.resolve()
+
+    expect(store.isSaving).toBe(true)
+    expect(store.pendingSaveCount).toBe(1)
+
+    let waitFinished = false
+    const waitRequest = store.waitForPendingSaves().then((result) => {
+      waitFinished = true
+      return result
+    })
+    await Promise.resolve()
+    expect(waitFinished).toBe(false)
+
+    resolveSave(updated)
+    await expect(saveRequest).resolves.toEqual(updated)
+    await expect(waitRequest).resolves.toBe(true)
+    expect(store.isSaving).toBe(false)
+    expect(store.pendingSaveCount).toBe(0)
+    expect(store.hasUnsavedChanges).toBe(false)
+  })
+
+  it('직접 저장 실패를 이탈 확인이 필요한 변경으로 유지하고 재저장 시 해제한다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const failure = new Error('metadata save failed')
+    const updated = {
+      plan: { ...plan, title: '서울 맛집 여행', versionNo: 1 },
+      days,
+    }
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    updateTravelPlanMetadataMock.mockRejectedValueOnce(failure).mockResolvedValueOnce(updated)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const payload = { title: '서울 맛집 여행', visibility: 'PRIVATE', versionNo: 0 }
+    await expect(store.savePlanMetadata(payload)).rejects.toBe(failure)
+
+    expect(store.hasUnsavedChanges).toBe(true)
+    await expect(store.waitForPendingSaves()).resolves.toBe(false)
+
+    await expect(store.savePlanMetadata(payload)).resolves.toEqual(updated)
+    expect(store.hasUnsavedChanges).toBe(false)
+  })
+
+  it('제작 완료 실패를 자동 저장 실패 상태로 기록하지 않는다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const failure = {
+      response: {
+        status: 409,
+        data: {
+          code: 'PLAN_PUBLISH_REQUIRES_SCHEDULE',
+          message: '일정을 한 곳 이상 추가한 후 제작을 완료해 주세요.',
+        },
+      },
+    }
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    updatePlanPublicationMock.mockRejectedValue(failure)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await expect(store.savePlanPublication('PUBLISHED')).rejects.toBe(failure)
+
+    expect(updatePlanPublicationMock).toHaveBeenCalledWith('101', {
+      publishStatus: 'PUBLISHED',
+      versionNo: 0,
+    })
+    expect(store.saveStatus).toBe('idle')
+    expect(store.saveMessage).toBe('자동 저장 준비')
+    expect(store.hasSaveError).toBe(false)
+    expect(store.hasUnsavedChanges).toBe(false)
   })
 
   it('조회 실패 메시지를 저장하고 기존 편집 데이터를 비운다', async () => {

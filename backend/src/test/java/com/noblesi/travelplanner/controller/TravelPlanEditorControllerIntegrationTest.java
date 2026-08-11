@@ -3,7 +3,9 @@ package com.noblesi.travelplanner.controller;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,6 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -85,6 +88,9 @@ class TravelPlanEditorControllerIntegrationTest {
 				.andExpect(jsonPath("$.data.plan.startDate").value("2026-08-10"))
 				.andExpect(jsonPath("$.data.plan.endDate").value("2026-08-11"))
 				.andExpect(jsonPath("$.data.plan.visibility").value("PRIVATE"))
+				.andExpect(jsonPath("$.data.plan.publishStatus").value("DRAFT"))
+				.andExpect(jsonPath("$.data.plan.currentMemberRole").value("CREATOR"))
+				.andExpect(jsonPath("$.data.plan.canManagePlan").value(true))
 				.andExpect(jsonPath("$.data.plan.versionNo").value(3))
 				.andExpect(jsonPath("$.data.days", hasSize(2)))
 				.andExpect(jsonPath("$.data.days[0].planDayId").value(Long.toString(FIRST_DAY_ID)))
@@ -102,6 +108,97 @@ class TravelPlanEditorControllerIntegrationTest {
 				.andExpect(jsonPath("$.data.days[0].items[2].timeSlot").value("AFTERNOON"))
 				.andExpect(jsonPath("$.data.days[1].dayNo").value(2))
 				.andExpect(jsonPath("$.data.days[1].items", hasSize(0)));
+	}
+
+	@Test
+	void publishesPlanAfterScheduleIsAdded() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+		insertPlanDay(FIRST_DAY_ID, PLAN_ID, 1, "2026-08-10", 0);
+		insertScheduleItem(9_007_199_254_740_996L, FIRST_DAY_ID, "MORNING", 1, "100", "경복궁");
+
+		mockMvc.perform(patch("/api/plans/{planId}/publication", Long.toString(PLAN_ID))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "publishStatus": "PUBLISHED",
+						  "versionNo": 3
+						}
+						"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.publishStatus").value("PUBLISHED"))
+				.andExpect(jsonPath("$.data.plan.versionNo").value(4));
+
+		mockMvc.perform(patch("/api/plans/{planId}", Long.toString(PLAN_ID))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "title": "공개 중 자동 저장된 서울 여행",
+						  "visibility": "PUBLIC",
+						  "versionNo": 4
+						}
+						"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.publishStatus").value("PUBLISHED"))
+				.andExpect(jsonPath("$.data.plan.versionNo").value(5));
+
+		mockMvc.perform(get("/api/plans/{planId}", Long.toString(PLAN_ID)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.title").value("공개 중 자동 저장된 서울 여행"));
+
+		mockMvc.perform(patch("/api/plans/{planId}/publication", Long.toString(PLAN_ID))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "publishStatus": "DRAFT",
+						  "versionNo": 5
+						}
+						"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.publishStatus").value("DRAFT"))
+				.andExpect(jsonPath("$.data.plan.versionNo").value(6));
+
+		mockMvc.perform(get("/api/plans/{planId}", Long.toString(PLAN_ID)))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"));
+	}
+
+	@Test
+	void rejectsPublishingEmptyPlan() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+
+		mockMvc.perform(patch("/api/plans/{planId}/publication", Long.toString(PLAN_ID))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "publishStatus": "PUBLISHED",
+						  "versionNo": 3
+						}
+						"""))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.code").value("PLAN_SCHEDULE_REQUIRED"));
+	}
+
+	@Test
+	void listsDeletesAndRestoresOwnedPlan() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+
+		mockMvc.perform(get("/api/plans/mine"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plans[0].planId").value(Long.toString(PLAN_ID)))
+				.andExpect(jsonPath("$.data.plans[0].currentMemberRole").value("CREATOR"));
+
+		mockMvc.perform(delete("/api/plans/{planId}", Long.toString(PLAN_ID))
+				.queryParam("versionNo", "3"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.planStatus").value("DELETED"))
+				.andExpect(jsonPath("$.data.versionNo").value(4));
+
+		mockMvc.perform(post("/api/plans/{planId}/restore", Long.toString(PLAN_ID))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"versionNo\":4}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.planStatus").value("ACTIVE"))
+				.andExpect(jsonPath("$.data.versionNo").value(5));
 	}
 
 	@Test
@@ -394,6 +491,42 @@ class TravelPlanEditorControllerIntegrationTest {
 	}
 
 	@Test
+	void rejectsChangingTheStartDateOfAnOngoingTravelPlan() throws Exception {
+		insertActivePlan(PLAN_ID, 1L, "2026-08-01", "2026-08-06");
+
+		mockMvc.perform(patch("/api/plans/{planId}/dates", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{
+							  "startDate": "2026-08-02",
+							  "endDate": "2026-08-07",
+							  "versionNo": 3,
+							  "force": false
+							}
+							"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("ONGOING_TRAVEL_START_DATE_LOCKED"));
+	}
+
+	@Test
+	void rejectsChangingDatesOfACompletedTravelPlan() throws Exception {
+		insertActivePlan(PLAN_ID, 1L, "2026-07-01", "2026-07-02");
+
+		mockMvc.perform(patch("/api/plans/{planId}/dates", Long.toString(PLAN_ID))
+					.contentType(MediaType.APPLICATION_JSON)
+					.content("""
+							{
+							  "startDate": "2026-08-10",
+							  "endDate": "2026-08-11",
+							  "versionNo": 3,
+							  "force": false
+							}
+							"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("COMPLETED_TRAVEL_DATES_LOCKED"));
+	}
+
+	@Test
 	void returnsPlanNotFoundForAnotherMembersPlan() throws Exception {
 		insertPlan(PLAN_ID, 2L, "ACTIVE");
 
@@ -440,6 +573,21 @@ class TravelPlanEditorControllerIntegrationTest {
 				) VALUES (?, ?, '서울특별시 여행', '1', DATE '2026-08-10',
 				          DATE '2026-08-11', 'PRIVATE', 'ACTIVE', 3)
 				""", planId, ownerMemberId);
+	}
+
+	private void insertActivePlan(
+			long planId,
+			long ownerMemberId,
+			String startDate,
+			String endDate
+	) {
+		jdbcTemplate.update("""
+				INSERT INTO TRAVEL_PLAN (
+				    PLAN_ID, OWNER_MEMBER_ID, TITLE, REGION_CODE,
+				    START_DATE, END_DATE, VISIBILITY, PLAN_STATUS, VERSION_NO
+				) VALUES (?, ?, '서울특별시 여행', '1', CAST(? AS DATE),
+				          CAST(? AS DATE), 'PRIVATE', 'ACTIVE', 3)
+				""", planId, ownerMemberId, startDate, endDate);
 	}
 
 	private void insertPlanDay(

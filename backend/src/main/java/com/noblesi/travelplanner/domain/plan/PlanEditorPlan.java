@@ -10,6 +10,8 @@ public record PlanEditorPlan(
 		LocalDate startDate,
 		LocalDate endDate,
 		PlanVisibility visibility,
-		int versionNo
+		PlanPublishStatus publishStatus,
+		int versionNo,
+		ParticipantType currentMemberRole
 ) {
 }

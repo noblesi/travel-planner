@@ -8,7 +8,9 @@
 2. `002_seed_region_master.sql`: TourAPI 시·도 17개 초기 데이터 입력
 3. `004_verify_travel_plan_schema.sql`: 생성 결과를 읽기 전용 Query로 검증
 4. `005_add_plan_operation_request_hash.sql`: 기존 Schema에 자동 저장 요청 Hash Column 추가
-5. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
+5. `006_add_plan_publish_status.sql`: 기존 플랜은 발행 상태로 보존하고 신규 플랜 기본값을 작성 중으로 변경
+6. `007_add_report_integrity_constraints.sql`: 동일 회원의 중복 신고와 정의되지 않은 신고 사유 차단
+7. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
 
 빈 애플리케이션 Schema에서 다음과 같이 실행합니다. 비밀번호는 명령행에 넣지 않고 Prompt에서 입력합니다.
 
@@ -54,6 +56,7 @@ TourAPI의 현재 국문 관광정보 Service Base URL은 `apis.data.go.kr/B5510
 - 인증 방식은 확정됐지만 `MEMBER`와 `ADMIN`의 실제 Schema가 아직 확정되지 않아 관련 외래키는 `003`으로 분리했습니다. 회원 Table 생성 전에는 실행하지 않습니다.
 - `PLAN_EDIT_OPERATION.OPERATION_ID`는 중복 자동 저장 요청을 식별하는 UUID 문자열이므로 별도 Sequence를 만들지 않습니다.
 - `PLAN_EDIT_OPERATION.REQUEST_HASH`는 같은 작업 ID의 동일 재시도와 다른 Payload 재사용을 구분하는 SHA-256 값입니다. `001` 적용이 끝난 기존 Schema에만 `005`를 한 번 실행합니다.
+- `TRAVEL_PLAN.PUBLISH_STATUS`는 자동 저장 상태와 공개 탐색 노출을 분리합니다. 신규 플랜은 `DRAFT`, 제작 완료 플랜은 `PUBLISHED`입니다.
 - `PLACE_MASTER`의 PK는 외부 제공자와 외부 장소 ID의 복합키이며, 일정에는 장소 Snapshot을 보관합니다.
 - 자동 저장 충돌 검사를 위해 `TRAVEL_PLAN.VERSION_NO`, `PLAN_DAY.SCHEDULE_VERSION`, `PLAN_SCHEDULE_ITEM.ITEM_VERSION`은 0 이상으로 제한했습니다.
 

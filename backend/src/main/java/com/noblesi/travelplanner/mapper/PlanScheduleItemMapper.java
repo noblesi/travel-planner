@@ -13,6 +13,8 @@ public interface PlanScheduleItemMapper {
 
 	List<PlanScheduleItem> findByPlanIdForEditor(@Param("planId") long planId);
 
+	int countByPlanId(@Param("planId") long planId);
+
 	long nextScheduleItemId();
 
 	PlanScheduleItem findByIdAndDayId(
@@ -43,6 +45,15 @@ public interface PlanScheduleItemMapper {
 	int updateTimeSlot(
 			@Param("scheduleItemId") long scheduleItemId,
 			@Param("planDayId") long planDayId,
+			@Param("timeSlot") TimeSlot timeSlot,
+			@Param("positionNo") int positionNo,
+			@Param("itemVersion") int itemVersion
+	);
+
+	int moveToDayAndTimeSlot(
+			@Param("scheduleItemId") long scheduleItemId,
+			@Param("sourcePlanDayId") long sourcePlanDayId,
+			@Param("targetPlanDayId") long targetPlanDayId,
 			@Param("timeSlot") TimeSlot timeSlot,
 			@Param("positionNo") int positionNo,
 			@Param("itemVersion") int itemVersion

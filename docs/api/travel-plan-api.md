@@ -1,6 +1,6 @@
 # 여행 플랜 API 계약
 
-- 계약 버전: `2026-08-03`
+- 계약 버전: `2026-08-06`
 - 상태: 공개 탐색·상세와 일정 자동 저장 Backend 구현 기준
 - 대상 화면: 공개 일정 탐색·상세, 여행 플랜 설정, 여행 플랜 제작·날짜 편집·일정 편집
 - 관련 Schema: `docs/database/ddl/001_create_travel_plan_schema.sql`
@@ -16,9 +16,13 @@
 | `GET` | `/api/plans/{planId}` | 공개 플랜 일정 상세 조회 |
 | `POST` | `/api/plans` | 플랜, 생성자, 여행 일차 생성 |
 | `GET` | `/api/plans/{planId}/editor` | 제작 페이지 초기 상태 조회 |
+| `GET` | `/api/plans/mine` | 내가 생성했거나 초대받은 플랜 목록 조회 |
 | `PATCH` | `/api/plans/{planId}/dates` | 여행 기간 및 일차 재구성 |
+| `PATCH` | `/api/plans/{planId}/publication` | 작성 중·제작 완료 상태 변경 |
+| `DELETE` | `/api/plans/{planId}` | 소유 플랜 소프트 삭제 |
+| `POST` | `/api/plans/{planId}/restore` | 삭제한 소유 플랜 복구 |
 | `POST` | `/api/plans/{planId}/days/{dayId}/items` | 일정 항목 추가 |
-| `PATCH` | `/api/plans/{planId}/days/{dayId}/items/{itemId}` | 일정 항목 시간대 수정 |
+| `PATCH` | `/api/plans/{planId}/days/{dayId}/items/{itemId}` | 일정 항목 시간대 또는 DAY 수정 |
 | `DELETE` | `/api/plans/{planId}/days/{dayId}/items/{itemId}` | 일정 항목 삭제 |
 | `PUT` | `/api/plans/{planId}/days/{dayId}/items/order` | 시간대별 일정 순서 변경 |
 
@@ -30,22 +34,44 @@
 | --- | --- |
 | `RegionLevel` | `SIDO`, `SIGUNGU` |
 | `PlanVisibility` | `PUBLIC`, `PRIVATE` |
+| `PlanPublishStatus` | `DRAFT`, `PUBLISHED` |
 | `PlanStatus` | `ACTIVE`, `DELETED` |
 | `ParticipantType` | `CREATOR`, `INVITEE` |
 | `TimeSlot` | `MORNING`, `AFTERNOON` |
+
+## 작성 상태와 권한
+
+- 신규 플랜은 공개 범위와 무관하게 `DRAFT`로 생성합니다.
+- 공개 탐색은 `PUBLISH_STATUS = PUBLISHED`, `VISIBILITY = PUBLIC`, `PLAN_STATUS = ACTIVE`를 모두 만족하는 플랜만 반환합니다.
+- 제작 완료(`PUBLISHED`)로 변경하려면 일정 장소가 한 곳 이상 있어야 합니다.
+- 에디터 응답의 `currentMemberRole`은 `CREATOR` 또는 `INVITEE`, `canManagePlan`은 소유자 전용 설정 가능 여부입니다.
+- `INVITEE`는 일정 편집만 가능하고 Metadata·날짜·발행·삭제·초대 관리는 할 수 없습니다.
+
+## 내 플랜 관리
+
+- `GET /api/plans/mine`은 활성 소유 플랜, 활성 초대 플랜, 삭제된 소유 플랜을 최근 수정 순으로 반환합니다.
+- `DELETE /api/plans/{planId}?versionNo={versionNo}`는 데이터를 물리 삭제하지 않고 `PLAN_STATUS`를 `DELETED`로 변경합니다.
+- `POST /api/plans/{planId}/restore`는 `{ "versionNo": 4 }` 형식으로 삭제 당시 최신 버전을 전송합니다.
+- 발행·삭제·복구는 모두 `TRAVEL_PLAN.VERSION_NO` 낙관적 잠금을 사용합니다.
+
+## DAY 간 일정 이동
+
+일정 수정 요청에 `targetPlanDayId`와 `targetScheduleVersion`을 함께 보내면 다른 DAY의 선택 시간대 마지막으로 이동합니다. 서버는 원본 DAY와 대상 DAY의 일정 버전을 하나의 Transaction에서 모두 증가시키며, 어느 한쪽이라도 충돌하면 전체 작업을 롤백합니다.
 
 ---
 
 ## 공개 플랜 검색
 
 ```http
-GET /api/plans?keyword=서울&limit=24
+GET /api/plans?keyword=서울&page=1&size=8
 ```
 
 - 인증 없이 호출할 수 있습니다.
 - `VISIBILITY = 'PUBLIC'`, `PLAN_STATUS = 'ACTIVE'`, 작성자 `MEMBER_STATUS = 'ACTIVE'`인 플랜만 반환합니다.
 - `keyword`는 앞뒤 공백을 제거하고 제목 또는 지역명에서 대소문자 구분 없이 검색합니다.
-- `limit` 기본값은 24이며 서버에서 1~100 범위로 보정합니다.
+- `page` 기본값은 1이며 1 미만이면 1로 보정합니다.
+- `size` 기본값은 24이며 서버에서 1~100 범위로 보정합니다.
+- 기존 호출 호환을 위해 `limit`도 지원하며, 전달하면 `size`보다 우선합니다.
 - `UPDATED_AT DESC`, `PLAN_ID DESC` 순으로 정렬합니다.
 - 결과가 없으면 빈 `plans` 배열을 반환합니다.
 
@@ -54,7 +80,11 @@ GET /api/plans?keyword=서울&limit=24
   "success": true,
   "data": {
     "keyword": "서울",
+    "page": 1,
+    "size": 8,
     "totalCount": 1,
+    "totalPages": 1,
+    "hasNext": false,
     "plans": [
       {
         "planId": "21",
@@ -223,11 +253,12 @@ Content-Type: application/json
 2. `regionCode`에 해당하는 활성 `SIDO`를 조회합니다.
 3. `startDate <= endDate`인지 확인합니다.
 4. 시작일과 종료일을 포함한 여행 기간이 1~14일인지 확인합니다.
-5. 제목을 `{regionName} 여행`으로 생성합니다.
-6. 하나의 Transaction에서 `TRAVEL_PLAN`, `PLAN_MEMBER`, `PLAN_DAY`를 생성합니다.
-7. 생성자는 `PLAN_MEMBER.PARTICIPANT_TYPE = 'CREATOR'`로 등록합니다.
-8. `PLAN_DAY`는 시작일부터 종료일까지 하루에 한 행씩 생성합니다.
-9. 하나라도 실패하면 전체 Transaction을 Rollback합니다.
+5. `Asia/Seoul` 기준 `startDate`가 오늘 이후인지 확인합니다.
+6. 제목을 `{regionName} 여행`으로 생성합니다.
+7. 하나의 Transaction에서 `TRAVEL_PLAN`, `PLAN_MEMBER`, `PLAN_DAY`를 생성합니다.
+8. 생성자는 `PLAN_MEMBER.PARTICIPANT_TYPE = 'CREATOR'`로 등록합니다.
+9. `PLAN_DAY`는 시작일부터 종료일까지 하루에 한 행씩 생성합니다.
+10. 하나라도 실패하면 전체 Transaction을 Rollback합니다.
 
 ### 성공 응답
 
@@ -305,6 +336,7 @@ Body:
 | `400` | `MALFORMED_JSON` | 날짜 또는 JSON 형식 오류 |
 | `400` | `INVALID_TRAVEL_DATE_RANGE` | 시작일이 종료일보다 늦음 |
 | `400` | `TRAVEL_PLAN_DURATION_EXCEEDED` | 여행 기간이 14일 초과 |
+| `400` | `PAST_TRAVEL_START_DATE` | 한국 시간 기준 시작일이 오늘보다 빠름 |
 | `401` | `CURRENT_MEMBER_NOT_AVAILABLE` | 현재 회원 ID 조회 실패 |
 | `404` | `REGION_NOT_FOUND` | 지역이 없거나 비활성 또는 `SIDO`가 아님 |
 
@@ -456,12 +488,15 @@ Content-Type: application/json
 ### 처리 규칙
 
 1. 현재 소유자의 활성 플랜만 변경할 수 있습니다.
-2. 시작일과 종료일을 함께 같은 간격으로 이동해 여행 일수가 유지되면 기존 DAY ID, DAY 번호 및 일정을 유지하고 날짜만 이동합니다.
-3. 기간이 늘어나면 기존 날짜의 DAY와 일정은 유지하고 새 날짜에 빈 DAY를 추가합니다.
-4. 기간이 줄어들면 범위에 남는 날짜의 DAY와 일정은 유지하고 DAY 번호를 다시 계산합니다.
-5. 제외되는 DAY에 일정이 있고 `force=false`이면 데이터를 변경하지 않고 `409 PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED`를 반환합니다.
-6. 같은 요청을 `force=true`로 다시 보내면 제외 DAY와 그 일정을 하나의 Transaction에서 삭제합니다.
-7. 성공 시 `TRAVEL_PLAN.VERSION_NO`를 1 증가시키고 제작 페이지 조회와 같은 응답을 반환합니다.
+2. 한국 시간(`Asia/Seoul`) 기준 출발 전 플랜은 오늘 이후 범위에서 날짜를 변경할 수 있습니다.
+3. 진행 중 플랜은 기존 시작일을 유지하고 종료일만 오늘 이후로 변경할 수 있습니다.
+4. 종료된 플랜은 날짜 범위를 변경할 수 없습니다.
+5. 시작일과 종료일을 함께 같은 간격으로 이동해 여행 일수가 유지되면 기존 DAY ID, DAY 번호 및 일정을 유지하고 날짜만 이동합니다.
+6. 기간이 늘어나면 기존 날짜의 DAY와 일정은 유지하고 새 날짜에 빈 DAY를 추가합니다.
+7. 기간이 줄어들면 범위에 남는 날짜의 DAY와 일정은 유지하고 DAY 번호를 다시 계산합니다.
+8. 제외되는 DAY에 일정이 있고 `force=false`이면 데이터를 변경하지 않고 `409 PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED`를 반환합니다.
+9. 같은 요청을 `force=true`로 다시 보내면 제외 DAY와 그 일정을 하나의 Transaction에서 삭제합니다.
+10. 성공 시 `TRAVEL_PLAN.VERSION_NO`를 1 증가시키고 제작 페이지 조회와 같은 응답을 반환합니다.
 
 ### 성공 응답
 
@@ -478,6 +513,10 @@ Status: `200 OK`
 | `400` | `INVALID_PATH_PARAMETER` | `planId` 형식 또는 범위 오류 |
 | `400` | `INVALID_TRAVEL_DATE_RANGE` | 시작일이 종료일보다 늦음 |
 | `400` | `TRAVEL_PLAN_DURATION_EXCEEDED` | 여행 기간이 14일 초과 |
+| `400` | `PAST_TRAVEL_START_DATE` | 출발 전 플랜을 오늘보다 과거로 변경함 |
+| `400` | `ONGOING_TRAVEL_START_DATE_LOCKED` | 진행 중 플랜의 시작일을 변경함 |
+| `400` | `PAST_TRAVEL_END_DATE` | 진행 중 플랜의 종료일을 오늘보다 과거로 변경함 |
+| `400` | `COMPLETED_TRAVEL_DATES_LOCKED` | 종료된 플랜의 날짜를 변경함 |
 | `404` | `PLAN_NOT_FOUND` | 플랜이 없거나 삭제 상태이거나 현재 회원 소유가 아님 |
 | `409` | `PLAN_VERSION_CONFLICT` | Request Version과 현재 플랜 Version 불일치 |
 | `409` | `PLAN_DAYS_WITH_SCHEDULES_WOULD_BE_REMOVED` | 제외 DAY에 일정이 있으나 삭제 확인이 없음 |

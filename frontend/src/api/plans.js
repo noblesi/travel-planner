@@ -1,7 +1,9 @@
 import http from './http'
 
-export async function searchPublicPlans({ keyword = '', limit = 100 } = {}) {
-  const response = await http.get('/plans', { params: { keyword, limit } })
+export async function searchPublicPlans({ keyword = '', page = 1, size = 24, limit } = {}) {
+  const params = { keyword, page, size }
+  if (limit != null) params.limit = limit
+  const response = await http.get('/plans', { params })
   return response.data.data
 }
 
@@ -22,6 +24,11 @@ export async function getTravelPlanEditor(planId) {
   return response.data.data
 }
 
+export async function getMyTravelPlans() {
+  const response = await http.get('/plans/mine')
+  return response.data.data
+}
+
 export async function updateTravelPlanMetadata(planId, payload) {
   const encodedPlanId = encodeURIComponent(String(planId))
   const response = await http.patch(`/plans/${encodedPlanId}`, payload)
@@ -31,6 +38,24 @@ export async function updateTravelPlanMetadata(planId, payload) {
 export async function updateTravelPlanDates(planId, payload) {
   const encodedPlanId = encodeURIComponent(String(planId))
   const response = await http.patch(`/plans/${encodedPlanId}/dates`, payload)
+  return response.data.data
+}
+
+export async function updatePlanPublication(planId, payload) {
+  const encodedPlanId = encodeURIComponent(String(planId))
+  const response = await http.patch(`/plans/${encodedPlanId}/publication`, payload)
+  return response.data.data
+}
+
+export async function deleteTravelPlan(planId, versionNo) {
+  const encodedPlanId = encodeURIComponent(String(planId))
+  const response = await http.delete(`/plans/${encodedPlanId}`, { params: { versionNo } })
+  return response.data.data
+}
+
+export async function restoreTravelPlan(planId, versionNo) {
+  const encodedPlanId = encodeURIComponent(String(planId))
+  const response = await http.post(`/plans/${encodedPlanId}/restore`, { versionNo })
   return response.data.data
 }
 

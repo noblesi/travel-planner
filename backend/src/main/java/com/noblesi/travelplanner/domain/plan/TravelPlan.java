@@ -9,6 +9,7 @@ public record TravelPlan(
 		String regionCode,
 		LocalDate startDate,
 		LocalDate endDate,
-		PlanVisibility visibility
+		PlanVisibility visibility,
+		PlanPublishStatus publishStatus
 ) {
 }

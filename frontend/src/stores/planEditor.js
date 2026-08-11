@@ -7,9 +7,11 @@ import {
   getTravelPlanEditor,
   reorderScheduleItems,
   updateScheduleItem,
+  updatePlanPublication,
   updateTravelPlanDates,
   updateTravelPlanMetadata,
 } from '@/api/plans'
+import { usePlanSearchStore } from '@/stores/planSearch'
 
 const CONFLICT_CODES = new Set([
   'SCHEDULE_VERSION_CONFLICT',
@@ -73,6 +75,7 @@ function localScheduleError(message) {
 }
 
 export const usePlanEditorStore = defineStore('planEditor', () => {
+  const planSearchStore = usePlanSearchStore()
   const status = ref('idle')
   const errorMessage = ref('')
   const plan = ref(null)
@@ -82,9 +85,12 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
   const saveStatus = ref('idle')
   const saveMessage = ref('자동 저장 준비')
   const saveErrorMessage = ref('')
-  const pendingSaveCount = ref(0)
+  const schedulePendingSaveCount = ref(0)
+  const directPendingSaveCount = ref(0)
+  const directSaveFailed = ref(false)
 
   let queueTail = Promise.resolve()
+  const directSavePromises = new Set()
   const lastFailedOperation = ref(null)
   let saveGeneration = 0
 
@@ -92,9 +98,15 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
   const isEmpty = computed(() => status.value === 'empty')
   const hasError = computed(() => status.value === 'error')
   const isReady = computed(() => status.value === 'success' || status.value === 'empty')
-  const isSaving = computed(() => saveStatus.value === 'saving')
+  const pendingSaveCount = computed(
+    () => schedulePendingSaveCount.value + directPendingSaveCount.value,
+  )
+  const isSaving = computed(() => pendingSaveCount.value > 0)
   const hasSaveError = computed(
     () => saveStatus.value === 'error' || saveStatus.value === 'conflict',
+  )
+  const hasUnsavedChanges = computed(
+    () => hasSaveError.value || lastFailedOperation.value != null || directSaveFailed.value,
   )
   const canRetrySave = computed(() => lastFailedOperation.value != null)
 
@@ -126,8 +138,11 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
   function resetSaveState() {
     saveGeneration += 1
     queueTail = Promise.resolve()
+    directSavePromises.clear()
     lastFailedOperation.value = null
-    pendingSaveCount.value = 0
+    schedulePendingSaveCount.value = 0
+    directPendingSaveCount.value = 0
+    directSaveFailed.value = false
     saveStatus.value = 'idle'
     saveMessage.value = '자동 저장 준비'
     saveErrorMessage.value = ''
@@ -155,6 +170,12 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
       : 'success'
   }
 
+  function invalidatePublicSearch(data, force = false) {
+    if (force || data?.plan?.publishStatus === 'PUBLISHED') {
+      planSearchStore.invalidateCache()
+    }
+  }
+
   async function loadPlanEditor(planId) {
     resetSaveState()
     status.value = 'loading'
@@ -180,26 +201,122 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     return data
   }
 
-  async function savePlanDates(payload) {
-    const preferredDayId = selectedDayId.value
-    const data = await updateTravelPlanDates(plan.value.planId, payload)
-    applyEditorData(data, preferredDayId)
-    return data
+  function trackDirectSave(label, operation) {
+    const generation = saveGeneration
+    const previousScheduleFailure = lastFailedOperation.value
+      ? {
+          status: saveStatus.value,
+          message: saveMessage.value,
+        }
+      : null
+    directPendingSaveCount.value += 1
+    directSaveFailed.value = false
+    saveStatus.value = 'saving'
+    saveMessage.value = label
+
+    const task = Promise.resolve().then(operation)
+    directSavePromises.add(task)
+
+    return task
+      .then((result) => {
+        if (generation === saveGeneration) {
+          if (previousScheduleFailure && lastFailedOperation.value) {
+            saveStatus.value = previousScheduleFailure.status
+            saveMessage.value = previousScheduleFailure.message
+          } else {
+            saveStatus.value = 'saved'
+            saveMessage.value = '모든 변경사항이 저장되었습니다.'
+          }
+        }
+        return result
+      })
+      .catch((error) => {
+        if (generation === saveGeneration) {
+          directSaveFailed.value = true
+          if (previousScheduleFailure && lastFailedOperation.value) {
+            saveStatus.value = previousScheduleFailure.status
+            saveMessage.value = previousScheduleFailure.message
+          } else {
+            saveStatus.value = 'error'
+            saveMessage.value = '변경사항 저장 실패'
+            saveErrorMessage.value = apiErrorMessage(error)
+          }
+        }
+        throw error
+      })
+      .finally(() => {
+        directSavePromises.delete(task)
+        if (generation === saveGeneration) {
+          directPendingSaveCount.value = Math.max(0, directPendingSaveCount.value - 1)
+        }
+      })
   }
 
-  async function savePlanMetadata(payload) {
-    const preferredDayId = selectedDayId.value
+  function savePlanDates(payload) {
+    return trackDirectSave('여행 날짜를 저장하고 있습니다.', async () => {
+      const preferredDayId = selectedDayId.value
 
+      try {
+        const data = await updateTravelPlanDates(plan.value.planId, payload)
+        applyEditorData(data, preferredDayId)
+        invalidatePublicSearch(data)
+        return data
+      } catch (error) {
+        if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
+          try {
+            await refreshPlanEditor(preferredDayId)
+          } catch {
+            // 원래 충돌 응답을 유지해 사용자가 저장 실패 원인을 확인할 수 있게 합니다.
+          }
+        }
+        throw error
+      }
+    })
+  }
+
+  function savePlanMetadata(payload) {
+    return trackDirectSave('플랜 정보를 저장하고 있습니다.', async () => {
+      const preferredDayId = selectedDayId.value
+
+      try {
+        const data = await updateTravelPlanMetadata(plan.value.planId, payload)
+        applyEditorData(data, preferredDayId)
+        invalidatePublicSearch(data)
+        return data
+      } catch (error) {
+        if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
+          try {
+            await refreshPlanEditor(preferredDayId)
+          } catch {
+            // 원래 충돌 응답을 유지해 호출자가 정확한 원인을 표시하게 합니다.
+          }
+        }
+        throw error
+      }
+    })
+  }
+
+  async function savePlanPublication(publishStatus) {
+    const savesReady = await waitForPendingSaves()
+    if (!savesReady) {
+      throw localScheduleError('저장되지 않은 변경사항을 해결한 후 다시 시도해 주세요.')
+    }
+
+    const preferredDayId = selectedDayId.value
     try {
-      const data = await updateTravelPlanMetadata(plan.value.planId, payload)
+      const data = await updatePlanPublication(plan.value.planId, {
+        publishStatus,
+        versionNo: plan.value.versionNo,
+      })
       applyEditorData(data, preferredDayId)
+      invalidatePublicSearch(data, true)
       return data
     } catch (error) {
       if (error?.response?.data?.code === 'PLAN_VERSION_CONFLICT') {
         try {
           await refreshPlanEditor(preferredDayId)
         } catch {
-          // 원래 충돌 응답을 유지해 호출자가 정확한 원인을 표시하게 합니다.
+          // 원래 충돌 응답을 유지합니다.
         }
       }
       throw error
@@ -233,6 +350,7 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
 
       if (result?.editor) {
         applyEditorData(result.editor, operation.preferredDayId)
+        invalidatePublicSearch(result.editor)
       }
       if (lastFailedOperation.value === operation) lastFailedOperation.value = null
       saveStatus.value = 'saved'
@@ -262,9 +380,9 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
 
   function enqueueScheduleOperation(operation) {
     const generation = saveGeneration
-    pendingSaveCount.value += 1
+    schedulePendingSaveCount.value += 1
     saveStatus.value = 'saving'
-    saveMessage.value = `자동 저장 대기 · ${pendingSaveCount.value}건`
+    saveMessage.value = `자동 저장 대기 · ${schedulePendingSaveCount.value}건`
 
     const task = queueTail.then(() => executeScheduleOperation(operation, generation))
     queueTail = task.catch(() => undefined)
@@ -272,10 +390,10 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     return task.finally(() => {
       if (generation !== saveGeneration) return
 
-      pendingSaveCount.value = Math.max(0, pendingSaveCount.value - 1)
-      if (pendingSaveCount.value > 0) {
+      schedulePendingSaveCount.value = Math.max(0, schedulePendingSaveCount.value - 1)
+      if (schedulePendingSaveCount.value > 0) {
         saveStatus.value = 'saving'
-        saveMessage.value = `자동 저장 대기 · ${pendingSaveCount.value}건`
+        saveMessage.value = `자동 저장 대기 · ${schedulePendingSaveCount.value}건`
       } else if (lastFailedOperation.value) {
         if (saveStatus.value !== 'conflict') {
           saveStatus.value = 'error'
@@ -316,20 +434,99 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     scheduleItemId,
     timeSlot,
     planDayId = selectedDayId.value,
+    targetPlanDayId = planDayId,
   ) {
     const operationId = createOperationId()
     const planId = plan.value.planId
     const operation = {
       label: timeSlot === 'MORNING' ? '오전으로 이동' : '오후로 이동',
-      preferredDayId: planDayId,
+      preferredDayId: targetPlanDayId,
       async run() {
         const day = currentDay(planDayId)
+        const targetDay = currentDay(targetPlanDayId)
         const item = currentItem(day, scheduleItemId)
         return updateScheduleItem(planId, planDayId, scheduleItemId, {
           operationId,
           scheduleVersion: day.scheduleVersion,
           itemVersion: item.itemVersion,
           timeSlot,
+          targetPlanDayId: targetPlanDayId === planDayId ? null : String(targetPlanDayId),
+          targetScheduleVersion:
+            targetPlanDayId === planDayId ? null : targetDay.scheduleVersion,
+        })
+      },
+    }
+    return enqueueScheduleOperation(operation)
+  }
+
+  function moveScheduleItemToEnd(
+    scheduleItemId,
+    planDayId = selectedDayId.value,
+  ) {
+    const operationId = createOperationId()
+    const planId = plan.value.planId
+    const operation = {
+      label: '일정 순서 변경',
+      preferredDayId: planDayId,
+      async run() {
+        const day = currentDay(planDayId)
+        const item = currentItem(day, scheduleItemId)
+        const orderedItems = [...(day.items ?? [])]
+          .filter((candidate) => candidate.timeSlot === item.timeSlot)
+          .sort((left, right) => left.positionNo - right.positionNo)
+        const currentIndex = orderedItems.findIndex(
+          (candidate) => candidate.scheduleItemId === scheduleItemId,
+        )
+        if (currentIndex < 0 || currentIndex === orderedItems.length - 1) return null
+
+        const [movedItem] = orderedItems.splice(currentIndex, 1)
+        orderedItems.push(movedItem)
+        return reorderScheduleItems(planId, planDayId, {
+          operationId,
+          scheduleVersion: day.scheduleVersion,
+          timeSlot: item.timeSlot,
+          scheduleItemIds: orderedItems.map((candidate) => candidate.scheduleItemId),
+        })
+      },
+    }
+    return enqueueScheduleOperation(operation)
+  }
+
+  function moveScheduleItemBefore(
+    scheduleItemId,
+    targetScheduleItemId,
+    planDayId = selectedDayId.value,
+  ) {
+    const operationId = createOperationId()
+    const planId = plan.value.planId
+    const operation = {
+      label: '일정 순서 변경',
+      preferredDayId: planDayId,
+      async run() {
+        const day = currentDay(planDayId)
+        const item = currentItem(day, scheduleItemId)
+        const targetItem = currentItem(day, targetScheduleItemId)
+        if (item.timeSlot !== targetItem.timeSlot || scheduleItemId === targetScheduleItemId) {
+          return null
+        }
+        const orderedItems = [...(day.items ?? [])]
+          .filter((candidate) => candidate.timeSlot === item.timeSlot)
+          .sort((left, right) => left.positionNo - right.positionNo)
+        const sourceIndex = orderedItems.findIndex(
+          (candidate) => candidate.scheduleItemId === scheduleItemId,
+        )
+        if (sourceIndex < 0) return null
+        const [movedItem] = orderedItems.splice(sourceIndex, 1)
+        const targetIndex = orderedItems.findIndex(
+          (candidate) => candidate.scheduleItemId === targetScheduleItemId,
+        )
+        if (targetIndex < 0) return null
+        orderedItems.splice(targetIndex, 0, movedItem)
+        return reorderScheduleItems(planId, planDayId, {
+          operationId,
+          scheduleVersion: day.scheduleVersion,
+          timeSlot: item.timeSlot,
+          scheduleItemIds: orderedItems.map((candidate) => candidate.scheduleItemId),
         })
       },
     }
@@ -403,9 +600,27 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
 
   function discardFailedSave() {
     lastFailedOperation.value = null
+    directSaveFailed.value = false
     saveErrorMessage.value = ''
     saveStatus.value = 'idle'
     saveMessage.value = '자동 저장 준비'
+  }
+
+  function clearDirectSaveFailure() {
+    if (!directSaveFailed.value) return
+
+    directSaveFailed.value = false
+    if (lastFailedOperation.value) return
+    saveErrorMessage.value = ''
+    saveStatus.value = 'idle'
+    saveMessage.value = '자동 저장 준비'
+  }
+
+  async function waitForPendingSaves() {
+    while (schedulePendingSaveCount.value > 0 || directPendingSaveCount.value > 0) {
+      await Promise.allSettled([queueTail, ...directSavePromises])
+    }
+    return !hasUnsavedChanges.value
   }
 
   return {
@@ -424,6 +639,7 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     isReady,
     isSaving,
     hasSaveError,
+    hasUnsavedChanges,
     canRetrySave,
     selectedDay,
     scheduleItems,
@@ -436,11 +652,16 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     refreshPlanEditor,
     savePlanDates,
     savePlanMetadata,
+    savePlanPublication,
     addPlaceToSchedule,
     moveScheduleItemTimeSlot,
+    moveScheduleItemToEnd,
+    moveScheduleItemBefore,
     removeScheduleItem,
     moveScheduleItemPosition,
     retryLastSave,
     discardFailedSave,
+    clearDirectSaveFailure,
+    waitForPendingSaves,
   }
 })

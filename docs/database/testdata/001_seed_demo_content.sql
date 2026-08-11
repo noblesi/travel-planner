@@ -93,6 +93,7 @@ DECLARE
                 START_DATE,
                 END_DATE,
                 VISIBILITY,
+                PUBLISH_STATUS,
                 PLAN_STATUS,
                 VIEW_COUNT
             ) VALUES (
@@ -103,6 +104,7 @@ DECLARE
                 p_start_date,
                 p_start_date + p_day_count - 1,
                 'PUBLIC',
+                'PUBLISHED',
                 'ACTIVE',
                 p_view_count
             );
@@ -114,6 +116,7 @@ DECLARE
 
             UPDATE TRAVEL_PLAN
                SET VISIBILITY = 'PUBLIC',
+                   PUBLISH_STATUS = 'PUBLISHED',
                    PLAN_STATUS = 'ACTIVE',
                    DELETED_AT = NULL,
                    DELETED_BY_MEMBER_ID = NULL,
@@ -234,69 +237,69 @@ DECLARE
 BEGIN
     assert_target_schema;
 
-    ensure_member('demo.seoul@withtrip.example', 'ì„œìš¸ë´„', 'ì„œìš¸ì‚°ì±…ì', v_seoul_member_id);
-    ensure_member('demo.coast@withtrip.example', 'ë¶€ì‚°ë³„', 'ë°”ë‹¤ì—¬í–‰ì', v_coast_member_id);
-    ensure_member('demo.island@withtrip.example', 'ì œì£¼ë¹›', 'ì„¬ì—¬í–‰ì', v_island_member_id);
+    ensure_member('demo.seoul@withtrip.example', '¼­¿ïº½', '¼­¿ï»êÃ¥ÀÚ', v_seoul_member_id);
+    ensure_member('demo.coast@withtrip.example', 'ºÎ»êº°', '¹Ù´Ù¿©ÇàÀÚ', v_coast_member_id);
+    ensure_member('demo.island@withtrip.example', 'Á¦ÁÖºû', '¼¶¿©ÇàÀÚ', v_island_member_id);
 
-    ensure_plan(v_seoul_member_id, 'ì„œìš¸ ê¶ê¶ê³¼ ê³¨ëª© ì‚°ì±…', '1', 14, 2, 342, v_plan_id, v_plan_start_date);
+    ensure_plan(v_seoul_member_id, '¼­¿ï ±Ã±È°ú °ñ¸ñ »êÃ¥', '1', 14, 2, 342, v_plan_id, v_plan_start_date);
     ensure_day(v_plan_id, v_plan_start_date, 1, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'SEOUL-GYEONGBOK', 'ê²½ë³µê¶', 'ì—­ì‚¬ê´€ê´‘', 'ì„œìš¸ ì¢…ë¡œêµ¬ ì‚¬ì§ë¡œ 161', '37.579617', '126.977041', 'ì¡°ì„ ì˜ ëŒ€í‘œ ê¶ê¶ì—ì„œ ì‹œì‘í•˜ëŠ” ì„œìš¸ ì—­ì‚¬ ì‚°ì±…');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'SEOUL-BUKCHON', 'ë¶ì´Œí•œì˜¥ë§ˆì„', 'ë¬¸í™”ë§ˆì„', 'ì„œìš¸ ì¢…ë¡œêµ¬ ê³„ë™ê¸¸ 37', '37.582604', '126.983123', 'í•œì˜¥ ê³¨ëª©ê³¼ ì‘ì€ ê³µë°©ì„ ì²œì²œíˆ ë‘˜ëŸ¬ë³´ëŠ” ì½”ìŠ¤');
+    ensure_item(v_day_id, 'MORNING', 1, 'SEOUL-GYEONGBOK', '°æº¹±Ã', '¿ª»ç°ü±¤', '¼­¿ï Á¾·Î±¸ »çÁ÷·Î 161', '37.579617', '126.977041', 'Á¶¼±ÀÇ ´ëÇ¥ ±Ã±È¿¡¼­ ½ÃÀÛÇÏ´Â ¼­¿ï ¿ª»ç »êÃ¥');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'SEOUL-BUKCHON', 'ºÏÃÌÇÑ¿Á¸¶À»', '¹®È­¸¶À»', '¼­¿ï Á¾·Î±¸ °èµ¿±æ 37', '37.582604', '126.983123', 'ÇÑ¿Á °ñ¸ñ°ú ÀÛÀº °ø¹æÀ» ÃµÃµÈ÷ µÑ·¯º¸´Â ÄÚ½º');
     ensure_day(v_plan_id, v_plan_start_date, 2, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'SEOUL-GWANGJANG', 'ê´‘ì¥ì‹œì¥', 'ì „í†µì‹œì¥', 'ì„œìš¸ ì¢…ë¡œêµ¬ ì°½ê²½ê¶ë¡œ 88', '37.570153', '126.999340', 'ë¹ˆëŒ€ë–¡ê³¼ ìœ¡íšŒ ë“± ì„œìš¸ ì‹œì¥ ìŒì‹ì„ ë§›ë³´ëŠ” ì¼ì •');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'SEOUL-CHEONGGYECHEON', 'ì²­ê³„ì²œ', 'ë„ë³´ì—¬í–‰', 'ì„œìš¸ ì¢…ë¡œêµ¬ ì²­ê³„ì²œë¡œ', '37.569087', '126.978669', 'ë„ì‹¬ ì† ë¬¼ê¸¸ì„ ë”°ë¼ ê±·ëŠ” ê°€ë²¼ìš´ ì˜¤í›„ ì‚°ì±…');
+    ensure_item(v_day_id, 'MORNING', 1, 'SEOUL-GWANGJANG', '±¤Àå½ÃÀå', 'ÀüÅë½ÃÀå', '¼­¿ï Á¾·Î±¸ Ã¢°æ±Ã·Î 88', '37.570153', '126.999340', 'ºó´ë¶±°ú À°È¸ µî ¼­¿ï ½ÃÀå À½½ÄÀ» ¸Àº¸´Â ÀÏÁ¤');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'SEOUL-CHEONGGYECHEON', 'Ã»°èÃµ', 'µµº¸¿©Çà', '¼­¿ï Á¾·Î±¸ Ã»°èÃµ·Î', '37.569087', '126.978669', 'µµ½É ¼Ó ¹°±æÀ» µû¶ó °È´Â °¡º­¿î ¿ÀÈÄ »êÃ¥');
     ensure_like(v_plan_id, v_coast_member_id);
     ensure_like(v_plan_id, v_island_member_id);
 
-    ensure_plan(v_coast_member_id, 'ë¶€ì‚° ë°”ë‹¤ì™€ ì•¼ê²½ ì—¬í–‰', '6', 21, 3, 278, v_plan_id, v_plan_start_date);
+    ensure_plan(v_coast_member_id, 'ºÎ»ê ¹Ù´Ù¿Í ¾ß°æ ¿©Çà', '6', 21, 3, 278, v_plan_id, v_plan_start_date);
     ensure_day(v_plan_id, v_plan_start_date, 1, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'BUSAN-STATION', 'ë¶€ì‚°ì—­', 'êµí†µ', 'ë¶€ì‚° ë™êµ¬ ì¤‘ì•™ëŒ€ë¡œ 206', '35.115225', '129.041382', 'ë¶€ì‚° ì—¬í–‰ì˜ ì¶œë°œì ì—ì„œ ì§ì„ ë§¡ê¸°ê³  ì¼ì •ì„ ì‹œì‘');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'BUSAN-JAGALCHI', 'ìê°ˆì¹˜ì‹œì¥', 'ì „í†µì‹œì¥', 'ë¶€ì‚° ì¤‘êµ¬ ìê°ˆì¹˜í•´ì•ˆë¡œ 52', '35.096705', '129.030453', 'ì‹±ì‹±í•œ í•´ì‚°ë¬¼ê³¼ í™œê¸°ì°¬ í•­êµ¬ ë¶„ìœ„ê¸°ë¥¼ ì¦ê¸°ëŠ” ì½”ìŠ¤');
+    ensure_item(v_day_id, 'MORNING', 1, 'BUSAN-STATION', 'ºÎ»ê¿ª', '±³Åë', 'ºÎ»ê µ¿±¸ Áß¾Ó´ë·Î 206', '35.115225', '129.041382', 'ºÎ»ê ¿©ÇàÀÇ Ãâ¹ßÁ¡¿¡¼­ ÁüÀ» ¸Ã±â°í ÀÏÁ¤À» ½ÃÀÛ');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'BUSAN-JAGALCHI', 'ÀÚ°¥Ä¡½ÃÀå', 'ÀüÅë½ÃÀå', 'ºÎ»ê Áß±¸ ÀÚ°¥Ä¡ÇØ¾È·Î 52', '35.096705', '129.030453', '½Ì½ÌÇÑ ÇØ»ê¹°°ú È°±âÂù Ç×±¸ ºĞÀ§±â¸¦ Áñ±â´Â ÄÚ½º');
     ensure_day(v_plan_id, v_plan_start_date, 2, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'BUSAN-HAEUNDAE', 'í•´ìš´ëŒ€í•´ìˆ˜ìš•ì¥', 'í•´ë³€', 'ë¶€ì‚° í•´ìš´ëŒ€êµ¬ í•´ìš´ëŒ€í•´ë³€ë¡œ 264', '35.158698', '129.160384', 'ì•„ì¹¨ ë°”ë‹¤ë¥¼ ë³´ë©° ì‚°ì±…í•˜ê¸° ì¢‹ì€ ë¶€ì‚° ëŒ€í‘œ í•´ë³€');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'BUSAN-BLUELINE', 'í•´ìš´ëŒ€ ë¸”ë£¨ë¼ì¸íŒŒí¬', 'ê´€ê´‘ì—´ì°¨', 'ë¶€ì‚° í•´ìš´ëŒ€êµ¬ ì²­ì‚¬í¬ë¡œ 116', '35.161247', '129.191185', 'í•´ì•ˆì„ ì„ ë”°ë¼ ë‹¬ë¦¬ëŠ” ì—´ì°¨ì—ì„œ ë¶€ì‚° ë°”ë‹¤ ê°ìƒ');
+    ensure_item(v_day_id, 'MORNING', 1, 'BUSAN-HAEUNDAE', 'ÇØ¿î´ëÇØ¼ö¿åÀå', 'ÇØº¯', 'ºÎ»ê ÇØ¿î´ë±¸ ÇØ¿î´ëÇØº¯·Î 264', '35.158698', '129.160384', '¾ÆÄ§ ¹Ù´Ù¸¦ º¸¸ç »êÃ¥ÇÏ±â ÁÁÀº ºÎ»ê ´ëÇ¥ ÇØº¯');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'BUSAN-BLUELINE', 'ÇØ¿î´ë ºí·ç¶óÀÎÆÄÅ©', '°ü±¤¿­Â÷', 'ºÎ»ê ÇØ¿î´ë±¸ Ã»»çÆ÷·Î 116', '35.161247', '129.191185', 'ÇØ¾È¼±À» µû¶ó ´Ş¸®´Â ¿­Â÷¿¡¼­ ºÎ»ê ¹Ù´Ù °¨»ó');
     ensure_day(v_plan_id, v_plan_start_date, 3, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'BUSAN-GWANGAN', 'ê´‘ì•ˆë¦¬í•´ìˆ˜ìš•ì¥', 'í•´ë³€', 'ë¶€ì‚° ìˆ˜ì˜êµ¬ ê´‘ì•ˆí•´ë³€ë¡œ 219', '35.153169', '129.118666', 'ê´‘ì•ˆëŒ€êµë¥¼ ë°”ë¼ë³´ë©° ì—¬ìœ ë¡­ê²Œ ë³´ë‚´ëŠ” ì˜¤ì „');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'BUSAN-THEBAY', 'ë”ë² ì´101', 'ì•¼ê²½', 'ë¶€ì‚° í•´ìš´ëŒ€êµ¬ ë™ë°±ë¡œ 52', '35.156693', '129.152016', 'ë§ˆë¦¬ë‚˜ì™€ ë„ì‹¬ ì•¼ê²½ì„ í•¨ê»˜ ì¦ê¸°ëŠ” ì—¬í–‰ ë§ˆë¬´ë¦¬');
+    ensure_item(v_day_id, 'MORNING', 1, 'BUSAN-GWANGAN', '±¤¾È¸®ÇØ¼ö¿åÀå', 'ÇØº¯', 'ºÎ»ê ¼ö¿µ±¸ ±¤¾ÈÇØº¯·Î 219', '35.153169', '129.118666', '±¤¾È´ë±³¸¦ ¹Ù¶óº¸¸ç ¿©À¯·Ó°Ô º¸³»´Â ¿ÀÀü');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'BUSAN-THEBAY', '´õº£ÀÌ101', '¾ß°æ', 'ºÎ»ê ÇØ¿î´ë±¸ µ¿¹é·Î 52', '35.156693', '129.152016', '¸¶¸®³ª¿Í µµ½É ¾ß°æÀ» ÇÔ²² Áñ±â´Â ¿©Çà ¸¶¹«¸®');
     ensure_like(v_plan_id, v_seoul_member_id);
     ensure_like(v_plan_id, v_island_member_id);
 
-    ensure_plan(v_island_member_id, 'ì œì£¼ ë™ìª½ ê°ì„± ë“œë¼ì´ë¸Œ', '39', 30, 3, 415, v_plan_id, v_plan_start_date);
+    ensure_plan(v_island_member_id, 'Á¦ÁÖ µ¿ÂÊ °¨¼º µå¶óÀÌºê', '39', 30, 3, 415, v_plan_id, v_plan_start_date);
     ensure_day(v_plan_id, v_plan_start_date, 1, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'JEJU-SEONGSAN', 'ì„±ì‚°ì¼ì¶œë´‰', 'ìì—°ê²½ê´€', 'ì œì£¼ ì„œê·€í¬ì‹œ ì„±ì‚°ì ì¼ì¶œë¡œ 284-12', '33.458111', '126.942548', 'ì œì£¼ ë™ìª½ì„ ëŒ€í‘œí•˜ëŠ” ì˜¤ë¦„ì—ì„œ ì‹œì‘í•˜ëŠ” ì—¬í–‰');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEJU-SEOPJIKOJI', 'ì„­ì§€ì½”ì§€', 'í•´ì•ˆì‚°ì±…', 'ì œì£¼ ì„œê·€í¬ì‹œ ì„±ì‚°ì ì„­ì§€ì½”ì§€ë¡œ 107', '33.423930', '126.930605', 'ë°”ë‹¤ì™€ ë“¤íŒì´ ì´ì–´ì§€ëŠ” í•´ì•ˆ ì‚°ì±…ë¡œ');
+    ensure_item(v_day_id, 'MORNING', 1, 'JEJU-SEONGSAN', '¼º»êÀÏÃâºÀ', 'ÀÚ¿¬°æ°ü', 'Á¦ÁÖ ¼­±ÍÆ÷½Ã ¼º»êÀ¾ ÀÏÃâ·Î 284-12', '33.458111', '126.942548', 'Á¦ÁÖ µ¿ÂÊÀ» ´ëÇ¥ÇÏ´Â ¿À¸§¿¡¼­ ½ÃÀÛÇÏ´Â ¿©Çà');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEJU-SEOPJIKOJI', '¼·ÁöÄÚÁö', 'ÇØ¾È»êÃ¥', 'Á¦ÁÖ ¼­±ÍÆ÷½Ã ¼º»êÀ¾ ¼·ÁöÄÚÁö·Î 107', '33.423930', '126.930605', '¹Ù´Ù¿Í µéÆÇÀÌ ÀÌ¾îÁö´Â ÇØ¾È »êÃ¥·Î');
     ensure_day(v_plan_id, v_plan_start_date, 2, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'JEJU-BIJARIM', 'ë¹„ìë¦¼', 'ìˆ²ê¸¸', 'ì œì£¼ ì œì£¼ì‹œ êµ¬ì¢Œì ë¹„ììˆ²ê¸¸ 55', '33.491290', '126.811399', 'ì˜¤ë˜ëœ ë¹„ìë‚˜ë¬´ ì‚¬ì´ë¥¼ ê±·ëŠ” ê³ ìš”í•œ ì•„ì¹¨');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEJU-WOLJEONG', 'ì›”ì •ë¦¬í•´ë³€', 'í•´ë³€', 'ì œì£¼ ì œì£¼ì‹œ êµ¬ì¢Œì ì›”ì •ë¦¬', '33.556469', '126.795902', 'ë°”ë‹¤ìƒ‰ì´ ì•„ë¦„ë‹¤ìš´ í•´ë³€ê³¼ ì¹´í˜ ê±°ë¦¬');
+    ensure_item(v_day_id, 'MORNING', 1, 'JEJU-BIJARIM', 'ºñÀÚ¸²', '½£±æ', 'Á¦ÁÖ Á¦ÁÖ½Ã ±¸ÁÂÀ¾ ºñÀÚ½£±æ 55', '33.491290', '126.811399', '¿À·¡µÈ ºñÀÚ³ª¹« »çÀÌ¸¦ °È´Â °í¿äÇÑ ¾ÆÄ§');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEJU-WOLJEONG', '¿ùÁ¤¸®ÇØº¯', 'ÇØº¯', 'Á¦ÁÖ Á¦ÁÖ½Ã ±¸ÁÂÀ¾ ¿ùÁ¤¸®', '33.556469', '126.795902', '¹Ù´Ù»öÀÌ ¾Æ¸§´Ù¿î ÇØº¯°ú Ä«Æä °Å¸®');
     ensure_day(v_plan_id, v_plan_start_date, 3, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'JEJU-HAMDEOK', 'í•¨ë•í•´ìˆ˜ìš•ì¥', 'í•´ë³€', 'ì œì£¼ ì œì£¼ì‹œ ì¡°ì²œì ì¡°í•¨í•´ì•ˆë¡œ 525', '33.543096', '126.669079', 'ì”ì”í•œ ë°”ë‹¤ë¥¼ ë³´ë©° ì‰¬ì–´ê°€ëŠ” ë§ˆì§€ë§‰ ë‚ ');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEJU-DONGMUN', 'ë™ë¬¸ì¬ë˜ì‹œì¥', 'ì „í†µì‹œì¥', 'ì œì£¼ ì œì£¼ì‹œ ê´€ë•ë¡œ14ê¸¸ 20', '33.511589', '126.526018', 'ì œì£¼ ë¨¹ê±°ë¦¬ì™€ ê¸°ë…í’ˆì„ ë§Œë‚˜ëŠ” ì—¬í–‰ ë§ˆë¬´ë¦¬');
+    ensure_item(v_day_id, 'MORNING', 1, 'JEJU-HAMDEOK', 'ÇÔ´öÇØ¼ö¿åÀå', 'ÇØº¯', 'Á¦ÁÖ Á¦ÁÖ½Ã Á¶ÃµÀ¾ Á¶ÇÔÇØ¾È·Î 525', '33.543096', '126.669079', 'ÀÜÀÜÇÑ ¹Ù´Ù¸¦ º¸¸ç ½¬¾î°¡´Â ¸¶Áö¸· ³¯');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEJU-DONGMUN', 'µ¿¹®Àç·¡½ÃÀå', 'ÀüÅë½ÃÀå', 'Á¦ÁÖ Á¦ÁÖ½Ã °ü´ö·Î14±æ 20', '33.511589', '126.526018', 'Á¦ÁÖ ¸Ô°Å¸®¿Í ±â³äÇ°À» ¸¸³ª´Â ¿©Çà ¸¶¹«¸®');
     ensure_like(v_plan_id, v_seoul_member_id);
     ensure_like(v_plan_id, v_coast_member_id);
 
-    ensure_plan(v_coast_member_id, 'ê°•ë¦‰ ì»¤í”¼ì™€ ë°”ë‹¤', '32', 18, 2, 196, v_plan_id, v_plan_start_date);
+    ensure_plan(v_coast_member_id, '°­¸ª Ä¿ÇÇ¿Í ¹Ù´Ù', '32', 18, 2, 196, v_plan_id, v_plan_start_date);
     ensure_day(v_plan_id, v_plan_start_date, 1, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'GANGNEUNG-ANMOK', 'ì•ˆëª©í•´ë³€', 'í•´ë³€', 'ê°•ì› ê°•ë¦‰ì‹œ ì°½í•´ë¡œ 17', '37.771123', '128.947330', 'ë°”ë‹¤ë¥¼ ë³´ë©° ì»¤í”¼ í•œ ì”ìœ¼ë¡œ ì‹œì‘í•˜ëŠ” ê°•ë¦‰ ì—¬í–‰');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'GANGNEUNG-MARKET', 'ê°•ë¦‰ì¤‘ì•™ì‹œì¥', 'ì „í†µì‹œì¥', 'ê°•ì› ê°•ë¦‰ì‹œ ê¸ˆì„±ë¡œ 21', '37.752030', '128.896285', 'ë‹­ê°•ì •ê³¼ ì§€ì—­ ë¨¹ê±°ë¦¬ë¥¼ ì¦ê¸°ëŠ” ì˜¤í›„');
+    ensure_item(v_day_id, 'MORNING', 1, 'GANGNEUNG-ANMOK', '¾È¸ñÇØº¯', 'ÇØº¯', '°­¿ø °­¸ª½Ã Ã¢ÇØ·Î 17', '37.771123', '128.947330', '¹Ù´Ù¸¦ º¸¸ç Ä¿ÇÇ ÇÑ ÀÜÀ¸·Î ½ÃÀÛÇÏ´Â °­¸ª ¿©Çà');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'GANGNEUNG-MARKET', '°­¸ªÁß¾Ó½ÃÀå', 'ÀüÅë½ÃÀå', '°­¿ø °­¸ª½Ã ±İ¼º·Î 21', '37.752030', '128.896285', '´ß°­Á¤°ú Áö¿ª ¸Ô°Å¸®¸¦ Áñ±â´Â ¿ÀÈÄ');
     ensure_day(v_plan_id, v_plan_start_date, 2, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'GANGNEUNG-GYEONGPO', 'ê²½í¬í˜¸', 'í˜¸ìˆ˜ì‚°ì±…', 'ê°•ì› ê°•ë¦‰ì‹œ ì €ë™', '37.795568', '128.896611', 'í˜¸ìˆ˜ ë‘˜ë ˆê¸¸ì„ ë”°ë¼ ê±·ëŠ” ì—¬ìœ ë¡œìš´ ì•„ì¹¨');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'GANGNEUNG-OJUKHEON', 'ì˜¤ì£½í—Œ', 'ì—­ì‚¬ê´€ê´‘', 'ê°•ì› ê°•ë¦‰ì‹œ ìœ¨ê³¡ë¡œ3139ë²ˆê¸¸ 24', '37.779308', '128.878173', 'ì‹ ì‚¬ì„ë‹¹ê³¼ ìœ¨ê³¡ ì´ì´ì˜ í”ì ì„ ë§Œë‚˜ëŠ” ì¥ì†Œ');
+    ensure_item(v_day_id, 'MORNING', 1, 'GANGNEUNG-GYEONGPO', '°æÆ÷È£', 'È£¼ö»êÃ¥', '°­¿ø °­¸ª½Ã Àúµ¿', '37.795568', '128.896611', 'È£¼ö µÑ·¹±æÀ» µû¶ó °È´Â ¿©À¯·Î¿î ¾ÆÄ§');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'GANGNEUNG-OJUKHEON', '¿ÀÁ×Çå', '¿ª»ç°ü±¤', '°­¿ø °­¸ª½Ã À²°î·Î3139¹ø±æ 24', '37.779308', '128.878173', '½Å»çÀÓ´ç°ú À²°î ÀÌÀÌÀÇ ÈçÀûÀ» ¸¸³ª´Â Àå¼Ò');
     ensure_like(v_plan_id, v_seoul_member_id);
 
-    ensure_plan(v_seoul_member_id, 'ì „ì£¼ í•œì˜¥ë§ˆì„ ë¯¸ì‹ ì—¬í–‰', '37', 25, 2, 231, v_plan_id, v_plan_start_date);
+    ensure_plan(v_seoul_member_id, 'ÀüÁÖ ÇÑ¿Á¸¶À» ¹Ì½Ä ¿©Çà', '37', 25, 2, 231, v_plan_id, v_plan_start_date);
     ensure_day(v_plan_id, v_plan_start_date, 1, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'JEONJU-HANOK', 'ì „ì£¼í•œì˜¥ë§ˆì„', 'ë¬¸í™”ë§ˆì„', 'ì „ë¶ ì „ì£¼ì‹œ ì™„ì‚°êµ¬ ê¸°ë¦°ëŒ€ë¡œ 99', '35.815083', '127.153017', 'í•œì˜¥ ê³¨ëª©ê³¼ ì „í†µë¬¸í™”ë¥¼ ì²œì²œíˆ ë‘˜ëŸ¬ë³´ëŠ” ì—¬í–‰');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEONJU-GYEONGGIJEON', 'ê²½ê¸°ì „', 'ì—­ì‚¬ê´€ê´‘', 'ì „ë¶ ì „ì£¼ì‹œ ì™„ì‚°êµ¬ íƒœì¡°ë¡œ 44', '35.815343', '127.149963', 'íƒœì¡° ì´ì„±ê³„ì˜ ì–´ì§„ì„ ëª¨ì‹  ê³ ì¦ˆë„‰í•œ ê³µê°„');
+    ensure_item(v_day_id, 'MORNING', 1, 'JEONJU-HANOK', 'ÀüÁÖÇÑ¿Á¸¶À»', '¹®È­¸¶À»', 'ÀüºÏ ÀüÁÖ½Ã ¿Ï»ê±¸ ±â¸°´ë·Î 99', '35.815083', '127.153017', 'ÇÑ¿Á °ñ¸ñ°ú ÀüÅë¹®È­¸¦ ÃµÃµÈ÷ µÑ·¯º¸´Â ¿©Çà');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEONJU-GYEONGGIJEON', '°æ±âÀü', '¿ª»ç°ü±¤', 'ÀüºÏ ÀüÁÖ½Ã ¿Ï»ê±¸ ÅÂÁ¶·Î 44', '35.815343', '127.149963', 'ÅÂÁ¶ ÀÌ¼º°èÀÇ ¾îÁøÀ» ¸ğ½Å °íÁî³ËÇÑ °ø°£');
     ensure_day(v_plan_id, v_plan_start_date, 2, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'JEONJU-NAMBU', 'ì „ì£¼ë‚¨ë¶€ì‹œì¥', 'ì „í†µì‹œì¥', 'ì „ë¶ ì „ì£¼ì‹œ ì™„ì‚°êµ¬ í’ë‚¨ë¬¸1ê¸¸ 19-3', '35.811930', '127.147627', 'ì½©ë‚˜ë¬¼êµ­ë°¥ê³¼ ì§€ì—­ ë¨¹ê±°ë¦¬ë¥¼ ë§›ë³´ëŠ” ì•„ì¹¨');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEONJU-JAMAN', 'ìë§Œë²½í™”ë§ˆì„', 'ë¬¸í™”ë§ˆì„', 'ì „ë¶ ì „ì£¼ì‹œ ì™„ì‚°êµ¬ êµë™ 50-158', '35.814606', '127.158323', 'ìƒ‰ê° ìˆëŠ” ê³¨ëª©ê³¼ ì „ë§ì„ ì¦ê¸°ëŠ” ë§ˆì§€ë§‰ ì¼ì •');
+    ensure_item(v_day_id, 'MORNING', 1, 'JEONJU-NAMBU', 'ÀüÁÖ³²ºÎ½ÃÀå', 'ÀüÅë½ÃÀå', 'ÀüºÏ ÀüÁÖ½Ã ¿Ï»ê±¸ Ç³³²¹®1±æ 19-3', '35.811930', '127.147627', 'Äá³ª¹°±¹¹ä°ú Áö¿ª ¸Ô°Å¸®¸¦ ¸Àº¸´Â ¾ÆÄ§');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'JEONJU-JAMAN', 'ÀÚ¸¸º®È­¸¶À»', '¹®È­¸¶À»', 'ÀüºÏ ÀüÁÖ½Ã ¿Ï»ê±¸ ±³µ¿ 50-158', '35.814606', '127.158323', '»ö°¨ ÀÖ´Â °ñ¸ñ°ú Àü¸ÁÀ» Áñ±â´Â ¸¶Áö¸· ÀÏÁ¤');
     ensure_like(v_plan_id, v_coast_member_id);
 
-    ensure_plan(v_island_member_id, 'ìˆ˜ì› í™”ì„± í•˜ë£¨ ì—¬í–‰', '31', 10, 1, 184, v_plan_id, v_plan_start_date);
+    ensure_plan(v_island_member_id, '¼ö¿ø È­¼º ÇÏ·ç ¿©Çà', '31', 10, 1, 184, v_plan_id, v_plan_start_date);
     ensure_day(v_plan_id, v_plan_start_date, 1, v_day_id);
-    ensure_item(v_day_id, 'MORNING', 1, 'SUWON-HWASEONG', 'ìˆ˜ì› í™”ì„±', 'ì—­ì‚¬ê´€ê´‘', 'ê²½ê¸° ìˆ˜ì›ì‹œ ì¥ì•ˆêµ¬ ì˜í™”ë™ 320-2', '37.287808', '127.012438', 'ì„±ê³½ê¸¸ì„ ë”°ë¼ ìˆ˜ì›ì˜ ì—­ì‚¬ì™€ í’ê²½ì„ ë§Œë‚˜ëŠ” ì½”ìŠ¤');
-    ensure_item(v_day_id, 'AFTERNOON', 1, 'SUWON-HAENGGUNG', 'í™”ì„±í–‰ê¶', 'ê¶ê¶', 'ê²½ê¸° ìˆ˜ì›ì‹œ íŒ”ë‹¬êµ¬ ì •ì¡°ë¡œ 825', '37.281957', '127.013671', 'ì •ì¡°ì˜ ì´ì•¼ê¸°ê°€ ë‚¨ì•„ ìˆëŠ” ë„ì‹¬ ì† í–‰ê¶');
-    ensure_item(v_day_id, 'AFTERNOON', 2, 'SUWON-CHICKEN', 'ìˆ˜ì› í†µë‹­ê±°ë¦¬', 'ë¨¹ê±°ë¦¬', 'ê²½ê¸° ìˆ˜ì›ì‹œ íŒ”ë‹¬êµ¬ ì •ì¡°ë¡œ800ë²ˆê¸¸', '37.278981', '127.017468', 'ë°”ì‚­í•œ í†µë‹­ìœ¼ë¡œ í•˜ë£¨ ì—¬í–‰ì„ ë§ˆë¬´ë¦¬');
+    ensure_item(v_day_id, 'MORNING', 1, 'SUWON-HWASEONG', '¼ö¿ø È­¼º', '¿ª»ç°ü±¤', '°æ±â ¼ö¿ø½Ã Àå¾È±¸ ¿µÈ­µ¿ 320-2', '37.287808', '127.012438', '¼º°û±æÀ» µû¶ó ¼ö¿øÀÇ ¿ª»ç¿Í Ç³°æÀ» ¸¸³ª´Â ÄÚ½º');
+    ensure_item(v_day_id, 'AFTERNOON', 1, 'SUWON-HAENGGUNG', 'È­¼ºÇà±Ã', '±Ã±È', '°æ±â ¼ö¿ø½Ã ÆÈ´Ş±¸ Á¤Á¶·Î 825', '37.281957', '127.013671', 'Á¤Á¶ÀÇ ÀÌ¾ß±â°¡ ³²¾Æ ÀÖ´Â µµ½É ¼Ó Çà±Ã');
+    ensure_item(v_day_id, 'AFTERNOON', 2, 'SUWON-CHICKEN', '¼ö¿ø Åë´ß°Å¸®', '¸Ô°Å¸®', '°æ±â ¼ö¿ø½Ã ÆÈ´Ş±¸ Á¤Á¶·Î800¹ø±æ', '37.278981', '127.017468', '¹Ù»èÇÑ Åë´ßÀ¸·Î ÇÏ·ç ¿©ÇàÀ» ¸¶¹«¸®');
     ensure_like(v_plan_id, v_seoul_member_id);
     ensure_like(v_plan_id, v_coast_member_id);
 

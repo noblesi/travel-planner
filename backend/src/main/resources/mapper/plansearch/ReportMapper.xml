@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.plansearch.dao.ReportDAO">
+
+	<insert id="insertReport">
+		INSERT INTO REPORT (
+			REPORT_ID,
+			PLAN_ID,
+			REPORTER_MEMBER_ID,
+			REASON_CODE,
+			REASON_DETAIL
+		) VALUES (
+			SEQ_REPORT.NEXTVAL,
+			<!-- planId는 요청 본문이 아닌 검증된 path variable을 사용해 대상 변조를 방지한다. -->
+			#{planId},
+			#{memberId},
+			#{request.reason},
+			#{request.detail}
+		)
+	</insert>
+
+	<select id="existsReport" resultType="boolean">
+		SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END
+		  FROM REPORT
+		 WHERE PLAN_ID = #{planId}
+		   AND REPORTER_MEMBER_ID = #{memberId}
+	</select>
+
+</mapper>

@@ -4,6 +4,7 @@ import java.net.URI;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,6 +17,10 @@ import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanRequest;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorResponse;
+import com.noblesi.travelplanner.dto.plan.MyPlanListResponse;
+import com.noblesi.travelplanner.dto.plan.PlanLifecycleResponse;
+import com.noblesi.travelplanner.dto.plan.RestoreTravelPlanRequest;
+import com.noblesi.travelplanner.dto.plan.UpdatePlanPublicationRequest;
 import com.noblesi.travelplanner.dto.plan.PublicPlanDetailResponse;
 import com.noblesi.travelplanner.dto.plan.PublicPlanSearchResponse;
 import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanDatesRequest;
@@ -43,14 +48,22 @@ public class TravelPlanController {
 	@GetMapping
 	public ApiResponse<PublicPlanSearchResponse> searchPublicPlans(
 			@RequestParam(defaultValue = "") String keyword,
-			@RequestParam(defaultValue = "24") int limit
+			@RequestParam(defaultValue = "1") int page,
+			@RequestParam(defaultValue = "24") int size,
+			@RequestParam(required = false) Integer limit
 	) {
-		return ApiResponse.success(publicPlanService.search(keyword, limit));
+		int requestedSize = limit == null ? size : limit;
+		return ApiResponse.success(publicPlanService.search(keyword, page, requestedSize));
 	}
 
 	@GetMapping("/{planId}")
 	public ApiResponse<PublicPlanDetailResponse> getPublicPlan(@PathVariable String planId) {
 		return ApiResponse.success(publicPlanService.getDetail(planId));
+	}
+
+	@GetMapping("/mine")
+	public ApiResponse<MyPlanListResponse> getMyPlans() {
+		return ApiResponse.success(travelPlanService.getMyPlans());
 	}
 
 	@PostMapping
@@ -81,5 +94,29 @@ public class TravelPlanController {
 			@Valid @RequestBody UpdateTravelPlanDatesRequest request
 	) {
 		return ApiResponse.success(travelPlanService.updateTravelPlanDates(planId, request));
+	}
+
+	@PatchMapping("/{planId}/publication")
+	public ApiResponse<PlanEditorResponse> updatePlanPublication(
+			@PathVariable String planId,
+			@Valid @RequestBody UpdatePlanPublicationRequest request
+	) {
+		return ApiResponse.success(travelPlanService.updatePlanPublication(planId, request));
+	}
+
+	@DeleteMapping("/{planId}")
+	public ApiResponse<PlanLifecycleResponse> deleteTravelPlan(
+			@PathVariable String planId,
+			@RequestParam int versionNo
+	) {
+		return ApiResponse.success(travelPlanService.deleteTravelPlan(planId, versionNo));
+	}
+
+	@PostMapping("/{planId}/restore")
+	public ApiResponse<PlanLifecycleResponse> restoreTravelPlan(
+			@PathVariable String planId,
+			@Valid @RequestBody RestoreTravelPlanRequest request
+	) {
+		return ApiResponse.success(travelPlanService.restoreTravelPlan(planId, request));
 	}
 }

@@ -27,11 +27,11 @@ console.log("password : " + userStore.userInfo.password)
 /////////////////////////////////////
 
 const handleContinue = () => {
-  if(name.value == null || name.value == '' ){
+  if (!name.value.trim()) {
     alert('이름을 입력하여 주세요.')
     return
   }
-  if(birth.value.length < 8 || birth.value.length > 8) {
+  if (birth.value.length !== 8) {
     alert('생년월일을 정확하게 입력하여주세요.')
     return
   }
