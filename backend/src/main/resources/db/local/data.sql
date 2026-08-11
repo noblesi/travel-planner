@@ -21,7 +21,7 @@ VALUES
     ('36', '경상남도',         NULL, 'SIDO', 16, 'Y'),
     ('39', '제주특별자치도',   NULL, 'SIDO', 17, 'Y');
 
--- P2/P3 authentication fixtures. Raw test password: WithTrip-E2E-2026!
+-- Local administrator account: admin1 / test1234
 INSERT INTO ADMIN (
     ADMIN_ID,
     LOGIN_ID,
@@ -31,7 +31,7 @@ INSERT INTO ADMIN (
     ADMIN_ROLE_CODE,
     ADMIN_STATUS
 ) VALUES
-    (SEQ_ADMIN.NEXTVAL, 'e2e_admin', '테스트관리자', '$2a$10$vtQ0WJwy8lT3TsxLq/NZ0ucMHmcSxN5hGQiWw28uIe4ehQTtDs2IW', 'e2e.admin@withtrip.test', 'CONTENT', 'ACTIVE'),
+    (SEQ_ADMIN.NEXTVAL, 'admin1', '로컬관리자', '$2a$10$0Fc4kCtXRnKOB5kZ3nZhtOzXl2PJbn5Jr36HVSZTRae.BatyLC8U6', 'admin1@withtrip.test', 'CONTENT', 'ACTIVE'),
     (SEQ_ADMIN.NEXTVAL, 'inactive_admin', '비활성관리자', '$2a$10$vtQ0WJwy8lT3TsxLq/NZ0ucMHmcSxN5hGQiWw28uIe4ehQTtDs2IW', 'inactive.admin@withtrip.test', 'CONTENT', 'INACTIVE');
 
 INSERT INTO NOTICE (

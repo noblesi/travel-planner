@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>대시보드 | WithTrip</title>
+<link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+	<div class="admin-layout">
+		<aside th:replace="~{admin/fragments/layout :: sidebar('dashboard')}"></aside>
+		<div class="admin-main">
+			<header
+				th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+			<main class="admin-content">
+				<div class="page-header">
+					<div>
+						<h1>대시보드</h1>
+						<p>WithTrip 서비스의 주요 운영 현황입니다.</p>
+					</div>
+				</div>
+				<section class="summary-grid">
+					<article class="summary-card">
+						<span>전체 회원</span><strong
+							th:text="${#numbers.formatInteger(dashboard.totalMemberCount, 1, 'COMMA')}">0</strong>
+					</article>
+					<article class="summary-card">
+						<span>오늘 신규 가입</span><strong
+							th:text="${#numbers.formatInteger(dashboard.newMemberCount, 1, 'COMMA')}">0</strong>
+					</article>
+					<article class="summary-card">
+						<span>공개 여행 플랜</span><strong
+							th:text="${#numbers.formatInteger(dashboard.publicPlanCount, 1, 'COMMA')}">0</strong>
+					</article>
+					<article class="summary-card">
+						<span>신고 검토 대기</span><strong
+							th:text="${#numbers.formatInteger(dashboard.pendingReportCount, 1, 'COMMA')}">0</strong>
+					</article>
+				</section>
+				<section class="dashboard-grid">
+					<article class="card">
+						<h2>주간 여행 플랜 생성</h2>
+						<div class="bar-list">
+							<div class="bar-row"
+								th:each="stat : ${dashboard.weeklyPlanStats}">
+								<span th:text="${stat.day}">월</span>
+								<div class="bar-track">
+									<div class="bar-value"
+										th:style="|width:${stat.value > 100 ? 100 : stat.value}%|"></div>
+								</div>
+								<strong th:text="${stat.value}">0</strong>
+							</div>
+						</div>
+					</article>
+					<article class="card">
+						<h2>인기 여행 지역</h2>
+						<ol class="rank-list">
+							<li th:each="region : ${dashboard.popularRegionStats}"><span><b
+									th:text="${region.rank}">1</b>. <span th:text="${region.name}">제주</span></span><strong
+								th:text="|${region.count}건 (${region.percentage}%)|">0건</strong></li>
+						</ol>
+					</article>
+				</section>
+			</main>
+		</div>
+	</div>
+	<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>
