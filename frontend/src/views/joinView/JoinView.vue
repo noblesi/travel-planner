@@ -1,5 +1,4 @@
 <script setup>
-
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getMemberEmailCheck } from '@/api/users'
@@ -11,42 +10,26 @@ const password = ref('')
 const passwordCheck = ref('')
 const router = useRouter()
 
-///////////////////////////////가데이터
-var testid = "test@test.com"
-var testemail = "test@test.test";
-var testpass = "123123123123";
-
-email.value = testemail
-password.value = testpass
-passwordCheck.value = testpass
-///////////////////////////////////////////
-
 const isPasswordMatched = computed(() => {
-  if (!passwordCheck.value) return true; 
-  return password.value === passwordCheck.value;
-});
+  if (!passwordCheck.value) return true
+  return password.value === passwordCheck.value
+})
 
 const backPageMove = () => {
   history.back()
 }
 
-const handleContinue = () => {
-  
-  joinCheck()
-  
-}
-
 const passCheckNull = () => {
-  if (!password.value){
+  if (!password.value) {
     alert('비밀번호를 입력해주세요.')
     return false
   }
 
-  if (password.value.length < 10){
+  if (password.value.length < 10) {
     alert('비밀번호는 10자 이상 입력해주셔야 합니다.')
     return false
   }
-  
+
   if (!isPasswordMatched.value) {
     alert('비밀번호가 일치하지 않습니다.')
     return false
@@ -55,39 +38,38 @@ const passCheckNull = () => {
 }
 
 const joinCheck = () => {
- 
   if (!email.value) {
     alert('이메일 주소를 입력해주세요.')
     return false
   }
 
-  if(email.value.charAt('@') < 0 || email.value.lastIndexOf('.') < 0 || email.value.lastIndexOf('.')+1 == email.value.length ) {
-    alert("이메일을 정확하게 입력하여 주세요")
+  // 이메일 유효성 검사 수정 (includes 및 indexOf 활용)
+  if (!email.value.includes('@') || !email.value.includes('.')) {
+    alert('이메일을 정확하게 입력하여 주세요.')
     return false
   }
 
-  if(passCheckNull()){
-    console.log("이메일 : " + email.value)
-    console.log("비밀번호 : " + password.value)
+  if (passCheckNull()) {
     getMemberEmailCheck(email.value)
-    .then(response => {
-      if(response === true){
-        alert('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.')
-      } else {
-        
-        router.push({ name: 'JoinInfoView' })
-      }
-    }).catch(error => {
-      console.log('이메일 체크 에러 발생:', error)
-      alert('이메일 체크 중 오류가 발생했습니다.')
-    })
-    
-  } else {
-    return false
+      .then((response) => {
+        if (response === true) {
+          alert('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.')
+        } else {
+          // 스토어 저장 및 라우트 이동 이름 수정 ('joinProfile')
+          userStore.setUserInfo(email.value, password.value)
+          router.push({ name: 'joinProfile' })
+        }
+      })
+      .catch((error) => {
+        console.log('이메일 체크 에러 발생:', error)
+        alert('이메일 체크 중 오류가 발생했습니다.')
+      })
   }
-
 }
 
+const handleContinue = () => {
+  joinCheck()
+}
 </script>
 
 <template>

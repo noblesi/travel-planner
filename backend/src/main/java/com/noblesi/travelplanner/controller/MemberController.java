@@ -6,6 +6,8 @@ import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.dto.member.JoinMemberRequest;
 import com.noblesi.travelplanner.service.MemberJoinService;
 
+import jakarta.validation.Valid;
+
 import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,7 +30,7 @@ public class MemberController {
     }
 
    @PostMapping("/join")
-    public ApiResponse<Boolean> joinMember(@RequestBody JoinMemberRequest userInfo) {
+    public ApiResponse<Boolean> joinMember(@Valid@RequestBody JoinMemberRequest userInfo) {
         return ApiResponse.success(memberJoinService.addMember(userInfo));
     }
     
