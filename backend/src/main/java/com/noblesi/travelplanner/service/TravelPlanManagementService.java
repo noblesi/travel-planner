@@ -26,6 +26,7 @@ class TravelPlanManagementService {
 	private final MyPlanMapper myPlanMapper;
 	private final PlanScheduleItemMapper scheduleItemMapper;
 	private final TravelPlanCommandMapper commandMapper;
+	private final PlanThumbnailDerivationService thumbnailDerivationService;
 
 	TravelPlanManagementService(
 			PositiveIdParser idParser,
@@ -33,7 +34,8 @@ class TravelPlanManagementService {
 			PlanEditorQueryService editorQueryService,
 			MyPlanMapper myPlanMapper,
 			PlanScheduleItemMapper scheduleItemMapper,
-			TravelPlanCommandMapper commandMapper
+			TravelPlanCommandMapper commandMapper,
+			PlanThumbnailDerivationService thumbnailDerivationService
 	) {
 		this.idParser = idParser;
 		this.planAccessService = planAccessService;
@@ -41,6 +43,7 @@ class TravelPlanManagementService {
 		this.myPlanMapper = myPlanMapper;
 		this.scheduleItemMapper = scheduleItemMapper;
 		this.commandMapper = commandMapper;
+		this.thumbnailDerivationService = thumbnailDerivationService;
 	}
 
 	@Transactional(readOnly = true)
@@ -69,11 +72,15 @@ class TravelPlanManagementService {
 		if (request.publishStatus() == plan.publishStatus()) {
 			return editorQueryService.buildResponse(planId, plan);
 		}
+		String fallbackThumbnailImageUrl = request.publishStatus() == PlanPublishStatus.PUBLISHED
+				? thumbnailDerivationService.refresh(planId)
+				: null;
 
 		if (commandMapper.updatePublishStatus(
 				planId,
 				memberId,
 				request.publishStatus(),
+				fallbackThumbnailImageUrl,
 				request.versionNo()
 		) != 1) {
 			throw planVersionConflict();

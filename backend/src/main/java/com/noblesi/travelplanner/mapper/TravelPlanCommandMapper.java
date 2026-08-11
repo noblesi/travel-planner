@@ -36,7 +36,13 @@ public interface TravelPlanCommandMapper {
 			@Param("planId") long planId,
 			@Param("memberId") long memberId,
 			@Param("publishStatus") PlanPublishStatus publishStatus,
+			@Param("thumbnailImageUrl") String thumbnailImageUrl,
 			@Param("versionNo") int versionNo
+	);
+
+	int updateDerivedThumbnail(
+			@Param("planId") long planId,
+			@Param("thumbnailImageUrl") String thumbnailImageUrl
 	);
 
 	int softDeleteTravelPlan(

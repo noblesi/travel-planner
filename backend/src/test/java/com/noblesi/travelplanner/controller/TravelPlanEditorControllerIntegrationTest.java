@@ -89,6 +89,7 @@ class TravelPlanEditorControllerIntegrationTest {
 				.andExpect(jsonPath("$.data.plan.endDate").value("2026-08-11"))
 				.andExpect(jsonPath("$.data.plan.visibility").value("PRIVATE"))
 				.andExpect(jsonPath("$.data.plan.publishStatus").value("DRAFT"))
+				.andExpect(jsonPath("$.data.plan.thumbnailImageUrl").value(nullValue()))
 				.andExpect(jsonPath("$.data.plan.currentMemberRole").value("CREATOR"))
 				.andExpect(jsonPath("$.data.plan.canManagePlan").value(true))
 				.andExpect(jsonPath("$.data.plan.versionNo").value(3))
@@ -126,6 +127,8 @@ class TravelPlanEditorControllerIntegrationTest {
 						"""))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.plan.publishStatus").value("PUBLISHED"))
+				.andExpect(jsonPath("$.data.plan.thumbnailImageUrl")
+						.value("https://example.com/place.jpg"))
 				.andExpect(jsonPath("$.data.plan.versionNo").value(4));
 
 		mockMvc.perform(patch("/api/plans/{planId}", Long.toString(PLAN_ID))
@@ -144,6 +147,12 @@ class TravelPlanEditorControllerIntegrationTest {
 		mockMvc.perform(get("/api/plans/{planId}", Long.toString(PLAN_ID)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.plan.title").value("공개 중 자동 저장된 서울 여행"));
+
+		mockMvc.perform(get("/api/plan-search/plans")
+				.queryParam("keyword", "공개 중 자동 저장된 서울 여행"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.content[0].thumbnailImage")
+						.value("https://example.com/place.jpg"));
 
 		mockMvc.perform(patch("/api/plans/{planId}/publication", Long.toString(PLAN_ID))
 				.contentType(MediaType.APPLICATION_JSON)
@@ -176,6 +185,55 @@ class TravelPlanEditorControllerIntegrationTest {
 						"""))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.code").value("PLAN_SCHEDULE_REQUIRED"));
+	}
+
+	@Test
+	void prefersTouristImageAndExcludesRestaurantWhenPublishing() throws Exception {
+		insertPlan(PLAN_ID, 1L, "ACTIVE");
+		insertPlanDay(FIRST_DAY_ID, PLAN_ID, 1, "2026-08-10", 0);
+		insertPlanDay(SECOND_DAY_ID, PLAN_ID, 2, "2026-08-11", 0);
+		insertScheduleItem(
+				9_007_199_254_740_996L,
+				FIRST_DAY_ID,
+				"MORNING",
+				1,
+				"food-100",
+				"서울 맛집",
+				"음식점",
+				"https://example.com/restaurant.jpg"
+		);
+		insertScheduleItem(
+				9_007_199_254_740_997L,
+				FIRST_DAY_ID,
+				"AFTERNOON",
+				1,
+				"culture-100",
+				"국립박물관",
+				"문화시설",
+				"https://example.com/museum.jpg"
+		);
+		insertScheduleItem(
+				9_007_199_254_740_998L,
+				SECOND_DAY_ID,
+				"AFTERNOON",
+				1,
+				"tour-100",
+				"경복궁",
+				"관광지",
+				"https://example.com/palace.jpg"
+		);
+
+		mockMvc.perform(patch("/api/plans/{planId}/publication", Long.toString(PLAN_ID))
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "publishStatus": "PUBLISHED",
+						  "versionNo": 3
+						}
+						"""))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.plan.thumbnailImageUrl")
+						.value("https://example.com/palace.jpg"));
 	}
 
 	@Test
@@ -612,16 +670,39 @@ class TravelPlanEditorControllerIntegrationTest {
 			String externalPlaceId,
 			String placeName
 	) {
+		insertScheduleItem(
+				itemId,
+				planDayId,
+				timeSlot,
+				positionNo,
+				externalPlaceId,
+				placeName,
+				"관광지",
+				"https://example.com/place.jpg"
+		);
+	}
+
+	private void insertScheduleItem(
+			long itemId,
+			long planDayId,
+			String timeSlot,
+			int positionNo,
+			String externalPlaceId,
+			String placeName,
+			String categoryName,
+			String imageUrl
+	) {
 		jdbcTemplate.update("""
 				INSERT INTO PLAN_SCHEDULE_ITEM (
 				    SCHEDULE_ITEM_ID, PLAN_DAY_ID, TIME_SLOT, POSITION_NO,
 				    PLACE_PROVIDER, EXTERNAL_PLACE_ID, PLACE_NAME_SNAPSHOT,
 				    CATEGORY_SNAPSHOT, ADDRESS_SNAPSHOT, LATITUDE_SNAPSHOT,
 				    LONGITUDE_SNAPSHOT, IMAGE_URL_SNAPSHOT, ITEM_VERSION
-				) VALUES (?, ?, ?, ?, 'TOUR_API', ?, ?, '관광지',
+				) VALUES (?, ?, ?, ?, 'TOUR_API', ?, ?, ?,
 				          '서울특별시 종로구', 37.579617, 126.977041,
-				          'https://example.com/place.jpg', 0)
-				""", itemId, planDayId, timeSlot, positionNo, externalPlaceId, placeName);
+				          ?, 0)
+				""", itemId, planDayId, timeSlot, positionNo, externalPlaceId, placeName,
+				categoryName, imageUrl);
 	}
 
 	private void deletePlanData() {

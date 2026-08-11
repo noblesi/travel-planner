@@ -16,6 +16,7 @@ public record PlanEditorSummaryResponse(
 		LocalDate endDate,
 		PlanVisibility visibility,
 		PlanPublishStatus publishStatus,
+		String thumbnailImageUrl,
 		int versionNo,
 		ParticipantType currentMemberRole,
 		boolean canManagePlan
@@ -31,6 +32,7 @@ public record PlanEditorSummaryResponse(
 				plan.endDate(),
 				plan.visibility(),
 				plan.publishStatus(),
+				plan.thumbnailImageUrl(),
 				plan.versionNo(),
 				plan.currentMemberRole(),
 				plan.currentMemberRole() == ParticipantType.CREATOR

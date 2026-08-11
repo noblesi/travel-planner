@@ -381,6 +381,7 @@ Status: `200 OK`
       "startDate": "2026-08-10",
       "endDate": "2026-08-12",
       "visibility": "PRIVATE",
+      "thumbnailImageUrl": null,
       "versionNo": 0
     },
     "days": [
@@ -423,6 +424,7 @@ Status: `200 OK`
 | `plan.startDate` | `string(date)` | No | 여행 시작일 |
 | `plan.endDate` | `string(date)` | No | 여행 종료일 |
 | `plan.visibility` | `string` | No | 공개 범위 |
+| `plan.thumbnailImageUrl` | `string` | Yes | 공개 탐색 카드에 표시할 대표 이미지 URL |
 | `plan.versionNo` | `integer` | No | Metadata Version |
 | `days` | `array` | No | `dayNo` 오름차순 일차 목록 |
 | `days[].planDayId` | `string` | No | 일차 ID |
@@ -712,7 +714,17 @@ X-CSRF-TOKEN: server-generated-token
 - 같은 값이면 무변경 성공하며 Version을 증가시키지 않습니다.
 - 현재 Version과 다르면 `409 PLAN_VERSION_CONFLICT`입니다.
 
-## 11. 플랜 초대
+## 11. 플랜 대표 이미지 자동 결정
+
+- 사용자는 대표 이미지를 직접 선택하거나 업로드하지 않습니다.
+- 일정에 저장된 장소 이미지 Snapshot 중 관광 성격이 강한 카테고리를 자동 후보로 사용합니다.
+- 우선순위는 `관광지 → 문화시설 → 축제·공연·행사 → 여행코스 → 레포츠 → 관광정보 → 쇼핑`입니다.
+- 같은 카테고리 안에서는 DAY, 오전·오후, 일정 순서를 따릅니다.
+- `음식점`, `숙박` 이미지는 대표 이미지 후보에서 제외합니다.
+- 제작 완료와 일정 추가·수정·삭제·정렬 시 `THUMBNAIL_IMG`를 다시 계산합니다.
+- 후보가 없으면 `THUMBNAIL_IMG = null`을 유지하고 Frontend가 로컬 기본 썸네일을 표시합니다.
+
+## 12. 플랜 초대
 
 ### 초대 생성
 

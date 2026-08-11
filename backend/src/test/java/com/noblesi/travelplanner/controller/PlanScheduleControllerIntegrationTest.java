@@ -67,6 +67,8 @@ class PlanScheduleControllerIntegrationTest {
 				.andExpect(jsonPath("$.data.operationId").value(ADD_OPERATION_ID))
 				.andExpect(jsonPath("$.data.scheduleItemId").isString())
 				.andExpect(jsonPath("$.data.resultScheduleVersion").value(1))
+				.andExpect(jsonPath("$.data.editor.plan.thumbnailImageUrl")
+						.value("https://example.com/place.jpg"))
 				.andExpect(jsonPath("$.data.editor.days[0].scheduleVersion").value(1))
 				.andExpect(jsonPath("$.data.editor.days[0].items", hasSize(1)))
 				.andExpect(jsonPath("$.data.editor.days[0].items[0].placeName").value("경복궁"))

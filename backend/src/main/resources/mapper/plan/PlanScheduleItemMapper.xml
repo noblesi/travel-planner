@@ -54,6 +54,35 @@
 		 WHERE D.PLAN_ID = #{planId}
 	</select>
 
+	<select id="findFirstImageUrlByPlanId" resultType="string">
+		SELECT IMAGE_URL_SNAPSHOT
+		  FROM (
+			SELECT I.IMAGE_URL_SNAPSHOT
+			  FROM PLAN_SCHEDULE_ITEM I
+			  JOIN PLAN_DAY D ON D.PLAN_DAY_ID = I.PLAN_DAY_ID
+			 WHERE D.PLAN_ID = #{planId}
+			   AND I.IMAGE_URL_SNAPSHOT IS NOT NULL
+			   AND I.CATEGORY_SNAPSHOT IN (
+			       '관광지', '문화시설', '축제·공연·행사', '여행코스',
+			       '레포츠', '관광정보', '쇼핑'
+			   )
+			 ORDER BY CASE I.CATEGORY_SNAPSHOT
+			              WHEN '관광지' THEN 0
+			              WHEN '문화시설' THEN 1
+			              WHEN '축제·공연·행사' THEN 2
+			              WHEN '여행코스' THEN 3
+			              WHEN '레포츠' THEN 4
+			              WHEN '관광정보' THEN 5
+			              WHEN '쇼핑' THEN 6
+			              ELSE 7
+			          END ASC,
+			          D.DAY_NO ASC,
+			          CASE I.TIME_SLOT WHEN 'MORNING' THEN 0 ELSE 1 END ASC,
+			          I.POSITION_NO ASC
+		  )
+		 WHERE ROWNUM = 1
+	</select>
+
 	<select id="nextScheduleItemId" resultType="long">
 		SELECT SEQ_PLAN_SCHEDULE_ITEM.NEXTVAL
 		  FROM DUAL
