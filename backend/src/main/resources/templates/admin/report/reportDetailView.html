@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>신고 상세 | WithTrip</title>
+<link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+	<div class="admin-layout">
+		<aside th:replace="~{admin/fragments/layout :: sidebar('trips')}"></aside>
+		<div class="admin-main">
+			<header
+				th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+			<main class="admin-content">
+				<div class="page-header">
+					<div>
+						<h1>신고 상세</h1>
+						<p>여행 플랜 신고 내용과 처리 상태를 확인합니다.</p>
+					</div>
+					<a class="button secondary" th:href="@{/admin/trips}">목록으로</a>
+				</div>
+				<div class="content-grid">
+					<article class="card">
+						<h2>신고 정보</h2>
+						<dl class="info-grid">
+							<div>
+								<dt>신고 번호</dt>
+								<dd th:text="${reportId}">R</dd>
+							</div>
+							<div>
+								<dt>플랜 번호</dt>
+								<dd th:text="${planId != null ? planId : '-'}">-</dd>
+							</div>
+							<div>
+								<dt>신고인</dt>
+								<dd>김민수</dd>
+							</div>
+							<div>
+								<dt>신고일</dt>
+								<dd>2026-07-20 14:21</dd>
+							</div>
+							<div>
+								<dt>신고 사유</dt>
+								<dd>부적절한 내용</dd>
+							</div>
+							<div>
+								<dt>처리 상태</dt>
+								<dd>
+									<span class="badge">검토 대기</span>
+								</dd>
+							</div>
+						</dl>
+						<h2>신고 내용</h2>
+						<p class="report-content">여행 플랜에 부적절한 내용이 포함되어 있습니다.</p>
+					</article>
+					<aside class="card">
+						<h2>신고 대상 플랜</h2>
+						<a class="target-trip-card" th:if="${planId != null}" th:href="@{/admin/trips/{planId}(planId=${planId})}"><span th:text="|플랜 번호 ${planId}|">플랜 번호</span><strong>여행 플랜 상세로 이동 →</strong></a>
+						<p class="report-content" th:unless="${planId != null}">연결된 플랜 정보를 확인할 수 없습니다.</p>
+						<h2 class="section-gap">처리 사유</h2>
+						<div class="radio-group">
+							<label><input type="radio" name="action"> 반려</label><label><input
+								type="radio" name="action" checked> 경고</label><label><input
+								type="radio" name="action"> 숨김</label>
+						</div>
+						<textarea class="memo" placeholder="처리 사유 입력"></textarea>
+						<button class="button full-button" type="button" data-pending-action="신고 검토 저장">검토 완료</button>
+					</aside>
+				</div>
+			</main>
+		</div>
+	</div>
+	<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>
