@@ -20,6 +20,7 @@ public class AdminTripListDTO {
 	private String visibility;
 	private String planStatus;
 	private int reportCount;
+	private Integer latestReportId;
 
 	public String getVisibilityLabel() {
 		if (visibility == null) {

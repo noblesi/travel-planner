@@ -48,7 +48,7 @@
 							<option value="PUBLIC" th:selected="${visibility == 'PUBLIC'}">공개</option>
 							<option value="PRIVATE" th:selected="${visibility == 'PRIVATE'}">비공개</option>
 						</select>
-						<label class="reported-filter"><input type="checkbox" name="reportedOnly" value="true" th:checked="${reportedOnly}"> 신고 플랜만</label>
+						<input th:if="${reportedOnly}" type="hidden" name="reportedOnly" value="true">
 						<button class="button" type="submit">검색</button>
 					</form>
 
@@ -70,8 +70,8 @@
 								<tr th:each="trip : ${trips}">
 									<td class="text-column" th:text="${trip.planId}">1</td>
 									<td class="title">
-										<a th:href="@{/admin/trips/{planId}(planId=${trip.planId})}"
-											th:text="${trip.title}">제목</a>
+										<a th:if="${reportedOnly}" th:href="@{/admin/reports/{reportId}(reportId=${trip.latestReportId})}" th:text="${trip.title}">제목</a>
+										<a th:unless="${reportedOnly}" th:href="@{/admin/trips/{planId}(planId=${trip.planId})}" th:text="${trip.title}">제목</a>
 									</td>
 									<td th:text="${trip.regionName}">지역</td>
 									<td class="text-column" th:text="${trip.ownerName}">작성자</td>
@@ -79,12 +79,14 @@
 									<td th:text="|${trip.likeCount} / ${trip.viewCount}|">0 / 0</td>
 									<td>
 									<span class="badge"
-										th:classappend="${trip.reportCount > 0} ? ' warning' : (${trip.visibilityLabel == '공개'} ? ' success' : ' muted')"
-										th:text="${trip.reportCount > 0 ? '신고 ' + trip.reportCount + '건' : trip.visibilityLabel}">공개</span>
+										th:classappend="${reportedOnly} ? ' warning' : (${trip.visibilityLabel == '공개'} ? ' success' : ' muted')"
+										th:text="${reportedOnly ? '신고 ' + trip.reportCount + '건' : trip.visibilityLabel}">공개</span>
 									</td>
 									<td>
-										<a class="mini-button"
-											th:href="@{/admin/trips/{planId}(planId=${trip.planId})}">플랜 상세</a>
+									<a class="mini-button" th:if="${reportedOnly}"
+										th:href="@{/admin/reports/{reportId}(reportId=${trip.latestReportId})}">신고 상세</a>
+									<a class="mini-button" th:unless="${reportedOnly}"
+										th:href="@{/admin/trips/{planId}(planId=${trip.planId})}">플랜 상세</a>
 									</td>
 								</tr>
 								<tr th:if="${#lists.isEmpty(trips)}">

@@ -21,7 +21,10 @@
 		       plan.PLAN_STATUS AS planStatus,
 		       (SELECT COUNT(*)
 		          FROM REPORT report
-		         WHERE report.PLAN_ID = plan.PLAN_ID) AS reportCount
+		         WHERE report.PLAN_ID = plan.PLAN_ID) AS reportCount,
+		       (SELECT MAX(report.REPORT_ID)
+		          FROM REPORT report
+		         WHERE report.PLAN_ID = plan.PLAN_ID) AS latestReportId
 		  FROM TRAVEL_PLAN plan
 		  JOIN MEMBER member
 		    ON member.MEMBER_ID = plan.OWNER_MEMBER_ID
