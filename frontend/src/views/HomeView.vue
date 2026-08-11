@@ -30,7 +30,7 @@ onMounted(async () => {
         </p>
         <div class="hero__actions">
           <RouterLink class="primary-action" to="/plans/new">새 일정 만들기</RouterLink>
-          <a class="secondary-action" href="#explore">인기 일정 둘러보기</a>
+          <a class="secondary-action" href="/plans">인기 일정 둘러보기</a>
         </div>
       </div>
 

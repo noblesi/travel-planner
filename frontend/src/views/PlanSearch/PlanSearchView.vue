@@ -232,7 +232,7 @@ let requestSequence = 0
 
 // 카드를 클릭하면 상세 페이지로 이동
 function goToDetail(planId) {
-  cacheCurrentSearch()
+  cacheCurrentSearch() // 현재 정보를 저장
   router.push({ name: 'plan-detail', params: { id: planId } })
 }
 
