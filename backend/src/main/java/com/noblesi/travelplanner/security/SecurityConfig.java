@@ -62,7 +62,7 @@ public class SecurityConfig {
 		http
 				.csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
 				.authorizeHttpRequests(authorize -> authorize
-						.requestMatchers("/api/auth/**", "/api/health", "/error").permitAll()
+						.requestMatchers("/api/auth/**", "/api/users/**", "/api/health", "/error").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/regions", "/api/places/search").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plan-invitations/**").permitAll()

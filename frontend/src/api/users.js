@@ -1,7 +1,8 @@
 import http from "./http"
 
-export async function postMemberEmailCheck(email){
-  const response = await http.post('/users/emailCheck', email)
+export async function getMemberEmailCheck(email){
+  console.log(" users js 이메일 : " + email)
+  const response = await http.get('/users/emailCheck', { params: { email : email } })
   return response.data.data
 }
 

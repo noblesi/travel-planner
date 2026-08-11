@@ -2,16 +2,14 @@
 
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-// import { useUserStore } from '@/stores/useUserStore'
-import { postMemberEmailCheck } from '@/api/users'
+import { getMemberEmailCheck } from '@/api/users'
+import { useUserStore } from '@/stores/useUserStore'
 
+const userStore = useUserStore()
 const email = ref('')
 const password = ref('')
 const passwordCheck = ref('')
 const router = useRouter()
-const userStore = useUserStore()
-
-
 
 ///////////////////////////////가데이터
 var testid = "test@test.com"
@@ -34,7 +32,7 @@ const backPageMove = () => {
 
 const handleContinue = () => {
   
-  checkedId()
+  joinCheck()
   
 }
 
@@ -56,7 +54,7 @@ const passCheckNull = () => {
   return true
 }
 
-const checkedId = () => {
+const joinCheck = () => {
  
   if (!email.value) {
     alert('이메일 주소를 입력해주세요.')
@@ -69,10 +67,14 @@ const checkedId = () => {
   }
 
   if(passCheckNull()){
-    postMemberEmailCheck(email.value).then(response => {
-      if(response){
+    console.log("이메일 : " + email.value)
+    console.log("비밀번호 : " + password.value)
+    getMemberEmailCheck(email.value)
+    .then(response => {
+      if(response === true){
         alert('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.')
       } else {
+        
         router.push({ name: 'JoinInfoView' })
       }
     }).catch(error => {

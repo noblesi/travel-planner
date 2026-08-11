@@ -6,16 +6,19 @@ import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.dto.member.JoinMemberRequest;
 import com.noblesi.travelplanner.service.MemberJoinService;
 
+import org.apache.ibatis.annotations.Param;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 
 
-// @RestController
-@Controller
-@RequestMapping("/users")
+@RestController
+//@Controller
+@RequestMapping("/api/users")
 public class MemberController {
 
     private final MemberJoinService memberJoinService;
@@ -29,9 +32,10 @@ public class MemberController {
         return ApiResponse.success(memberJoinService.addMember(userInfo));
     }
     
-    @PostMapping("/emailCheck")
-    public boolean postMemberEmailCheck(@RequestBody String email) {
-        return memberJoinService.searchEmail(email);
+    @GetMapping("/emailCheck")
+    public ApiResponse<Boolean> getMemberEmailCheck(@RequestParam("email") String email) {
+        System.out.println("email : " + email + "-=====================================================----------------" );
+        return ApiResponse.success(memberJoinService.searchEmail(email));
     }
     
 }

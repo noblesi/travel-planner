@@ -24,6 +24,7 @@ public class MemberJoinService {
      */
     public boolean searchEmail(String email){
         int searchCnt = memberMapper.selectEmailCnt(email);
+        System.out.println("email : " + email + " searchCnt : " + searchCnt);
         return searchCnt > 0;
     }
 
