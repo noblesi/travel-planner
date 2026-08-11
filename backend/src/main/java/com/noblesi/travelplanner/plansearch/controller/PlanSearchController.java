@@ -28,7 +28,7 @@ import com.noblesi.travelplanner.security.SecurityMemberResolver;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/plan-search")
+@RequestMapping("/api/plans")
 public class PlanSearchController {
 
 	private static final String VIEW_COOKIE_PREFIX = "plan_viewed_";
@@ -49,21 +49,22 @@ public class PlanSearchController {
 	}
 
 	// 공개 플랜 목록 조회
-	@GetMapping("/plans")
+	@GetMapping
 	public ApiResponse<PageResponse<PlanListResponseDTO>> getPlanList(
 			@RequestParam(defaultValue = "") String keyword,
 			@RequestParam(defaultValue = "1") int page,
-			@RequestParam(defaultValue = "10") int size
+			@RequestParam(defaultValue = "10") int size,
+			@RequestParam(required = false) Integer limit
 	) {
 		PlanSearchRequestDTO request = new PlanSearchRequestDTO();
 		request.setKeyword(keyword);
 		request.setPage(page);
-		request.setSize(size);
+		request.setSize(limit == null ? size : limit);
 		return ApiResponse.success(planSearchService.searchPlanList(request));
 	}
 
 	// 공개 플랜 상세 조회 (같은 브라우저에서 24시간 안에 다시 보면 조회수 증가 안 함)
-	@GetMapping("/plans/{planId}")
+	@GetMapping("/{planId}")
 	public ApiResponse<PlanDetailResponseDTO> getPlanDetail(
 			@PathVariable Long planId,
 			HttpServletRequest httpRequest,
@@ -101,14 +102,14 @@ public class PlanSearchController {
 	}
 
 	// 좋아요 토글 (이미 눌렀으면 취소, 안 눌렀으면 등록)
-	@PostMapping("/plans/{planId}/like")
+	@PostMapping("/{planId}/like")
 	public ApiResponse<Boolean> toggleLike(@PathVariable Long planId) {
 		long memberId = currentMemberProvider.getCurrentMemberId();
 		return ApiResponse.success(planSearchService.toggleLike(memberId, planId));
 	}
 
 	// 플랜 신고
-	@PostMapping("/plans/{planId}/report")
+	@PostMapping("/{planId}/report")
 	public ApiResponse<Void> reportPlan(@PathVariable Long planId, @Valid @RequestBody ReportRequestDTO request) {
 		long memberId = currentMemberProvider.getCurrentMemberId();
 		// 식별자는 request body가 아닌 path variable만 신뢰해 서로 다른 planId가 전달될 여지를 제거한다.
@@ -117,12 +118,12 @@ public class PlanSearchController {
 	}
 
 	// 탐색 플랜을 내 플랜으로 복사
-	@PostMapping("/plans/{sourcePlanId}/copy")
-	public ApiResponse<Long> copyPlan(
+	@PostMapping("/{sourcePlanId}/copy")
+	public ApiResponse<String> copyPlan(
 			@PathVariable Long sourcePlanId,
 			@Valid @RequestBody PlanCopyRequestDTO request
 	) {
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		return ApiResponse.success(planSearchService.copyPlan(memberId, sourcePlanId, request));
+		return ApiResponse.success(Long.toString(planSearchService.copyPlan(memberId, sourcePlanId, request)));
 	}
 }

@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 public class PlanDetailResponseDTO {
 
-	private Long planId;
+	private String planId;
 	private String title;
 	private String authorName;
 	private LocalDate startDate;

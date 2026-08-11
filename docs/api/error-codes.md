@@ -35,6 +35,7 @@
 | `401` | `CURRENT_MEMBER_NOT_AVAILABLE` | 현재 회원을 확인할 수 없음 |
 | `401` | `INVALID_LOGIN_CREDENTIALS` | local 로그인 이메일 또는 비밀번호 불일치, local Credential 미설정 |
 | `403` | `ACCESS_DENIED` | CSRF token 누락·불일치 또는 Spring Security 접근 거부 |
+| `404` | `RESOURCE_NOT_FOUND` | 등록되지 않은 API 또는 정적 리소스 경로 요청 |
 | `500` | `INTERNAL_SERVER_ERROR` | 처리되지 않은 서버 오류 |
 
 ## 여행 플랜 오류
@@ -90,6 +91,7 @@ Version 및 Operation 오류는 자동 저장 API에서 사용합니다. 동일�
 
 - `HttpMessageNotReadableException` → `MALFORMED_JSON`
 - `MethodArgumentTypeMismatchException`, `HandlerMethodValidationException` → `INVALID_REQUEST_PARAMETER`
+- `NoResourceFoundException` → `RESOURCE_NOT_FOUND`
 - `BusinessException` → 기능별 안정적인 오류 코드
 - 그 외 처리되지 않은 예외 → `INTERNAL_SERVER_ERROR`
 

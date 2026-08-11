@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.noblesi.travelplanner.common.api.ErrorResponse;
 import com.noblesi.travelplanner.common.api.FieldErrorDetail;
@@ -77,6 +78,19 @@ public class GlobalExceptionHandler {
 				request.getRequestURI()
 		);
 		return ResponseEntity.badRequest().body(body);
+	}
+
+	@ExceptionHandler(NoResourceFoundException.class)
+	public ResponseEntity<ErrorResponse> handleNoResourceFoundException(
+			NoResourceFoundException exception,
+			HttpServletRequest request
+	) {
+		ErrorResponse body = ErrorResponse.of(
+				"RESOURCE_NOT_FOUND",
+				"요청한 리소스를 찾을 수 없습니다.",
+				request.getRequestURI()
+		);
+		return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
 	}
 
 	@ExceptionHandler(Exception.class)

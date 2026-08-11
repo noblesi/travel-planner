@@ -57,13 +57,27 @@ class PlanSearchControllerIntegrationTest {
 
 	@Test
 	void exposesOnlyPublishedPlansInSearchAndDetail() throws Exception {
-		mockMvc.perform(get("/api/plan-search/plans"))
+		mockMvc.perform(get("/api/plans")
+				.queryParam("keyword", "  Published  ")
+				.queryParam("limit", "1"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.pagination.totalCount").value(1))
+				.andExpect(jsonPath("$.data.pagination.size").value(1))
 				.andExpect(jsonPath("$.data.content[0].planId").value(Long.toString(PUBLISHED_PLAN_ID)))
 				.andExpect(jsonPath("$.data.content[0].title").value("Published plan"));
 
-		mockMvc.perform(get("/api/plan-search/plans/{planId}", DRAFT_PLAN_ID))
+		MvcResult firstView = mockMvc.perform(get("/api/plans/{planId}", PUBLISHED_PLAN_ID))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.planId").value(Long.toString(PUBLISHED_PLAN_ID)))
+				.andExpect(jsonPath("$.data.viewCount").value(12))
+				.andReturn();
+
+		mockMvc.perform(get("/api/plans/{planId}", PUBLISHED_PLAN_ID)
+				.cookie(firstView.getResponse().getCookie("plan_viewed_" + PUBLISHED_PLAN_ID)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.viewCount").value(12));
+
+		mockMvc.perform(get("/api/plans/{planId}", DRAFT_PLAN_ID))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"));
 
@@ -73,13 +87,28 @@ class PlanSearchControllerIntegrationTest {
 				DRAFT_PLAN_ID
 		);
 		assertThat(draftViewCount).isEqualTo(7);
+
+		Integer publishedViewCount = jdbcTemplate.queryForObject(
+				"SELECT VIEW_COUNT FROM TRAVEL_PLAN WHERE PLAN_ID = ?",
+				Integer.class,
+				PUBLISHED_PLAN_ID
+		);
+		assertThat(publishedViewCount).isEqualTo(12);
+	}
+
+	@Test
+	void doesNotExposeLegacyPlanSearchEndpoint() throws Exception {
+		MockHttpSession session = login();
+
+		mockMvc.perform(get("/api/plan-search/plans").session(session))
+				.andExpect(status().isNotFound());
 	}
 
 	@Test
 	void rejectsCopyingDraftPlan() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", DRAFT_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/copy", DRAFT_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -98,13 +127,13 @@ class PlanSearchControllerIntegrationTest {
 	void rejectsLikeAndReportForDraftPlan() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/like", DRAFT_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/like", DRAFT_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader()))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"));
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", DRAFT_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/report", DRAFT_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -130,7 +159,7 @@ class PlanSearchControllerIntegrationTest {
 	void storesOneReportAndRejectsDuplicate() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/report", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -138,7 +167,7 @@ class PlanSearchControllerIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true));
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/report", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -158,7 +187,7 @@ class PlanSearchControllerIntegrationTest {
 	void validatesReportReasonAndRejectsSelfReport() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/report", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -174,7 +203,7 @@ class PlanSearchControllerIntegrationTest {
 		long selfOwnedPlanId = 81_003L;
 		insertPlan(selfOwnedPlanId, currentMemberId, "Self owned plan", "PUBLISHED", 0);
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", selfOwnedPlanId)
+		mockMvc.perform(post("/api/plans/{planId}/report", selfOwnedPlanId)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -187,7 +216,7 @@ class PlanSearchControllerIntegrationTest {
 	void validatesCopyRequestAndCreatesExplicitDraftState() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/copy", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -201,7 +230,7 @@ class PlanSearchControllerIntegrationTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/copy", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -215,7 +244,7 @@ class PlanSearchControllerIntegrationTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("TRAVEL_PLAN_DURATION_EXCEEDED"));
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/copy", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)

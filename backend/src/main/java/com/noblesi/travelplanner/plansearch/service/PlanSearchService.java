@@ -56,6 +56,8 @@ public class PlanSearchService {
 	public PageResponse<PlanListResponseDTO> searchPlanList(PlanSearchRequestDTO request) {
 		int page = Math.max(request.getPage(), 1);
 		int size = Math.min(Math.max(request.getSize(), 1), MAX_SIZE);
+		String keyword = request.getKeyword() == null ? "" : request.getKeyword().trim();
+		request.setKeyword(keyword);
 		request.setPage(page);
 		request.setSize(size);
 

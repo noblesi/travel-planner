@@ -146,9 +146,9 @@ class TravelPlanEditorControllerIntegrationTest {
 
 		mockMvc.perform(get("/api/plans/{planId}", Long.toString(PLAN_ID)))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.data.plan.title").value("공개 중 자동 저장된 서울 여행"));
+				.andExpect(jsonPath("$.data.title").value("공개 중 자동 저장된 서울 여행"));
 
-		mockMvc.perform(get("/api/plan-search/plans")
+		mockMvc.perform(get("/api/plans")
 				.queryParam("keyword", "공개 중 자동 저장된 서울 여행"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.content[0].thumbnailImage")

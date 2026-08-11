@@ -1,6 +1,6 @@
 # 여행 플랜 API 계약
 
-- 계약 버전: `2026-08-06`
+- 계약 버전: `2026-08-11`
 - 상태: 공개 탐색·상세와 일정 자동 저장 Backend 구현 기준
 - 대상 화면: 공개 일정 탐색·상세, 여행 플랜 설정, 여행 플랜 제작·날짜 편집·일정 편집
 - 관련 Schema: `docs/database/ddl/001_create_travel_plan_schema.sql`
@@ -14,6 +14,9 @@
 | `GET` | `/api/regions` | 활성 국내 시·도 목록 조회 |
 | `GET` | `/api/plans` | 공개 플랜 제목·지역 검색 |
 | `GET` | `/api/plans/{planId}` | 공개 플랜 일정 상세 조회 |
+| `POST` | `/api/plans/{planId}/like` | 공개 플랜 좋아요 등록·취소 |
+| `POST` | `/api/plans/{planId}/report` | 공개 플랜 신고 |
+| `POST` | `/api/plans/{planId}/copy` | 공개 플랜을 내 플랜으로 복사 |
 | `POST` | `/api/plans` | 플랜, 생성자, 여행 일차 생성 |
 | `GET` | `/api/plans/{planId}/editor` | 제작 페이지 초기 상태 조회 |
 | `GET` | `/api/plans/mine` | 내가 생성했거나 초대받은 플랜 목록 조회 |
@@ -67,40 +70,40 @@ GET /api/plans?keyword=서울&page=1&size=8
 ```
 
 - 인증 없이 호출할 수 있습니다.
-- `VISIBILITY = 'PUBLIC'`, `PLAN_STATUS = 'ACTIVE'`, 작성자 `MEMBER_STATUS = 'ACTIVE'`인 플랜만 반환합니다.
+- `VISIBILITY = 'PUBLIC'`, `PUBLISH_STATUS = 'PUBLISHED'`, `PLAN_STATUS = 'ACTIVE'`, 작성자 `MEMBER_STATUS = 'ACTIVE'`인 플랜만 반환합니다.
 - `keyword`는 앞뒤 공백을 제거하고 제목 또는 지역명에서 대소문자 구분 없이 검색합니다.
 - `page` 기본값은 1이며 1 미만이면 1로 보정합니다.
-- `size` 기본값은 24이며 서버에서 1~100 범위로 보정합니다.
+- `size` 기본값은 10이며 서버에서 1~100 범위로 보정합니다.
 - 기존 호출 호환을 위해 `limit`도 지원하며, 전달하면 `size`보다 우선합니다.
 - `UPDATED_AT DESC`, `PLAN_ID DESC` 순으로 정렬합니다.
-- 결과가 없으면 빈 `plans` 배열을 반환합니다.
+- 결과가 없으면 빈 `content` 배열을 반환합니다.
 
 ```json
 {
   "success": true,
   "data": {
-    "keyword": "서울",
-    "page": 1,
-    "size": 8,
-    "totalCount": 1,
-    "totalPages": 1,
-    "hasNext": false,
-    "plans": [
+    "content": [
       {
         "planId": "21",
         "title": "서울 궁궐과 골목 산책",
-        "regionCode": "1",
-        "regionName": "서울특별시",
-        "startDate": "2026-08-17",
-        "endDate": "2026-08-18",
-        "dayCount": 2,
-        "thumbnailImageUrl": null,
+        "region": "서울특별시",
+        "days": 2,
+        "thumbnailImage": null,
         "authorName": "서울산책자",
-        "authorProfileImageUrl": null,
+        "authorImage": null,
         "likeCount": 2,
         "viewCount": 342
       }
-    ]
+    ],
+    "pagination": {
+      "page": 1,
+      "size": 8,
+      "totalCount": 1,
+      "totalPages": 1,
+      "startPage": 1,
+      "endPage": 1,
+      "offset": 0
+    }
   }
 }
 ```
@@ -115,43 +118,32 @@ GET /api/plans/{planId}
 
 - 인증 없이 호출할 수 있습니다.
 - 공개·활성 플랜만 반환하며 비공개·삭제·미존재 플랜은 모두 `404 PLAN_NOT_FOUND`입니다.
-- 정상 조회 시 `TRAVEL_PLAN.VIEW_COUNT`를 1 증가시킵니다.
-- `days`는 `DAY_NO`, `items`는 오전·오후와 `POSITION_NO` 순으로 반환합니다.
+- 같은 Browser에서 24시간 안에 다시 조회하면 조회수를 중복 증가시키지 않습니다.
+- `days`는 `DAY_NO`, `places`는 오전·오후와 `POSITION_NO` 순으로 반환합니다.
+- 로그인 상태에서는 현재 회원의 좋아요 여부를 `liked`로 반환합니다.
 
 ```json
 {
   "success": true,
   "data": {
-    "plan": {
-      "planId": "21",
-      "title": "서울 궁궐과 골목 산책",
-      "regionCode": "1",
-      "regionName": "서울특별시",
-      "startDate": "2026-08-17",
-      "endDate": "2026-08-18",
-      "dayCount": 2,
-      "thumbnailImageUrl": null,
-      "authorName": "서울산책자",
-      "authorProfileImageUrl": null,
-      "likeCount": 2,
-      "viewCount": 343
-    },
+    "planId": "21",
+    "title": "서울 궁궐과 골목 산책",
+    "authorName": "서울산책자",
+    "startDate": "2026-08-17",
+    "endDate": "2026-08-18",
+    "likeCount": 2,
+    "viewCount": 343,
+    "liked": false,
     "days": [
       {
-        "planDayId": "31",
-        "dayNo": 1,
-        "travelDate": "2026-08-17",
-        "items": [
+        "dayNumber": 1,
+        "visitDate": "2026-08-17",
+        "places": [
           {
-            "scheduleItemId": "41",
             "timeSlot": "MORNING",
-            "positionNo": 1,
             "placeName": "경복궁",
-            "categoryName": "역사관광",
-            "address": "서울 종로구 사직로 161",
             "latitude": 37.579617,
             "longitude": 126.977041,
-            "imageUrl": null,
             "description": "조선의 대표 궁궐에서 시작하는 서울 역사 산책"
           }
         ]
@@ -163,7 +155,7 @@ GET /api/plans/{planId}
 
 | Status | Code | 조건 |
 | --- | --- | --- |
-| `400` | `INVALID_PATH_PARAMETER` | `planId` 형식 또는 64비트 범위 오류 |
+| `400` | `INVALID_REQUEST_PARAMETER` | `planId` 형식 또는 64비트 범위 오류 |
 | `404` | `PLAN_NOT_FOUND` | 미존재·비공개·삭제 플랜 또는 비활성 작성자 |
 
 ---
