@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>관광 데이터 관리 | WithTrip</title>
+<link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+	<div class="admin-layout">
+		<aside th:replace="~{admin/fragments/layout :: sidebar('tour-data')}"></aside>
+		<div class="admin-main">
+			<header
+				th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+			<main class="admin-content">
+				<div class="page-header">
+					<div>
+						<h1>관광 데이터 관리</h1>
+						<p>한국관광공사 TourAPI 데이터를 동기화하고 실행 결과를 확인합니다.</p>
+					</div>
+					<button class="button" type="button" data-pending-action="TourAPI 데이터 동기화">↻ 지금 동기화</button>
+				</div>
+				<section class="summary-grid">
+					<article class="summary-card" th:each="item:${summary}">
+						<span th:text="${#strings.arraySplit(item,'|')[0]}">항목</span><strong
+							th:text="${#strings.arraySplit(item,'|')[1]}">0</strong><small>전체
+							등록 데이터</small>
+					</article>
+				</section>
+				<section class="card connection">
+					<span class="connection-dot"></span>
+					<div>
+						<h2>TourAPI 연결 정상</h2>
+						<p>마지막 동기화: 2026.07.26 14:28 · 변경 데이터 4,826건</p>
+					</div>
+				</section>
+				<section class="card">
+					<h2>최근 동기화 이력</h2>
+					<div class="table-wrapper">
+						<table class="admin-table">
+							<thead>
+								<tr>
+									<th class="text-column">작업 번호</th>
+									<th>시작 시각</th>
+									<th>변경</th>
+									<th>실패</th>
+									<th>상태</th>
+									<th class="text-column">담당자</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr th:each="sync:${history}">
+									<td class="text-column" th:text="${sync.id}">S</td>
+									<td th:text="${sync.startedAt}">날짜</td>
+									<td th:text="${sync.changedCount}">0</td>
+									<td th:text="${sync.failedCount}">0</td>
+									<td><span class="badge" th:classappend="${sync.status == '성공' ? ' success' : ' warning'}" th:text="${sync.status}">성공</span></td>
+									<td class="text-column" th:text="${sync.manager}">관리자</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</section>
+			</main>
+		</div>
+	</div>
+	<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>

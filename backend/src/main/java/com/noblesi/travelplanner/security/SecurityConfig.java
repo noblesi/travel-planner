@@ -60,15 +60,17 @@ public class SecurityConfig {
 			CsrfTokenRepository csrfTokenRepository
 	) throws Exception {
 		http
-				.csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
+				.csrf(csrf -> csrf
+						.csrfTokenRepository(csrfTokenRepository)
+						.ignoringRequestMatchers("/api/admin/**"))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(
 								"/api/auth/**",
-								"/api/admin/auth/login",
-								"/api/admin/auth/session",
+								"/admin/**",
+								"/assets/admin/**",
 								"/api/health",
 								"/error").permitAll()
-						.requestMatchers("/api/admin/**").hasRole("ADMIN")
+						.requestMatchers("/api/admin/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/regions", "/api/places/search").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
@@ -110,10 +112,11 @@ public class SecurityConfig {
 				.csrf(csrf -> csrf
 						.csrfTokenRepository(csrfTokenRepository)
 						.ignoringRequestMatchers(
-								// local profile의 공개 플랜 mutation도 기존 플랜 API와 같은 개발용 CSRF 예외 정책을 적용한다.
+								// local profile의 mutation API에는 개발용 CSRF 예외 정책을 적용한다.
 								"/api/plans/**",
 								"/api/plan-search/**",
-								"/api/plan-invitations/**"))
+								"/api/plan-invitations/**",
+								"/api/admin/**"))
 				.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
 		return http.build();
 	}

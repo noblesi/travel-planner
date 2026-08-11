@@ -42,6 +42,7 @@ $backendVariableNames = @(
     'KAKAO_REST_API_KEY',
     'KAKAO_REST_CONNECT_TIMEOUT',
     'KAKAO_REST_READ_TIMEOUT',
+    'KAKAO_JAVASCRIPT_KEY',
     'MAIL_HOST',
     'MAIL_PORT',
     'MAIL_USERNAME',

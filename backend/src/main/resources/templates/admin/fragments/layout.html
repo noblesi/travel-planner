@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<body>
+	<aside class="admin-sidebar" th:fragment="sidebar(active)">
+		<div class="sidebar-header">
+			<strong>WithTrip</strong><span>ADMIN CONSOLE</span>
+		</div>
+		<div class="admin-profile">
+			<span class="profile-avatar"
+				th:text="${session.loginAdmin != null ? #strings.substring(session.loginAdmin.name, 0, 1) : 'A'}">A</span>
+			<div>
+				<strong
+					th:text="${session.loginAdmin != null ? session.loginAdmin.name : '관리자'}">관리자</strong><small>관리자
+					계정</small>
+			</div>
+		</div>
+		<nav aria-label="관리자 메뉴">
+			<a th:href="@{/admin/dashboard}"
+				th:classappend="${active == 'dashboard'} ? ' active'">대시보드</a> <a
+				th:href="@{/admin/members}"
+				th:classappend="${active == 'members'} ? ' active'">회원 관리</a> <a
+				th:href="@{/admin/trips}"
+				th:classappend="${active == 'trips'} ? ' active'">여행 플랜 관리</a> <a
+				th:href="@{/admin/notices}"
+				th:classappend="${active == 'notices'} ? ' active'">공지사항 관리</a> <a
+				th:href="@{/admin/tour-data}"
+				th:classappend="${active == 'tour-data'} ? ' active'">관광 데이터 관리</a>
+		</nav>
+		<form class="logout-form" th:action="@{/admin/logout}" method="post">
+			<button type="submit">로그아웃</button>
+		</form>
+	</aside>
+
+	<header class="admin-header" th:fragment="header(title)">
+		<button class="menu-button" type="button" data-sidebar-toggle
+			aria-label="관리자 메뉴 열기">☰</button>
+		<div>
+			<span>관리자</span><span class="separator"> &gt; </span><strong
+				th:text="${title}">페이지</strong>
+		</div>
+		<span
+			th:text="${session.loginAdmin != null ? session.loginAdmin.name + ' 관리자' : '관리자'}">관리자</span>
+	</header>
+</body>
+</html>
