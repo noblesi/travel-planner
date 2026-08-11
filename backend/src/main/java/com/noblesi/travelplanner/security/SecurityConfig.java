@@ -65,6 +65,7 @@ public class SecurityConfig {
 						.ignoringRequestMatchers("/api/admin/**"))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(
+							"/api/users/**",
 								"/api/auth/**",
 								"/admin/**",
 								"/assets/admin/**",

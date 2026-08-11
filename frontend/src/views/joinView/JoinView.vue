@@ -2,13 +2,24 @@
 
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { getMemberEmailCheck } from '@/api/users'
 import { useUserStore } from '@/stores/useUserStore'
 
+const userStore = useUserStore()
 const email = ref('')
 const password = ref('')
 const passwordCheck = ref('')
 const router = useRouter()
-const userStore = useUserStore()
+
+///////////////////////////////가데이터
+var testid = "test@test.com"
+var testemail = "test@test.test";
+var testpass = "123123123123";
+
+email.value = testemail
+password.value = testpass
+passwordCheck.value = testpass
+///////////////////////////////////////////
 
 const isPasswordMatched = computed(() => {
   if (!passwordCheck.value) return true; 
@@ -21,7 +32,7 @@ const backPageMove = () => {
 
 const handleContinue = () => {
   
-  checkedId()
+  joinCheck()
   
 }
 
@@ -43,9 +54,8 @@ const passCheckNull = () => {
   return true
 }
 
-const checkedId = () => {
-  var testid = "test@test.com"
-  
+const joinCheck = () => {
+ 
   if (!email.value) {
     alert('이메일 주소를 입력해주세요.')
     return false
@@ -57,13 +67,21 @@ const checkedId = () => {
   }
 
   if(passCheckNull()){
-    if(testid === email.value){
-      alert("사용중인 이메일 입니다.")
-      return false
-    }else{
-      userStore.setStep1Data(email.value, password.value)
-      router.push('/joinProfileView')
-    }
+    console.log("이메일 : " + email.value)
+    console.log("비밀번호 : " + password.value)
+    getMemberEmailCheck(email.value)
+    .then(response => {
+      if(response === true){
+        alert('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.')
+      } else {
+        
+        router.push({ name: 'JoinInfoView' })
+      }
+    }).catch(error => {
+      console.log('이메일 체크 에러 발생:', error)
+      alert('이메일 체크 중 오류가 발생했습니다.')
+    })
+    
   } else {
     return false
   }
@@ -174,7 +192,7 @@ const checkedId = () => {
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
-  background-color: #f5c150;
+  background-color: #c2410c;
   padding: 60px 20px;
   //font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
   box-sizing: border-box;
@@ -185,7 +203,7 @@ const checkedId = () => {
 .login-box {
   width: 400px;
   height: 550px;
-  background-color: #eed8a8;
+  background-color: #ec8f6b;
   text-align: center;
   box-shadow: 0 10px 30px 5px rgba(0, 0, 0, 0.1), 
               0 4px 12px 2px rgba(0, 0, 0, 0.1);
