@@ -35,10 +35,12 @@ public class AdminTripController {
 			@RequestParam(name = "visibility", defaultValue = "") String visibility,
 			@RequestParam(name = "regionCode", defaultValue = "") String regionCode,
 			@RequestParam(name = "reportedOnly", defaultValue = "false") boolean reportedOnly,
+			@RequestParam(name = "reportStatus", defaultValue = "") String reportStatus,
 			@RequestParam(name = "page", defaultValue = "1") int page,
 			Model model
 	) {
-		List<AdminTripListDTO> allTrips = adminTripService.getTripList(keyword, visibility, regionCode, reportedOnly);
+		List<AdminTripListDTO> allTrips = adminTripService.getTripList(
+				keyword, visibility, regionCode, reportedOnly, reportStatus);
 		int totalPages = Math.max(1, (int) Math.ceil((double) allTrips.size() / PAGE_SIZE));
 		int currentPage = Math.min(Math.max(page, 1), totalPages);
 		int fromIndex = (currentPage - 1) * PAGE_SIZE;
@@ -49,6 +51,7 @@ public class AdminTripController {
 		model.addAttribute("visibility", visibility);
 		model.addAttribute("regionCode", regionCode);
 		model.addAttribute("reportedOnly", reportedOnly);
+		model.addAttribute("reportStatus", reportStatus);
 		model.addAttribute("trips", allTrips.subList(fromIndex, toIndex));
 		model.addAttribute("totalCount", allTrips.size());
 		model.addAttribute("currentPage", currentPage);

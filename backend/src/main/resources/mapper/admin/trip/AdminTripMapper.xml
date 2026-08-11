@@ -24,7 +24,14 @@
 		         WHERE report.PLAN_ID = plan.PLAN_ID) AS reportCount,
 		       (SELECT MAX(report.REPORT_ID)
 		          FROM REPORT report
-		         WHERE report.PLAN_ID = plan.PLAN_ID) AS latestReportId
+		         WHERE report.PLAN_ID = plan.PLAN_ID) AS latestReportId,
+		       (SELECT report.REPORT_STATUS
+		          FROM REPORT report
+		         WHERE report.REPORT_ID = (
+		               SELECT MAX(latest_report.REPORT_ID)
+		                 FROM REPORT latest_report
+		                WHERE latest_report.PLAN_ID = plan.PLAN_ID
+		         )) AS latestReportStatus
 		  FROM TRAVEL_PLAN plan
 		  JOIN MEMBER member
 		    ON member.MEMBER_ID = plan.OWNER_MEMBER_ID
@@ -52,6 +59,34 @@
 		       SELECT 1
 		         FROM REPORT report_filter
 		        WHERE report_filter.PLAN_ID = plan.PLAN_ID
+		   )
+		</if>
+
+		<if test="reportedOnly and reportStatus == 'COMPLETED'">
+		   AND EXISTS (
+		       SELECT 1
+		         FROM REPORT report_status
+		        WHERE report_status.PLAN_ID = plan.PLAN_ID
+		          AND report_status.REPORT_ID = (
+		              SELECT MAX(latest_status.REPORT_ID)
+		                FROM REPORT latest_status
+		               WHERE latest_status.PLAN_ID = plan.PLAN_ID
+		          )
+		          AND report_status.REPORT_STATUS IN ('RESOLVED', 'COMPLETED')
+		   )
+		</if>
+
+		<if test="reportedOnly and reportStatus == 'INCOMPLETE'">
+		   AND EXISTS (
+		       SELECT 1
+		         FROM REPORT report_status
+		        WHERE report_status.PLAN_ID = plan.PLAN_ID
+		          AND report_status.REPORT_ID = (
+		              SELECT MAX(latest_status.REPORT_ID)
+		                FROM REPORT latest_status
+		               WHERE latest_status.PLAN_ID = plan.PLAN_ID
+		          )
+		          AND report_status.REPORT_STATUS NOT IN ('RESOLVED', 'COMPLETED')
 		   )
 		</if>
 

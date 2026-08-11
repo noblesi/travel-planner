@@ -20,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 public class AdminTripService {
 
 	private static final Set<String> VISIBILITIES = Set.of("", "PUBLIC", "PRIVATE");
+	private static final Set<String> REPORT_STATUSES = Set.of("", "COMPLETED", "INCOMPLETE");
 
 	private final AdminTripDAO adminTripDAO;
 
@@ -27,11 +28,13 @@ public class AdminTripService {
 			String keyword,
 			String visibility,
 			String regionCode,
-			boolean reportedOnly
+			boolean reportedOnly,
+			String reportStatus
 	) {
 		String normalizedKeyword = keyword == null ? "" : keyword.strip();
 		String normalizedVisibility = visibility == null ? "" : visibility.strip().toUpperCase();
 		String normalizedRegionCode = regionCode == null ? "" : regionCode.strip();
+		String normalizedReportStatus = reportStatus == null ? "" : reportStatus.strip().toUpperCase();
 
 		if (!VISIBILITIES.contains(normalizedVisibility)) {
 			throw new BusinessException(
@@ -40,12 +43,20 @@ public class AdminTripService {
 					"올바르지 않은 플랜 공개 상태입니다."
 			);
 		}
+		if (!REPORT_STATUSES.contains(normalizedReportStatus)) {
+			throw new BusinessException(
+					HttpStatus.BAD_REQUEST,
+					"INVALID_REPORT_STATUS",
+					"올바르지 않은 신고 처리 상태입니다."
+			);
+		}
 
 		return adminTripDAO.selectTripList(
 				normalizedKeyword,
 				normalizedVisibility,
 				normalizedRegionCode,
-				reportedOnly
+				reportedOnly,
+				normalizedReportStatus
 		);
 	}
 

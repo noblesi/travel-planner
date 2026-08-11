@@ -488,7 +488,7 @@ html, body {
 }
 
 .trip-filters {
-	grid-template-columns: minmax(240px, 1fr) 160px 160px 82px;
+	grid-template-columns: minmax(240px, 1fr) 180px 82px;
 	align-items: center;
 }
 

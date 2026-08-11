@@ -23,9 +23,13 @@ public class AdminPageController {
 	}
 
 	@GetMapping("/reports/{reportId}")
-	public String reportDetail(@PathVariable("reportId") String reportId, Model model) {
+	public String reportDetail(
+			@PathVariable("reportId") String reportId,
+			@RequestParam(name = "planId", required = false) Integer planId,
+			Model model) {
 		model.addAttribute("pageTitle", "신고 상세");
 		model.addAttribute("reportId", reportId);
+		model.addAttribute("planId", planId);
 		return "admin/report/reportDetailView";
 	}
 

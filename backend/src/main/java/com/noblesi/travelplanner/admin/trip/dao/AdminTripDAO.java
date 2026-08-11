@@ -17,7 +17,8 @@ public interface AdminTripDAO {
 			@Param("keyword") String keyword,
 			@Param("visibility") String visibility,
 			@Param("regionCode") String regionCode,
-			@Param("reportedOnly") boolean reportedOnly
+			@Param("reportedOnly") boolean reportedOnly,
+			@Param("reportStatus") String reportStatus
 	);
 
 	AdminTripDetailDTO selectTripDetail(@Param("planId") int planId);

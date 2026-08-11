@@ -84,7 +84,7 @@
 							<span class="badge"
 								th:classappend="${report.reportStatusLabel == '검토 완료'} ? ' success' : ' warning'"
 								th:text="${report.reportStatusLabel}">상태</span>
-							<a class="mini-button" th:href="@{/admin/reports/{reportId}(reportId=${report.reportId})}">상세</a>
+							<a class="mini-button" th:href="@{/admin/reports/{reportId}(reportId=${report.reportId},planId=${trip.planId})}">상세</a>
 						</div>
 						<p th:if="${#lists.isEmpty(reports)}">신고 기록이 없습니다.</p>
 					</article>

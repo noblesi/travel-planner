@@ -30,7 +30,7 @@
 							</div>
 							<div>
 								<dt>플랜 번호</dt>
-								<dd>P-7788</dd>
+								<dd th:text="${planId != null ? planId : '-'}">-</dd>
 							</div>
 							<div>
 								<dt>신고인</dt>
@@ -56,7 +56,8 @@
 					</article>
 					<aside class="card">
 						<h2>신고 대상 플랜</h2>
-						<a class="target-trip-card" th:href="@{/admin/trips/P-7788}"><span>플랜 번호 P-7788</span><strong>여행 플랜 상세로 이동 →</strong></a>
+						<a class="target-trip-card" th:if="${planId != null}" th:href="@{/admin/trips/{planId}(planId=${planId})}"><span th:text="|플랜 번호 ${planId}|">플랜 번호</span><strong>여행 플랜 상세로 이동 →</strong></a>
+						<p class="report-content" th:unless="${planId != null}">연결된 플랜 정보를 확인할 수 없습니다.</p>
 						<h2 class="section-gap">처리 사유</h2>
 						<div class="radio-group">
 							<label><input type="radio" name="action"> 반려</label><label><input

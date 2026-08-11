@@ -21,11 +21,22 @@ public class AdminTripListDTO {
 	private String planStatus;
 	private int reportCount;
 	private Integer latestReportId;
+	private String latestReportStatus;
 
 	public String getVisibilityLabel() {
 		if (visibility == null) {
 			return "";
 		}
 		return "PUBLIC".equalsIgnoreCase(visibility) ? "공개" : "비공개";
+	}
+
+	public String getReportStatusLabel() {
+		if (latestReportStatus == null) {
+			return "신고 처리 미완료";
+		}
+		return switch (latestReportStatus.toUpperCase()) {
+			case "RESOLVED", "COMPLETED" -> "신고 처리 완료";
+			default -> "신고 처리 미완료";
+		};
 	}
 }
