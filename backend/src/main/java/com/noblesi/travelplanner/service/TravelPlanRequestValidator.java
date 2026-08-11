@@ -22,8 +22,13 @@ public class TravelPlanRequestValidator {
 	}
 
 	public void validate(CreateTravelPlanRequest request) {
-		validateDates(request.startDate(), request.endDate());
-		requireTodayOrFutureStartDate(request.startDate());
+		validateNewPlanDates(request.startDate(), request.endDate());
+	}
+
+	// 신규 생성과 공개 플랜 가져오기가 동일한 14일/과거 시작일 정책을 공유하도록 검증 진입점을 제공한다.
+	public void validateNewPlanDates(LocalDate startDate, LocalDate endDate) {
+		validateDates(startDate, endDate);
+		requireTodayOrFutureStartDate(startDate);
 	}
 
 	public void validateDateChangePolicy(

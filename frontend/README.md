@@ -1,5 +1,7 @@
 # WithTrip Frontend
 
+이 프로젝트는 Release script와 CI의 `npm ci` 재현성을 기준으로 npm만 사용합니다. 다른 package manager의 lockfile을 함께 유지하면 dependency 해석 결과가 달라질 수 있으므로 `package-lock.json`을 단일 기준으로 사용합니다.
+
 WithTrip의 Vue 3 + Vite 프론트엔드입니다. 전체 프로젝트 실행 방법과 협업 규칙은 루트의 `README.md`와 `CONTRIBUTING.md`를 확인합니다.
 
 ## 구조

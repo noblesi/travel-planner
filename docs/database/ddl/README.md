@@ -9,7 +9,8 @@
 3. `004_verify_travel_plan_schema.sql`: 생성 결과를 읽기 전용 Query로 검증
 4. `005_add_plan_operation_request_hash.sql`: 기존 Schema에 자동 저장 요청 Hash Column 추가
 5. `006_add_plan_publish_status.sql`: 기존 플랜은 발행 상태로 보존하고 신규 플랜 기본값을 작성 중으로 변경
-6. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
+6. `007_add_report_integrity_constraints.sql`: 동일 회원의 중복 신고와 정의되지 않은 신고 사유 차단
+7. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
 
 빈 애플리케이션 Schema에서 다음과 같이 실행합니다. 비밀번호는 명령행에 넣지 않고 Prompt에서 입력합니다.
 

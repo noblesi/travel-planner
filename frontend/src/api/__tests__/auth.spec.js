@@ -8,11 +8,16 @@ import {
 } from '@/api/auth'
 import http from '@/api/http'
 
+const { clearCsrfTokenCacheMock } = vi.hoisted(() => ({
+  clearCsrfTokenCacheMock: vi.fn(),
+}))
+
 vi.mock('@/api/http', () => ({
   default: {
     get: vi.fn(),
     post: vi.fn(),
   },
+  clearCsrfTokenCache: clearCsrfTokenCacheMock,
 }))
 
 beforeEach(() => {
@@ -48,5 +53,6 @@ describe('authentication API', () => {
 
     expect(http.post).toHaveBeenNthCalledWith(1, '/auth/login', credentials)
     expect(http.post).toHaveBeenNthCalledWith(2, '/auth/logout')
+    expect(clearCsrfTokenCacheMock).toHaveBeenCalledTimes(2)
   })
 })

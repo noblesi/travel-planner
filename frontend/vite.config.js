@@ -12,14 +12,6 @@ export default defineConfig(({ mode }) => {
       target: env.VITE_API_PROXY_TARGET || 'http://localhost:8080',
       changeOrigin: true,
     },
-    '/admin': {
-      target: env.VITE_API_PROXY_TARGET || 'http://localhost:8080',
-      changeOrigin: true,
-    },
-    '/assets/admin': {
-      target: env.VITE_API_PROXY_TARGET || 'http://localhost:8080',
-      changeOrigin: true,
-    },
   }
 
   return {

@@ -75,6 +75,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/notices", "/api/notices/*").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/plan-search/plans", "/api/plan-search/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plan-invitations/**").permitAll()
 						.anyRequest().authenticated())
 				.exceptionHandling(exceptions -> exceptions
@@ -111,7 +112,9 @@ public class SecurityConfig {
 				.csrf(csrf -> csrf
 						.csrfTokenRepository(csrfTokenRepository)
 						.ignoringRequestMatchers(
+								// local profile의 mutation API에는 개발용 CSRF 예외 정책을 적용한다.
 								"/api/plans/**",
+								"/api/plan-search/**",
 								"/api/plan-invitations/**",
 								"/api/admin/**"))
 				.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());

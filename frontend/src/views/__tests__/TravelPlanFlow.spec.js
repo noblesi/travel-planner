@@ -13,23 +13,23 @@ import PlanSetupView from '@/views/PlanSetupView.vue'
 const {
   addScheduleItemMock,
   createTravelPlanMock,
-  getPublicTravelPlanMock,
+  getPlanDetailMock,
   getRegionsMock,
   getTravelPlanEditorMock,
   loginWithLocalAccountMock,
   searchPlacesMock,
-  searchPublicPlansMock,
+  getPlanListMock,
   updateTravelPlanDatesMock,
   updateTravelPlanMetadataMock,
 } = vi.hoisted(() => ({
   addScheduleItemMock: vi.fn(),
   createTravelPlanMock: vi.fn(),
-  getPublicTravelPlanMock: vi.fn(),
+  getPlanDetailMock: vi.fn(),
   getRegionsMock: vi.fn(),
   getTravelPlanEditorMock: vi.fn(),
   loginWithLocalAccountMock: vi.fn(),
   searchPlacesMock: vi.fn(),
-  searchPublicPlansMock: vi.fn(),
+  getPlanListMock: vi.fn(),
   updateTravelPlanDatesMock: vi.fn(),
   updateTravelPlanMetadataMock: vi.fn(),
 }))
@@ -52,13 +52,18 @@ vi.mock('@/api/plans', () => ({
   addScheduleItem: addScheduleItemMock,
   createTravelPlan: createTravelPlanMock,
   deleteScheduleItem: vi.fn(),
-  getPublicTravelPlan: getPublicTravelPlanMock,
   getTravelPlanEditor: getTravelPlanEditorMock,
   reorderScheduleItems: vi.fn(),
-  searchPublicPlans: searchPublicPlansMock,
   updateScheduleItem: vi.fn(),
   updateTravelPlanDates: updateTravelPlanDatesMock,
   updateTravelPlanMetadata: updateTravelPlanMetadataMock,
+}))
+
+// 공개 탐색 화면이 planSearch API로 분리되었으므로 사용자 흐름 테스트도 실제 화면과 같은 계약을 사용한다.
+vi.mock('@/api/planSearch', () => ({
+  getPlanDetail: getPlanDetailMock,
+  getPlanList: getPlanListMock,
+  toggleLike: vi.fn(),
 }))
 
 const EmptyView = defineComponent({ template: '<div />' })
@@ -137,13 +142,13 @@ function publicPlan(planId, title) {
   return {
     planId,
     title,
-    regionName: '제주특별자치도',
-    dayCount: 2,
+    region: '제주특별자치도',
+    days: 2,
     likeCount: 3,
     viewCount: 12,
     authorName: '여행자',
-    authorProfileImageUrl: null,
-    thumbnailImageUrl: null,
+    authorImage: null,
+    thumbnailImage: null,
   }
 }
 
@@ -292,25 +297,23 @@ describe('여행 플랜 사용자 흐름', () => {
   })
 
   it('상세 화면에서 돌아오면 페이지를 다시 요청하지 않고 검색 결과를 복원한다', async () => {
-    searchPublicPlansMock.mockImplementation(({ page }) =>
+    getPlanListMock.mockImplementation(({ page }) =>
       Promise.resolve(
         page === 1
           ? { plans: [publicPlan('501', '제주 첫날')], page: 1, totalCount: 2, hasNext: true }
           : { plans: [publicPlan('502', '제주 둘째 날')], page: 2, totalCount: 2, hasNext: false },
       ),
     )
-    getPublicTravelPlanMock.mockResolvedValue({
-      plan: {
-        ...publicPlan('502', '제주 둘째 날'),
-        startDate: '2026-08-10',
-        endDate: '2026-08-11',
-      },
+    getPlanDetailMock.mockResolvedValue({
+      ...publicPlan('502', '제주 둘째 날'),
+      startDate: '2026-08-10',
+      endDate: '2026-08-11',
+      liked: false,
       days: [
         {
-          planDayId: '601',
-          dayNo: 1,
-          travelDate: '2026-08-10',
-          items: [],
+          dayNumber: 1,
+          visitDate: '2026-08-10',
+          places: [],
         },
       ],
     })
@@ -331,7 +334,7 @@ describe('여행 플랜 사용자 흐름', () => {
     expect(router.currentRoute.value.name).toBe('plan-search')
     expect(router.currentRoute.value.query).toEqual({ keyword: '제주', page: '2' })
     expect(wrapper.findAll('.card')).toHaveLength(2)
-    expect(searchPublicPlansMock).toHaveBeenCalledTimes(2)
+    expect(getPlanListMock).toHaveBeenCalledTimes(2)
   })
 
   it('진행 중 플랜의 시작일과 종료된 플랜의 전체 날짜 변경을 제한한다', async () => {
