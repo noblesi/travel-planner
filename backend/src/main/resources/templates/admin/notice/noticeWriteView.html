@@ -1,3 +1,45 @@
-<!DOCTYPE html><html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title th:text="${pageTitle + ' | WithTrip'}">공지 작성</title><link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}"></head><body><div class="admin-layout"><aside th:replace="~{admin/fragments/layout :: sidebar('notices')}"></aside><div class="admin-main"><header th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header><main class="admin-content">
-<div class="page-header"><div><h1 th:text="${pageTitle}">공지사항 작성</h1><p>서비스 공지 내용을 작성합니다.</p></div><div class="header-actions"><a class="button secondary" th:href="@{/admin/notices}">취소</a><button class="button" type="button" data-pending-action="공지사항 저장" th:text="${editMode ? '수정' : '등록'}">등록</button></div></div><form class="card notice-form"><label>분류<select name="category"><option>공지</option><option>점검</option><option>이벤트</option></select></label><label>노출 상태<select name="status"><option>게시중</option><option>숨김</option></select></label><label>제목<input name="title" th:value="${editMode ? notice.title : ''}" placeholder="공지사항 제목"></label><label>내용<textarea name="content" th:text="${editMode ? notice.content : ''}" placeholder="공지사항 내용"></textarea></label><div class="memo-actions"><a class="button secondary" th:href="@{/admin/notices}">취소</a><button class="button" type="button" data-pending-action="공지사항 저장" th:text="${editMode ? '수정' : '등록'}">등록</button></div></form>
-</main></div></div><script th:src="@{/assets/admin/js/admin.js}"></script></body></html>
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${pageTitle + ' | WithTrip'}">공지사항 작성</title>
+    <link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{admin/fragments/layout :: sidebar('notices')}"></aside>
+    <div class="admin-main">
+        <header th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+        <main class="admin-content">
+            <div class="page-header">
+                <div><h1 th:text="${pageTitle}">공지사항 작성</h1><p>서비스에 노출할 공지사항 내용을 작성합니다.</p></div>
+                <a class="button secondary" th:href="@{/admin/notices}">취소</a>
+            </div>
+
+            <form class="card notice-form" method="post" th:object="${noticeForm}"
+                  th:action="${editMode} ? @{/admin/notices/{id}(id=${noticeId})} : @{/admin/notices}">
+                <label>분류
+                    <select th:field="*{categoryCode}">
+                        <option value="">분류 선택</option>
+                        <option value="GUIDE">안내</option>
+                        <option value="MAINTENANCE">점검</option>
+                    </select>
+                    <small class="field-error" th:errors="*{categoryCode}"></small>
+                </label>
+                <label>제목
+                    <input th:field="*{title}" placeholder="공지사항 제목">
+                    <small class="field-error" th:errors="*{title}"></small>
+                </label>
+                <label>내용
+                    <textarea th:field="*{content}" placeholder="공지사항 내용"></textarea>
+                    <small class="field-error" th:errors="*{content}"></small>
+                </label>
+                <div class="memo-actions"><a class="button secondary" th:href="@{/admin/notices}">취소</a><button class="button" type="submit" th:text="${editMode ? '수정' : '등록'}">등록</button></div>
+            </form>
+        </main>
+    </div>
+</div>
+<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>
