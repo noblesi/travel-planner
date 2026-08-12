@@ -30,7 +30,7 @@ public class MemberController {
     }
 
    @PostMapping("/join")
-    public ApiResponse<Boolean> joinMember(@Valid@RequestBody JoinMemberRequest userInfo) {
+    public ApiResponse<Boolean> joinMember(@Valid @RequestBody JoinMemberRequest userInfo) {
         return ApiResponse.success(memberJoinService.addMember(userInfo));
     }
     
