@@ -1,7 +1,7 @@
 package com.noblesi.travelplanner.domain.login;
 
 import java.sql.Date;
-import java.sql.Timestamp;
+
 
 import org.apache.ibatis.type.Alias;
 
@@ -23,7 +23,7 @@ public class LoginUser {
     private String nickname;
     private String gender;
     private Date birth;
-    private Timestamp createdAt;
-    private Timestamp withdrawnAt;
+    private String createdAt;
+    private String withdrawnAt;
 
 }

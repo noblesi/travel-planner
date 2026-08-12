@@ -97,7 +97,7 @@ const router = createRouter({
           alert('회원가입 정보를 먼저 입력해주세요.')
           next({ name: 'join' })
         } else {
-          next({ name : 'complete' })
+          
         }
       }
     },

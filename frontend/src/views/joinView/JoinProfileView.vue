@@ -11,18 +11,25 @@ const birth = ref('')
 const name = ref('')
 const gender = ref('N') // 기본값 설정 (N: 선택안함)
 const phone = ref('')
+const privacy = ref('N')
 
 const handleContinue = () => {
   if (!name.value.trim()) {
     alert('이름을 입력하여 주세요.')
     return
   }
+
   if (birth.value.length !== 8) {
     alert('생년월일을 8자리로 정확하게 입력하여 주세요. (예: 20001031)')
     return
   }
 
-  if (privacy.value === false) {
+  if (!phone.value.trim()) {
+    alert('전화번호를 입력하여 주세요.')
+    return
+  }
+  
+  if (privacy.value !== true) {
     alert('개인정보 저장에 동의하여 주세요.')
     return
   }
@@ -31,7 +38,7 @@ const handleContinue = () => {
     email: userStore.userInfo.email,
     password: userStore.userInfo.password,
     birth: birth.value,
-    privacy: privacy.value ? 'Y' : 'N',
+    privacy: privacy.value,
     name: name.value,
     gender: gender.value,
     phone: phone.value
@@ -46,7 +53,7 @@ const handleContinue = () => {
     })
     .catch((error) => {
       console.log('가입 에러 발생:', error)
-      alert('가입이 정상적으로 이루어지지 않았증니다.')
+      alert('가입이 정상적으로 이루어지지 않았습니다.')
     })
 }
 </script>
