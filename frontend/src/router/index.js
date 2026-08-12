@@ -90,14 +90,14 @@ const router = createRouter({
       path: '/joinProfileView',
       name: 'joinProfile',
       component: () => import('@/views/joinView/JoinProfileView.vue'),
-      beforeEnter: (to, from, next) => {
+      beforeEnter: (next) => {
         const store = useUserStore()
         // 1단계에서 이메일과 비밀번호가 입력되었는지 검증
-        if (!store.step1Data.email || !store.step1Data.password) {
+        if (!store.userInfo.email || !store.userInfo.password) {
           alert('회원가입 정보를 먼저 입력해주세요.')
           next({ name: 'join' })
         } else {
-          next()
+          next({ name : 'complete' })
         }
       }
     },

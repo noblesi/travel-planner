@@ -42,6 +42,7 @@ public class MemberJoinService {
             joinMemberRequest.name(),
             joinMemberRequest.gender(),
             joinMemberRequest.birth(),
+            joinMemberRequest.privacy(),
             joinMemberRequest.phone()
         );
         

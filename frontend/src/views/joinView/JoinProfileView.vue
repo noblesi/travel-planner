@@ -9,7 +9,7 @@ const userStore = useUserStore()
 
 const birth = ref('')
 const name = ref('')
-const gender = ref('M') // 기본값 설정 (M: 남성)
+const gender = ref('N') // 기본값 설정 (N: 선택안함)
 const phone = ref('')
 
 const handleContinue = () => {
@@ -22,10 +22,16 @@ const handleContinue = () => {
     return
   }
 
+  if (privacy.value === false) {
+    alert('개인정보 저장에 동의하여 주세요.')
+    return
+  }
+
   const userInfo = {
     email: userStore.userInfo.email,
     password: userStore.userInfo.password,
     birth: birth.value,
+    privacy: privacy.value ? 'Y' : 'N',
     name: name.value,
     gender: gender.value,
     phone: phone.value
@@ -91,6 +97,9 @@ const handleContinue = () => {
           <input type="radio" :name="gender" v-model="gender" value="F"/>여성
           <input type="radio" :name="gender" v-model="gender" value="N"/>선택안함
         </div>
+        <div class="input-container">
+          <input type="checkbox" class="input-checkbox" v-model="privacy"/>개인정보 저장에 대해 동의합니다.
+        </div>
         <button type="submit" class="btn-submit">가입하기</button>
       </form>
       
@@ -110,6 +119,12 @@ const handleContinue = () => {
   //font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
   box-sizing: border-box;
   backdrop-filter: blur(20px);
+}
+
+.input-checkbox {
+  margin-right: 10px;
+  transform: scale(1.2);
+  cursor: pointer;
 }
 
 // 노션 특유의 슬림하고 중앙 집중된 박스 레이아웃
