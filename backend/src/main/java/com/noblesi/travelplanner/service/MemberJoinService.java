@@ -51,10 +51,12 @@ public class MemberJoinService {
             joinMemberRequest.email(),
             passwordEncoder.encode(joinMemberRequest.password()),
             joinMemberRequest.name(),
+            joinMemberRequest.nickname(),
             joinMemberRequest.gender(),
             joinMemberRequest.birth(),
             joinMemberRequest.privacy(),
             joinMemberRequest.phone()
+     
         );
         
         try {
