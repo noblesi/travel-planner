@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.admin.notice.mapper.AdminNoticeMapper">
+
+	<select id="countNoticeList" resultType="long">
+		SELECT COUNT(*)
+		  FROM NOTICE notice
+		 WHERE 1 = 1
+		<if test="search.keyword != null and search.keyword != ''">
+		   AND (notice.TITLE LIKE '%' || #{search.keyword} || '%'
+		        OR notice.CONTENT LIKE '%' || #{search.keyword} || '%')
+		</if>
+		<if test="search.categoryCode != null and search.categoryCode != ''">
+		   AND notice.CATEGORY_CODE = #{search.categoryCode}
+		</if>
+	</select>
+
+	<select id="selectNoticeList"
+			resultType="com.noblesi.travelplanner.admin.notice.dto.AdminNoticeListDTO">
+		SELECT NOTICE_ID AS noticeId,
+		       TITLE AS title,
+		       CATEGORY_CODE AS categoryCode,
+		       VIEW_COUNT AS viewCount,
+		       ADMIN_NAME AS adminName,
+		       CREATED_AT AS createdAt
+		  FROM (
+		        SELECT ordered_notice.*, ROWNUM AS RN
+		          FROM (
+		                SELECT notice.NOTICE_ID,
+		                       notice.TITLE,
+		                       notice.CATEGORY_CODE,
+		                       notice.VIEW_COUNT,
+		                       admin.ADMIN_NAME,
+		                       notice.CREATED_AT
+		                  FROM NOTICE notice
+		                  JOIN ADMIN admin ON admin.ADMIN_ID = notice.ADMIN_ID
+		                 WHERE 1 = 1
+		                <if test="search.keyword != null and search.keyword != ''">
+		                   AND (notice.TITLE LIKE '%' || #{search.keyword} || '%'
+		                        OR notice.CONTENT LIKE '%' || #{search.keyword} || '%')
+		                </if>
+		                <if test="search.categoryCode != null and search.categoryCode != ''">
+		                   AND notice.CATEGORY_CODE = #{search.categoryCode}
+		                </if>
+		                 ORDER BY notice.CREATED_AT DESC, notice.NOTICE_ID DESC
+		               ) ordered_notice
+		         WHERE ROWNUM &lt;= (#{search.page} * #{search.size})
+		       )
+		 WHERE RN &gt; ((#{search.page} - 1) * #{search.size})
+	</select>
+
+	<select id="selectNoticeDetail"
+			resultType="com.noblesi.travelplanner.admin.notice.dto.AdminNoticeDetailDTO">
+		SELECT notice.NOTICE_ID AS noticeId,
+		       notice.ADMIN_ID AS adminId,
+		       admin.ADMIN_NAME AS adminName,
+		       notice.TITLE AS title,
+		       notice.CONTENT AS content,
+		       notice.CATEGORY_CODE AS categoryCode,
+		       notice.VIEW_COUNT AS viewCount,
+		       notice.CREATED_AT AS createdAt
+		  FROM NOTICE notice
+		  JOIN ADMIN admin ON admin.ADMIN_ID = notice.ADMIN_ID
+		 WHERE notice.NOTICE_ID = #{noticeId}
+	</select>
+
+	<insert id="insertNotice">
+		INSERT INTO NOTICE (
+			NOTICE_ID, ADMIN_ID, TITLE, CONTENT, VIEW_COUNT,
+			CATEGORY_CODE, HIDDEN_YN, CREATED_AT
+		) VALUES (
+			SEQ_NOTICE.NEXTVAL, #{adminId}, #{form.title}, #{form.content}, 0,
+			#{form.categoryCode}, 'N', SYSTIMESTAMP
+		)
+	</insert>
+
+	<update id="updateNotice">
+		UPDATE NOTICE
+		   SET TITLE = #{form.title},
+		       CONTENT = #{form.content},
+		       CATEGORY_CODE = #{form.categoryCode}
+		 WHERE NOTICE_ID = #{noticeId}
+	</update>
+
+	<delete id="deleteNotice">
+		DELETE FROM NOTICE
+		 WHERE NOTICE_ID = #{noticeId}
+	</delete>
+</mapper>
