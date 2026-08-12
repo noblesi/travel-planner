@@ -90,27 +90,21 @@ const router = createRouter({
       path: '/joinProfileView',
       name: 'joinProfile',
       component: () => import('@/views/joinView/JoinProfileView.vue'),
-      beforeEnter: (next) => {
+      beforeEnter: () => {
         const store = useUserStore()
         // 1단계에서 이메일과 비밀번호가 입력되었는지 검증
         if (!store.userInfo.email || !store.userInfo.password) {
           alert('회원가입 정보를 먼저 입력해주세요.')
-          next({ name: 'join' })
-        } else {
-          
+          return { name: 'join' }
         }
+
+        return true
       }
     },
     {
       path: '/joinComplete',
       name: 'complete',
       component: () => import('@/views/joinView/JoinCompleteView.vue'),
-    },
-    //마이 페이지
-    {
-      path: '/myPage',
-      name: 'myPage',
-      component: () => import('@/views/myPage/MyPage.vue'),
     },
     {
       path: '/:pathMatch(.*)*',

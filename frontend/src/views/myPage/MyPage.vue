@@ -129,8 +129,6 @@ const userInfo = ref({
   birthdate: '1998-04-02',
   email: 'hong@example.com'
 })
-const userdata = ref()
-
 // 저장 함수
 const saveInfo = () => {
   // 백엔드 API 연동이 필요할 경우 이곳에 요청 코드를 작성합니다.
