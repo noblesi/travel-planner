@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
+import com.noblesi.travelplanner.domain.place.PlaceType;
 import com.noblesi.travelplanner.integration.tourapi.TourApiException.Reason;
 import com.noblesi.travelplanner.integration.tourapi.TourApiSearchResult.TourApiPlace;
 
@@ -100,10 +101,12 @@ class TourApiResponseParser {
 				textValue(item, "firstimage"),
 				textValue(item, "firstimage2")
 		);
+		PlaceType placeType = PlaceType.fromTourApiContentTypeId(textValue(item, "contenttypeid"));
 		places.add(new TourApiPlace(
 				externalPlaceId,
 				placeName,
-				categoryName(textValue(item, "contenttypeid")),
+				placeType,
+				placeType.categoryName(),
 				joinAddress(textValue(item, "addr1"), textValue(item, "addr2")),
 				decimalValue(item, "mapy"),
 				decimalValue(item, "mapx"),
@@ -125,20 +128,6 @@ class TourApiResponseParser {
 		}
 		String normalized = resultMessage == null ? "" : resultMessage.toUpperCase(Locale.ROOT);
 		return normalized.contains("SERVICE KEY") || normalized.contains("AUTH");
-	}
-
-	private String categoryName(String contentTypeId) {
-		return switch (contentTypeId == null ? "" : contentTypeId) {
-			case "12" -> "관광지";
-			case "14" -> "문화시설";
-			case "15" -> "축제·공연·행사";
-			case "25" -> "여행코스";
-			case "28" -> "레포츠";
-			case "32" -> "숙박";
-			case "38" -> "쇼핑";
-			case "39" -> "음식점";
-			default -> "관광정보";
-		};
 	}
 
 	private String joinAddress(String address, String detailAddress) {

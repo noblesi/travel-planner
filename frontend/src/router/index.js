@@ -91,15 +91,15 @@ const router = createRouter({
       name: 'joinProfile',
       component: () => import('@/views/joinView/JoinProfileView.vue'),
       beforeEnter: (to, from, next) => {
-      const store = useUserStore()
-      // Step 1에서 반드시 넘겨야 하는 데이터(예: userId)가 있는지 확인
-      if (!store.step1Data.email || !store.step1Data.password) {
-        // 데이터가 없으면 1단계로 돌려보냅니다.
-        next({ name: 'Step1', query: { reset: true } })
-      } else {
-        next()
+        const store = useUserStore()
+        // Step 1에서 반드시 넘겨야 하는 데이터(예: userId)가 있는지 확인
+        if (!store.step1Data.email || !store.step1Data.password) {
+          // 데이터가 없으면 1단계로 돌려보냅니다.
+          next({ name: 'Step1', query: { reset: true } })
+        } else {
+          next()
+        }
       }
-    }
     },
     {
       path: '/joinComplete',

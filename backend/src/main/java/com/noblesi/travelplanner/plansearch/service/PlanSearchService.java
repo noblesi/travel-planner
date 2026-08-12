@@ -56,6 +56,8 @@ public class PlanSearchService {
 	public PageResponse<PlanListResponseDTO> searchPlanList(PlanSearchRequestDTO request) {
 		int page = Math.max(request.getPage(), 1);
 		int size = Math.min(Math.max(request.getSize(), 1), MAX_SIZE);
+		String keyword = request.getKeyword() == null ? "" : request.getKeyword().trim();
+		request.setKeyword(keyword);
 		request.setPage(page);
 		request.setSize(size);
 
@@ -67,9 +69,13 @@ public class PlanSearchService {
 		return PageResponse.of(psd.selectPlanList(request), pagination);
 	}
 
-	// 플랜 상세 조회 (memberId가 없으면 비로그인 조회로 보고 liked는 false로 처리)
-	@Transactional(readOnly = true)
-	public PlanDetailResponseDTO searchPlanDetail(Long planId, Long memberId) {
+	// 공개 대상 확인, 선택적 조회수 증가, 상세 응답 조립을 한 Transaction에서 처리한다.
+	@Transactional
+	public PlanDetailResponseDTO searchPlanDetail(Long planId, Long memberId, boolean increaseViewCount) {
+		requirePublishedPlan(planId);
+		if (increaseViewCount && psd.updatePlanViewCount(planId) != 1) {
+			throw planNotFound();
+		}
 		PlanDetailResponseDTO detail = psd.selectPlanById(planId);
 		if (detail == null) {
 			throw planNotFound();
@@ -96,14 +102,6 @@ public class PlanSearchService {
 			day.setPlaces(placesByDay.getOrDefault(day.getDayNumber(), new ArrayList<>()));
 		}
 		return days;
-	}
-
-	// 플랜 조회 수 증가
-	@Transactional
-	public void increasePlanViewCount(Long planId) {
-		if (psd.updatePlanViewCount(planId) != 1) {
-			throw planNotFound();
-		}
 	}
 
 	// 좋아요 토글: 이미 눌렀으면 취소, 안 눌렀으면 등록하고 결과 상태를 반환

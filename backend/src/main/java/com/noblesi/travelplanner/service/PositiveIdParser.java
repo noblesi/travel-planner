@@ -6,9 +6,9 @@ import org.springframework.stereotype.Component;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 
 @Component
-class PositiveIdParser {
+public class PositiveIdParser {
 
-	long parse(String value, String parameterName) {
+	public long parse(String value, String parameterName) {
 		if (value == null || !value.matches("[1-9]\\d*")) {
 			throw invalidPathParameter(parameterName);
 		}

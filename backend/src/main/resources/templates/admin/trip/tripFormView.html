@@ -113,10 +113,11 @@
 				<div><h2 id="recommendation-modal-title">추천 점수 규칙 설정</h2><p>추천 콘텐츠 노출 순위를 계산하는 기준입니다.</p></div>
 				<button class="modal-close" type="button" aria-label="추천 점수 규칙 닫기" data-modal-close>×</button>
 			</header>
-			<form class="weight-form" data-recommendation-form>
-				<label><span>좋아요 수</span><span class="weight-input"><input name="likes" type="number" min="0" max="100" value="40"><small>%</small></span></label>
-				<label><span>조회 수</span><span class="weight-input"><input name="views" type="number" min="0" max="100" value="20"><small>%</small></span></label>
-				<label><span>플랜 복사 수</span><span class="weight-input"><input name="copies" type="number" min="0" max="100" value="40"><small>%</small></span></label>
+			<form class="weight-form" method="post" th:action="@{/admin/trips/recommend-rule}"
+				th:object="${recommendRule}" data-recommendation-form>
+				<label><span>좋아요 수</span><span class="weight-input"><input th:field="*{likeWeight}" type="number" min="0" max="100" step="1" required><small>%</small></span></label>
+				<label><span>조회 수</span><span class="weight-input"><input th:field="*{viewWeight}" type="number" min="0" max="100" step="1" required><small>%</small></span></label>
+				<label><span>플랜 복사 수</span><span class="weight-input"><input th:field="*{copyWeight}" type="number" min="0" max="100" step="1" required><small>%</small></span></label>
 				<p class="weight-total" data-weight-total>합계 100%</p>
 				<div class="modal-actions"><button class="modal-reset" type="button" data-rule-reset>초기화</button><button class="modal-save" type="submit">규칙 저장</button></div>
 			</form>

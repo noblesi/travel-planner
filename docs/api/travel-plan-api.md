@@ -1,6 +1,6 @@
 # 여행 플랜 API 계약
 
-- 계약 버전: `2026-08-06`
+- 계약 버전: `2026-08-11`
 - 상태: 공개 탐색·상세와 일정 자동 저장 Backend 구현 기준
 - 대상 화면: 공개 일정 탐색·상세, 여행 플랜 설정, 여행 플랜 제작·날짜 편집·일정 편집
 - 관련 Schema: `docs/database/ddl/001_create_travel_plan_schema.sql`
@@ -14,6 +14,9 @@
 | `GET` | `/api/regions` | 활성 국내 시·도 목록 조회 |
 | `GET` | `/api/plans` | 공개 플랜 제목·지역 검색 |
 | `GET` | `/api/plans/{planId}` | 공개 플랜 일정 상세 조회 |
+| `POST` | `/api/plans/{planId}/like` | 공개 플랜 좋아요 등록·취소 |
+| `POST` | `/api/plans/{planId}/report` | 공개 플랜 신고 |
+| `POST` | `/api/plans/{planId}/copy` | 공개 플랜을 내 플랜으로 복사 |
 | `POST` | `/api/plans` | 플랜, 생성자, 여행 일차 생성 |
 | `GET` | `/api/plans/{planId}/editor` | 제작 페이지 초기 상태 조회 |
 | `GET` | `/api/plans/mine` | 내가 생성했거나 초대받은 플랜 목록 조회 |
@@ -67,40 +70,40 @@ GET /api/plans?keyword=서울&page=1&size=8
 ```
 
 - 인증 없이 호출할 수 있습니다.
-- `VISIBILITY = 'PUBLIC'`, `PLAN_STATUS = 'ACTIVE'`, 작성자 `MEMBER_STATUS = 'ACTIVE'`인 플랜만 반환합니다.
+- `VISIBILITY = 'PUBLIC'`, `PUBLISH_STATUS = 'PUBLISHED'`, `PLAN_STATUS = 'ACTIVE'`, 작성자 `MEMBER_STATUS = 'ACTIVE'`인 플랜만 반환합니다.
 - `keyword`는 앞뒤 공백을 제거하고 제목 또는 지역명에서 대소문자 구분 없이 검색합니다.
 - `page` 기본값은 1이며 1 미만이면 1로 보정합니다.
-- `size` 기본값은 24이며 서버에서 1~100 범위로 보정합니다.
+- `size` 기본값은 10이며 서버에서 1~100 범위로 보정합니다.
 - 기존 호출 호환을 위해 `limit`도 지원하며, 전달하면 `size`보다 우선합니다.
-- `UPDATED_AT DESC`, `PLAN_ID DESC` 순으로 정렬합니다.
-- 결과가 없으면 빈 `plans` 배열을 반환합니다.
+- `VIEW_COUNT DESC`, `UPDATED_AT DESC`, `PLAN_ID DESC` 순으로 정렬합니다.
+- 결과가 없으면 빈 `content` 배열을 반환합니다.
 
 ```json
 {
   "success": true,
   "data": {
-    "keyword": "서울",
-    "page": 1,
-    "size": 8,
-    "totalCount": 1,
-    "totalPages": 1,
-    "hasNext": false,
-    "plans": [
+    "content": [
       {
         "planId": "21",
         "title": "서울 궁궐과 골목 산책",
-        "regionCode": "1",
-        "regionName": "서울특별시",
-        "startDate": "2026-08-17",
-        "endDate": "2026-08-18",
-        "dayCount": 2,
-        "thumbnailImageUrl": null,
+        "region": "서울특별시",
+        "days": 2,
+        "thumbnailImage": null,
         "authorName": "서울산책자",
-        "authorProfileImageUrl": null,
+        "authorImage": null,
         "likeCount": 2,
         "viewCount": 342
       }
-    ]
+    ],
+    "pagination": {
+      "page": 1,
+      "size": 8,
+      "totalCount": 1,
+      "totalPages": 1,
+      "startPage": 1,
+      "endPage": 1,
+      "offset": 0
+    }
   }
 }
 ```
@@ -115,44 +118,33 @@ GET /api/plans/{planId}
 
 - 인증 없이 호출할 수 있습니다.
 - 공개·활성 플랜만 반환하며 비공개·삭제·미존재 플랜은 모두 `404 PLAN_NOT_FOUND`입니다.
-- 정상 조회 시 `TRAVEL_PLAN.VIEW_COUNT`를 1 증가시킵니다.
-- `days`는 `DAY_NO`, `items`는 오전·오후와 `POSITION_NO` 순으로 반환합니다.
+- 같은 Browser에서 24시간 안에 다시 조회하면 조회수를 중복 증가시키지 않습니다.
+- `days`는 `DAY_NO`, `places`는 오전·오후와 `POSITION_NO` 순으로 반환합니다.
+- 로그인 상태에서는 현재 회원의 좋아요 여부를 `liked`로 반환합니다.
 
 ```json
 {
   "success": true,
   "data": {
-    "plan": {
-      "planId": "21",
-      "title": "서울 궁궐과 골목 산책",
-      "regionCode": "1",
-      "regionName": "서울특별시",
-      "startDate": "2026-08-17",
-      "endDate": "2026-08-18",
-      "dayCount": 2,
-      "thumbnailImageUrl": null,
-      "authorName": "서울산책자",
-      "authorProfileImageUrl": null,
-      "likeCount": 2,
-      "viewCount": 343
-    },
+    "planId": "21",
+    "title": "서울 궁궐과 골목 산책",
+    "authorName": "서울산책자",
+    "startDate": "2026-08-17",
+    "endDate": "2026-08-18",
+    "likeCount": 2,
+    "viewCount": 343,
+    "liked": false,
     "days": [
       {
-        "planDayId": "31",
-        "dayNo": 1,
-        "travelDate": "2026-08-17",
-        "items": [
+        "dayNumber": 1,
+        "visitDate": "2026-08-17",
+        "places": [
           {
-            "scheduleItemId": "41",
             "timeSlot": "MORNING",
-            "positionNo": 1,
             "placeName": "경복궁",
-            "categoryName": "역사관광",
-            "address": "서울 종로구 사직로 161",
             "latitude": 37.579617,
             "longitude": 126.977041,
-            "imageUrl": null,
-            "description": "조선의 대표 궁궐에서 시작하는 서울 역사 산책"
+            "address": "서울특별시 종로구 사직로 161"
           }
         ]
       }
@@ -163,8 +155,100 @@ GET /api/plans/{planId}
 
 | Status | Code | 조건 |
 | --- | --- | --- |
-| `400` | `INVALID_PATH_PARAMETER` | `planId` 형식 또는 64비트 범위 오류 |
+| `400` | `INVALID_PATH_PARAMETER` | `planId`가 1 이상의 숫자가 아니거나 64비트 범위를 벗어남 |
 | `404` | `PLAN_NOT_FOUND` | 미존재·비공개·삭제 플랜 또는 비활성 작성자 |
+
+---
+
+## 공개 플랜 좋아요·신고·복사
+
+세 API는 모두 로그인 Session과 유효한 CSRF Token이 필요합니다. 대상 플랜은 공개 상세와 동일하게 `PUBLIC + PUBLISHED + ACTIVE`이고 작성자도 활성 상태여야 합니다. 조건을 만족하지 않으면 존재 여부를 구분하지 않고 `404 PLAN_NOT_FOUND`를 반환합니다.
+
+### 좋아요 등록·취소
+
+```http
+POST /api/plans/{planId}/like
+X-CSRF-TOKEN: server-generated-token
+```
+
+현재 회원이 좋아요를 누르지 않은 플랜이면 등록하고 `data: true`, 이미 누른 플랜이면 취소하고 `data: false`를 반환합니다. 성공 Status는 `200 OK`입니다.
+
+```json
+{
+  "success": true,
+  "data": true
+}
+```
+
+### 플랜 신고
+
+```http
+POST /api/plans/{planId}/report
+Content-Type: application/json
+X-CSRF-TOKEN: server-generated-token
+```
+
+```json
+{
+  "reason": "FALSE_INFO",
+  "detail": "운영 시간이 실제 정보와 다릅니다."
+}
+```
+
+| Property | Required | Validation |
+| --- | --- | --- |
+| `reason` | Yes | `INAPPROPRIATE`, `FALSE_INFO`, `SPAM`, `OTHER` 중 하나 |
+| `detail` | No | 최대 1000자, 공백만 입력하면 `null`로 저장 |
+
+본인 소유 플랜은 신고할 수 없고, 같은 회원이 같은 플랜을 두 번 신고할 수 없습니다. 성공 Status는 `200 OK`이며 응답 `data`는 `null`입니다.
+
+### 공개 플랜 복사
+
+```http
+POST /api/plans/{sourcePlanId}/copy
+Content-Type: application/json
+X-CSRF-TOKEN: server-generated-token
+```
+
+```json
+{
+  "title": "서울 여행 복사본",
+  "startDate": "2026-09-01",
+  "endDate": "2026-09-03"
+}
+```
+
+| Property | Required | Validation |
+| --- | --- | --- |
+| `title` | Yes | 공백 제거 후 1~200자 |
+| `startDate` | Yes | 한국 시간 기준 오늘 이후 또는 오늘 |
+| `endDate` | Yes | `startDate`와 같거나 이후 |
+
+여행 기간은 최대 14일입니다. 복사본은 요청한 기간으로 DAY를 새로 만들고, 원본에서 새 기간의 DAY 수를 초과하는 일정은 복사하지 않습니다. 복사본은 `PRIVATE + DRAFT + ACTIVE` 상태로 생성됩니다.
+
+성공 Status는 `200 OK`이고 `data`는 JavaScript 정밀도 손실을 방지한 새 플랜 ID 문자열입니다.
+
+```json
+{
+  "success": true,
+  "data": "202"
+}
+```
+
+### 좋아요·신고·복사 오류
+
+| Status | Code | 조건 |
+| --- | --- | --- |
+| `400` | `INVALID_PATH_PARAMETER` | `planId` 또는 `sourcePlanId`가 1 이상의 숫자가 아니거나 64비트 범위를 벗어남 |
+| `400` | `VALIDATION_ERROR` | 신고 또는 복사 Request 필수 값·길이·Enum 오류 |
+| `400` | `SELF_PLAN_REPORT_NOT_ALLOWED` | 본인 소유 플랜 신고 |
+| `400` | `INVALID_TRAVEL_DATE_RANGE` | 복사 시작일이 종료일보다 늦음 |
+| `400` | `TRAVEL_PLAN_DURATION_EXCEEDED` | 복사 기간이 14일을 초과함 |
+| `400` | `PAST_TRAVEL_START_DATE` | 복사 시작일이 한국 시간 기준 오늘보다 빠름 |
+| `401` | `CURRENT_MEMBER_NOT_AVAILABLE` | 로그인 Session 없음 |
+| `403` | `ACCESS_DENIED` | CSRF Token 누락 또는 불일치 |
+| `404` | `PLAN_NOT_FOUND` | 미존재·비공개·작성 중·삭제 플랜 또는 비활성 작성자 |
+| `409` | `REPORT_ALREADY_EXISTS` | 같은 회원이 같은 플랜을 중복 신고 |
 
 ---
 
@@ -381,6 +465,7 @@ Status: `200 OK`
       "startDate": "2026-08-10",
       "endDate": "2026-08-12",
       "visibility": "PRIVATE",
+      "thumbnailImageUrl": null,
       "versionNo": 0
     },
     "days": [
@@ -423,6 +508,7 @@ Status: `200 OK`
 | `plan.startDate` | `string(date)` | No | 여행 시작일 |
 | `plan.endDate` | `string(date)` | No | 여행 종료일 |
 | `plan.visibility` | `string` | No | 공개 범위 |
+| `plan.thumbnailImageUrl` | `string` | Yes | 공개 탐색 카드에 표시할 대표 이미지 URL |
 | `plan.versionNo` | `integer` | No | Metadata Version |
 | `days` | `array` | No | `dayNo` 오름차순 일차 목록 |
 | `days[].planDayId` | `string` | No | 일차 ID |
@@ -592,7 +678,7 @@ Content-Type: application/json
 }
 ```
 
-장소 Snapshot 필드는 직전에 `GET /api/places/search`가 반환한 값을 전달합니다. `placeProvider`는 현재 `TOUR_API`만 허용합니다. 서버는 전달받은 값을 `PLAN_SCHEDULE_ITEM`에 Snapshot으로 저장하고 선택 시간대의 마지막 순서에 추가합니다.
+일정 추가 전에 `GET /api/places/search`로 장소를 조회해야 합니다. `placeProvider`는 현재 `TOUR_API`만 허용합니다. 서버는 `placeProvider + externalPlaceId`로 `PLACE_MASTER`를 다시 조회하고, 서버가 보관한 장소명·유형·카테고리·주소·좌표·이미지를 `PLAN_SCHEDULE_ITEM` Snapshot으로 저장합니다. Request의 나머지 장소 필드는 하위 호환용이며 썸네일이나 Snapshot 결정에 사용하지 않습니다.
 
 | Property | Required | Validation |
 | --- | --- | --- |
@@ -601,7 +687,7 @@ Content-Type: application/json
 | `timeSlot` | Yes | `MORNING` 또는 `AFTERNOON` |
 | `placeProvider` | Yes | `TOUR_API` |
 | `externalPlaceId` | Yes | 1~100자 |
-| `placeName` | Yes | 1~200자 |
+| `placeName` | No | 하위 호환용, 최대 200자, 서버 값 사용 |
 | `categoryName` | No | 최대 100자 |
 | `address` | No | 최대 500자 |
 | `latitude` | No | -90~90 |
@@ -681,6 +767,7 @@ Content-Type: application/json
 | `400` | `MALFORMED_JSON` | JSON 또는 Enum 형식 오류 |
 | `400` | `INVALID_PATH_PARAMETER` | `planId`, `dayId` 또는 `itemId` 형식 오류 |
 | `400` | `INVALID_SCHEDULE_ORDER` | 정렬 목록 ID 형식 오류 또는 목록의 누락·추가·중복 |
+| `400` | `PLACE_REFERENCE_NOT_FOUND` | 서버 장소 검색 이력이 없거나 비활성 장소를 추가하려고 함 |
 | `404` | `PLAN_NOT_FOUND` | 플랜이 없거나 삭제 상태이거나 현재 회원 소유가 아님 |
 | `404` | `PLAN_DAY_NOT_FOUND` | DAY가 없거나 대상 플랜에 속하지 않음 |
 | `404` | `SCHEDULE_ITEM_NOT_FOUND` | 항목이 없거나 대상 DAY에 속하지 않음 |
@@ -712,7 +799,20 @@ X-CSRF-TOKEN: server-generated-token
 - 같은 값이면 무변경 성공하며 Version을 증가시키지 않습니다.
 - 현재 Version과 다르면 `409 PLAN_VERSION_CONFLICT`입니다.
 
-## 11. 플랜 초대
+## 11. 플랜 대표 이미지 자동 결정
+
+- 사용자는 대표 이미지를 직접 선택하거나 업로드하지 않습니다.
+- `PLACE_MASTER.PLACE_TYPE`을 우선 사용하고, 기존 일정은 카테고리 Snapshot을 호환 기준으로 사용합니다.
+- 우선순위는 `관광지 → 문화시설 → 축제·공연·행사 → 여행코스 → 레포츠 → 관광정보 → 쇼핑`입니다.
+- 같은 카테고리 안에서는 DAY, 오전·오후, 일정 순서를 따릅니다.
+- `음식점`, `숙박` 이미지는 대표 이미지 후보에서 제외합니다.
+- 절대 `http` 또는 `https` URL만 후보로 인정하며, Frontend는 실제 이미지 로딩 실패 시 로컬 기본 썸네일로 교체합니다.
+- 제작 완료와 일정 추가·수정·삭제·정렬 시 `THUMBNAIL_IMG`를 다시 계산합니다.
+- 이미 `PUBLISHED`인 플랜도 제작 완료 요청을 다시 받으면 썸네일을 재계산하며 Version은 증가시키지 않습니다.
+- 계산 결과가 기존 값과 같으면 DB Update를 수행하지 않습니다.
+- 후보가 없으면 `THUMBNAIL_IMG = null`을 유지하고 Frontend가 로컬 기본 썸네일을 표시합니다.
+
+## 12. 플랜 초대
 
 ### 초대 생성
 

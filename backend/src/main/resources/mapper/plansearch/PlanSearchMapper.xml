@@ -77,6 +77,12 @@
 		   AND VISIBILITY = 'PUBLIC'
 		   AND PUBLISH_STATUS = 'PUBLISHED'
 		   AND PLAN_STATUS = 'ACTIVE'
+		   AND EXISTS (
+		       SELECT 1
+		         FROM MEMBER M
+		        WHERE M.MEMBER_ID = TRAVEL_PLAN.OWNER_MEMBER_ID
+		          AND M.MEMBER_STATUS = 'ACTIVE'
+		   )
 	</update>
 
 	<select id="selectPlanDays" resultType="PlanDetailDayDTO">

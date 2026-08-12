@@ -1,18 +1,5 @@
 import http from './http'
 
-export async function searchPublicPlans({ keyword = '', page = 1, size = 24, limit } = {}) {
-  const params = { keyword, page, size }
-  if (limit != null) params.limit = limit
-  const response = await http.get('/plans', { params })
-  return response.data.data
-}
-
-export async function getPublicTravelPlan(planId) {
-  const encodedPlanId = encodeURIComponent(String(planId))
-  const response = await http.get(`/plans/${encodedPlanId}`)
-  return response.data.data
-}
-
 export async function createTravelPlan(payload) {
   const response = await http.post('/plans', payload)
   return response.data.data

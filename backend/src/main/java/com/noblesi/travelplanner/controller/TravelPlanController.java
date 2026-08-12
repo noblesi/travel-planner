@@ -21,12 +21,9 @@ import com.noblesi.travelplanner.dto.plan.MyPlanListResponse;
 import com.noblesi.travelplanner.dto.plan.PlanLifecycleResponse;
 import com.noblesi.travelplanner.dto.plan.RestoreTravelPlanRequest;
 import com.noblesi.travelplanner.dto.plan.UpdatePlanPublicationRequest;
-import com.noblesi.travelplanner.dto.plan.PublicPlanDetailResponse;
-import com.noblesi.travelplanner.dto.plan.PublicPlanSearchResponse;
 import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanDatesRequest;
 import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanMetadataRequest;
 import com.noblesi.travelplanner.service.TravelPlanService;
-import com.noblesi.travelplanner.service.PublicPlanService;
 
 import jakarta.validation.Valid;
 
@@ -35,30 +32,9 @@ import jakarta.validation.Valid;
 public class TravelPlanController {
 
 	private final TravelPlanService travelPlanService;
-	private final PublicPlanService publicPlanService;
 
-	public TravelPlanController(
-			TravelPlanService travelPlanService,
-			PublicPlanService publicPlanService
-	) {
+	public TravelPlanController(TravelPlanService travelPlanService) {
 		this.travelPlanService = travelPlanService;
-		this.publicPlanService = publicPlanService;
-	}
-
-	@GetMapping
-	public ApiResponse<PublicPlanSearchResponse> searchPublicPlans(
-			@RequestParam(defaultValue = "") String keyword,
-			@RequestParam(defaultValue = "1") int page,
-			@RequestParam(defaultValue = "24") int size,
-			@RequestParam(required = false) Integer limit
-	) {
-		int requestedSize = limit == null ? size : limit;
-		return ApiResponse.success(publicPlanService.search(keyword, page, requestedSize));
-	}
-
-	@GetMapping("/{planId}")
-	public ApiResponse<PublicPlanDetailResponse> getPublicPlan(@PathVariable String planId) {
-		return ApiResponse.success(publicPlanService.getDetail(planId));
 	}
 
 	@GetMapping("/mine")

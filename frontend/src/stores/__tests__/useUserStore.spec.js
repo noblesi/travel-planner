@@ -8,32 +8,26 @@ beforeEach(() => {
 })
 
 describe('user store', () => {
-  it('회원가입 단계별 입력값을 저장한다', () => {
+  it('회원가입 1단계 입력값을 저장한다', () => {
     const store = useUserStore()
 
-    store.setStep1Data('member@example.com', 'password-value')
-    store.setStep2Data('20000101', '홍길동', 'F', '010-1234-5678')
+    store.setUserInfo('member@example.com', 'password-value')
 
-    expect(store.tempEmail).toBe('member@example.com')
-    expect(store.tempPassword).toBe('password-value')
-    expect(store.tempBirth).toBe('20000101')
-    expect(store.tempName).toBe('홍길동')
-    expect(store.tempGender).toBe('F')
-    expect(store.tempPhone).toBe('010-1234-5678')
+    expect(store.userInfo).toEqual({
+      email: 'member@example.com',
+      password: 'password-value',
+    })
   })
 
-  it('임시 회원가입 정보를 모두 초기화한다', () => {
+  it('회원가입 1단계 입력값을 초기화한다', () => {
     const store = useUserStore()
-    store.setStep1Data('member@example.com', 'password-value')
-    store.setStep2Data('20000101', '홍길동', 'F', '010-1234-5678')
+    store.setUserInfo('member@example.com', 'password-value')
 
     store.clearData()
 
-    expect(store.tempEmail).toBe('')
-    expect(store.tempPassword).toBe('')
-    expect(store.tempBirth).toBe('')
-    expect(store.tempName).toBe('')
-    expect(store.tempGender).toBe('')
-    expect(store.tempPhone).toBe('')
+    expect(store.userInfo).toEqual({
+      email: '',
+      password: '',
+    })
   })
 })

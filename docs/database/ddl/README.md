@@ -10,7 +10,9 @@
 4. `005_add_plan_operation_request_hash.sql`: 기존 Schema에 자동 저장 요청 Hash Column 추가
 5. `006_add_plan_publish_status.sql`: 기존 플랜은 발행 상태로 보존하고 신규 플랜 기본값을 작성 중으로 변경
 6. `007_add_report_integrity_constraints.sql`: 동일 회원의 중복 신고와 정의되지 않은 신고 사유 차단
-7. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
+7. `008_backfill_plan_thumbnails.sql`: 기존 공개·제작 완료 플랜의 대표 이미지 멱등 재계산
+8. `009_verify_plan_thumbnails.sql`: 장소 유형과 저장된 대표 이미지 일치 여부 읽기 전용 검증
+9. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
 
 빈 애플리케이션 Schema에서 다음과 같이 실행합니다. 비밀번호는 명령행에 넣지 않고 Prompt에서 입력합니다.
 
@@ -19,6 +21,8 @@ $env:NLS_LANG = 'KOREAN_KOREA.AL32UTF8'
 sqlplus travel_planner@//localhost:1521/FREEPDB1 `@docs/database/ddl/001_create_travel_plan_schema.sql
 sqlplus travel_planner@//localhost:1521/FREEPDB1 `@docs/database/ddl/002_seed_region_master.sql
 sqlplus travel_planner@//localhost:1521/FREEPDB1 `@docs/database/ddl/004_verify_travel_plan_schema.sql
+sqlplus travel_planner@//localhost:1521/FREEPDB1 `@docs/database/ddl/008_backfill_plan_thumbnails.sql
+sqlplus travel_planner@//localhost:1521/FREEPDB1 `@docs/database/ddl/009_verify_plan_thumbnails.sql
 ```
 
 Windows Oracle Client의 문자셋이 UTF-8이 아니면 한글 Seed 실행 중 `ORA-01756`이 발생할 수 있으므로 위 `NLS_LANG`을 먼저 설정합니다.
@@ -58,6 +62,9 @@ TourAPI의 현재 국문 관광정보 Service Base URL은 `apis.data.go.kr/B5510
 - `PLAN_EDIT_OPERATION.REQUEST_HASH`는 같은 작업 ID의 동일 재시도와 다른 Payload 재사용을 구분하는 SHA-256 값입니다. `001` 적용이 끝난 기존 Schema에만 `005`를 한 번 실행합니다.
 - `TRAVEL_PLAN.PUBLISH_STATUS`는 자동 저장 상태와 공개 탐색 노출을 분리합니다. 신규 플랜은 `DRAFT`, 제작 완료 플랜은 `PUBLISHED`입니다.
 - `PLACE_MASTER`의 PK는 외부 제공자와 외부 장소 ID의 복합키이며, 일정에는 장소 Snapshot을 보관합니다.
+- TourAPI 검색 결과는 `PLACE_MASTER.PLACE_TYPE`에 서버 정규화 유형을 저장합니다. 일정 추가 Request의 표시용 장소 필드는 신뢰하지 않고 이 Master를 다시 조회합니다.
+- `008`은 `PUBLIC + PUBLISHED + ACTIVE` 플랜에만 적용되며 여러 번 실행해도 같은 결과입니다. 관광 후보가 없으면 `THUMBNAIL_IMG`를 `NULL`로 유지합니다.
+- `009`의 두 Query는 모두 0행이어야 합니다.
 - 자동 저장 충돌 검사를 위해 `TRAVEL_PLAN.VERSION_NO`, `PLAN_DAY.SCHEDULE_VERSION`, `PLAN_SCHEDULE_ITEM.ITEM_VERSION`은 0 이상으로 제한했습니다.
 
 ## 애플리케이션 Insert 규칙

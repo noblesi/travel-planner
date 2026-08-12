@@ -24,7 +24,7 @@
 		 WHERE LOWER(EMAIL) = #{email}
 	</select>
 
-	<insert id="insertMember" parameterType="com.noblesi.travelplanner.dto.member.JoinMemberRequest">
+	<insert id="insertMember" parameterType="joinMemberRequest">
 		INSERT INTO MEMBER (
 			MEMBER_ID, 
 			MEMBER_NAME, 
@@ -39,16 +39,16 @@
 			CREATED_AT, 
 			UPDATED_AT
 			)
-    	VALUES (
-			SEQ_MEMBER, 
-			#{NAME}, 
-			#{EMAIL}, 
-			#{BIRTH}, 
-			#{GENDER}, 
-			#{PHONE}, 
-			#{NAME}, 
-			#{PASSWORD}, 
-			'Y', 
+		VALUES (
+			SEQ_MEMBER.NEXTVAL,
+			#{name},
+			#{email},
+			#{birth, jdbcType=DATE},
+			#{gender},
+			#{phone},
+			#{name},
+			#{password},
+			#{privacy},
 			'ACTIVE',
 			SYSTIMESTAMP, 
 			SYSTIMESTAMP
@@ -58,7 +58,7 @@
 	<select id="selectEmailCnt" resultType="int">
 		SELECT COUNT(*) AS CNT
 		  FROM MEMBER
-		 WHERE EMAIL = #{email}
+		 WHERE LOWER(EMAIL) = #{email}
 	</select>
 
 </mapper>
