@@ -1,4 +1,72 @@
-<!DOCTYPE html><html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>공지사항 관리 | WithTrip</title><link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}"></head><body><div class="admin-layout"><aside th:replace="~{admin/fragments/layout :: sidebar('notices')}"></aside><div class="admin-main"><header th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header><main class="admin-content">
-<div class="page-header"><div><h1>공지사항 관리</h1><p>서비스 공지사항의 등록 및 노출 상태를 관리합니다.</p></div><a class="button" th:href="@{/admin/notices/new}">새 공지 작성</a></div><section class="card"><div class="panel-heading"><h2>공지사항 목록</h2></div><form class="filters notice-filters" method="get"><input name="keyword" placeholder="공지 제목 검색"><select name="category"><option value="">분류 전체</option><option value="GUIDE">안내</option><option value="SYSTEM">시스템</option></select><button class="button">검색</button><a class="button secondary" th:href="@{/admin/notices/new}">새 공지 작성</a></form>
-<div class="table-wrapper"><table class="admin-table"><thead><tr><th>번호</th><th>제목</th><th>분류</th><th>노출 상태</th><th>등록일</th><th>관리</th></tr></thead><tbody><tr th:each="notice:${notices.content}"><td th:text="${notice.noticeId}">1</td><td class="title"><a th:href="@{/admin/notices/{id}(id=${notice.noticeId})}" th:text="${notice.title}">제목</a></td><td th:text="${notice.category}">분류</td><td><span class="badge success">게시중</span></td><td th:text="${notice.createdAt}">날짜</td><td><div class="table-actions"><a class="mini-button" th:href="@{/admin/notices/{id}(id=${notice.noticeId})}">상세</a><a class="mini-button primary" th:href="@{/admin/notices/{id}/edit(id=${notice.noticeId})}">수정</a><button class="mini-button danger" type="button">삭제</button></div></td></tr><tr th:if="${#lists.isEmpty(notices.content)}"><td colspan="6">등록된 공지사항이 없습니다.</td></tr></tbody></table></div><nav class="pagination" th:if="${notices.pagination.totalPages > 0}"><a th:each="number:${#numbers.sequence(notices.pagination.startPage,notices.pagination.endPage)}" th:href="@{/admin/notices(page=${number},category=${category})}" th:text="${number}" th:classappend="${number == notices.pagination.page} ? ' active'">1</a></nav></section>
-</main></div></div><script th:src="@{/assets/admin/js/admin.js}"></script></body></html>
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>공지사항 관리 | WithTrip</title>
+    <link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{admin/fragments/layout :: sidebar('notices')}"></aside>
+    <div class="admin-main">
+        <header th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+        <main class="admin-content">
+            <div class="page-header">
+                <div>
+                    <h1>공지사항 관리</h1>
+                    <p>서비스 공지사항의 등록과 노출 상태를 관리합니다.</p>
+                </div>
+                <a class="button" th:href="@{/admin/notices/new}">새 공지 작성</a>
+            </div>
+
+            <div class="admin-toast show" th:if="${message}" th:text="${message}">처리되었습니다.</div>
+
+            <section class="card">
+                <div class="panel-heading"><h2>공지사항 목록</h2></div>
+                <form class="filters notice-filters" method="get" th:action="@{/admin/notices}">
+                    <input name="keyword" th:value="${keyword}" placeholder="제목 또는 내용 검색">
+                    <select name="categoryCode" aria-label="공지 분류" onchange="this.form.requestSubmit()">
+                        <option value="">분류 전체</option>
+                        <option value="GUIDE" th:selected="${categoryCode == 'GUIDE'}">안내</option>
+                        <option value="MAINTENANCE" th:selected="${categoryCode == 'MAINTENANCE'}">점검</option>
+                    </select>
+                    <button class="button" type="submit">검색</button>
+                </form>
+
+                <div class="table-wrapper">
+                    <table class="admin-table notice-table">
+                        <thead><tr><th>번호</th><th>제목</th><th>분류</th><th>조회</th><th>작성자</th><th>등록일</th><th>관리</th></tr></thead>
+                        <tbody>
+                        <tr th:each="notice : ${notices.content}">
+                            <td th:text="${notice.noticeId}">1</td>
+                            <td class="title"><a th:href="@{/admin/notices/{id}(id=${notice.noticeId})}" th:text="${notice.title}">제목</a></td>
+                            <td th:text="${notice.categoryCode == 'GUIDE' ? '안내' : (notice.categoryCode == 'MAINTENANCE' ? '점검' : notice.categoryCode)}">안내</td>
+                            <td th:text="${notice.viewCount}">0</td>
+                            <td th:text="${notice.adminName}">관리자</td>
+                            <td th:text="${notice.createdAt != null ? #temporals.format(notice.createdAt, 'yyyy-MM-dd HH:mm') : '-'}">2026-08-11 16:15</td>
+                            <td><div class="table-actions">
+                                <a class="mini-button" th:href="@{/admin/notices/{id}(id=${notice.noticeId})}">상세</a>
+                                <a class="mini-button primary" th:href="@{/admin/notices/{id}/edit(id=${notice.noticeId})}">수정</a>
+                                <form method="post" th:action="@{/admin/notices/{id}/delete(id=${notice.noticeId})}" onsubmit="return confirm('공지사항을 삭제하시겠습니까?');">
+                                    <button class="mini-button danger" type="submit">삭제</button>
+                                </form>
+                            </div></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(notices.content)}"><td colspan="7">조회된 공지사항이 없습니다.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <nav class="pagination" th:if="${notices.pagination.totalPages > 0}">
+                    <a th:each="number : ${#numbers.sequence(notices.pagination.startPage, notices.pagination.endPage)}"
+                       th:href="@{/admin/notices(page=${number},keyword=${keyword},categoryCode=${categoryCode})}"
+                       th:text="${number}" th:classappend="${number == notices.pagination.page} ? ' active'">1</a>
+                </nav>
+            </section>
+        </main>
+    </div>
+</div>
+<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>

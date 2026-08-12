@@ -2,11 +2,12 @@ package com.noblesi.travelplanner.admin.auth.service;
 
 import java.sql.Date;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.noblesi.travelplanner.admin.auth.dao.AdminDAO;
+import com.noblesi.travelplanner.admin.auth.mapper.AdminMapper;
 import com.noblesi.travelplanner.admin.auth.domain.AdminDomain;
 import com.noblesi.travelplanner.admin.auth.dto.AdminDTO;
 import com.noblesi.travelplanner.common.exception.BusinessException;
@@ -16,16 +17,14 @@ public class AdminAuthService {
 
 	private static final String ACTIVE_STATUS = "ACTIVE";
 
-	private final AdminDAO adminDAO;
-	private final PasswordEncoder passwordEncoder;
+	@Autowired
+	private AdminMapper adminMapper;
 
-	public AdminAuthService(AdminDAO adminDAO, PasswordEncoder passwordEncoder) {
-		this.adminDAO = adminDAO;
-		this.passwordEncoder = passwordEncoder;
-	}
+	@Autowired
+	private PasswordEncoder passwordEncoder;
 
 	public AdminDTO login(AdminDTO request) {
-		AdminDomain adminDomain = adminDAO.loginAdmin(request.getLoginId());
+		AdminDomain adminDomain = adminMapper.loginAdmin(request.getLoginId());
 		if (adminDomain == null || !ACTIVE_STATUS.equals(adminDomain.getAdminStatus())
 				|| !passwordEncoder.matches(request.getPassword(), adminDomain.getPassword())) {
 			throw invalidCredentials();

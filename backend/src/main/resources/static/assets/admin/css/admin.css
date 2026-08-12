@@ -367,6 +367,16 @@ html, body {
 	resize: vertical;
 }
 
+.field-error {
+	color: #d95c55;
+	font-size: 12px;
+}
+
+.table-actions form,
+.header-actions form {
+	margin: 0;
+}
+
 .empty-state {
 	display: grid;
 	min-height: 360px;

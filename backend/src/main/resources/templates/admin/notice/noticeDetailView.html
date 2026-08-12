@@ -1,4 +1,51 @@
-<!DOCTYPE html><html lang="ko" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>공지사항 상세 | WithTrip</title><link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}"></head><body><div class="admin-layout"><aside th:replace="~{admin/fragments/layout :: sidebar('notices')}"></aside><div class="admin-main"><header th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header><main class="admin-content">
-<div class="page-header"><div><h1>공지사항 상세</h1><p>게시된 공지 내용을 확인합니다.</p></div><div class="header-actions"><a class="button secondary" th:href="@{/admin/notices}">목록으로</a><a class="button secondary accent" th:href="@{/admin/notices/{id}/edit(id=${notice.noticeId})}">수정</a><button class="button danger" type="button" data-pending-action="공지사항 삭제">삭제</button></div></div>
-<article class="card notice-detail-card"><div class="notice-title-row"><div><span class="badge success">게시중</span><h2 th:text="${notice.title}">공지 제목</h2></div><span th:text="|#${notice.noticeId}|">#1</span></div><div class="meta"><span th:text="|분류 ${notice.category}|">분류</span><span th:text="|등록일 ${notice.createdAt}|">날짜</span><span th:text="|조회 ${notice.viewCount}|">조회</span></div><div class="detail-content" th:text="${notice.content}">내용</div></article><article class="card publish-info"><h2>게시 정보</h2><dl class="info-grid"><div><dt>노출 상태</dt><dd><span class="badge success">게시중</span></dd></div><div><dt>작성 관리자</dt><dd>로컬관리자</dd></div></dl></article>
-</main></div></div><script th:src="@{/assets/admin/js/admin.js}"></script></body></html>
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>공지사항 상세 | WithTrip</title>
+    <link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+<div class="admin-layout">
+    <aside th:replace="~{admin/fragments/layout :: sidebar('notices')}"></aside>
+    <div class="admin-main">
+        <header th:replace="~{admin/fragments/layout :: header(${pageTitle})}"></header>
+        <main class="admin-content">
+            <div class="page-header">
+                <div><h1>공지사항 상세</h1><p>등록된 공지사항의 내용을 확인합니다.</p></div>
+                <div class="header-actions">
+                    <a class="button secondary" th:href="@{/admin/notices}">목록으로</a>
+                    <a class="button secondary accent" th:href="@{/admin/notices/{id}/edit(id=${notice.noticeId})}">수정</a>
+                    <form method="post" th:action="@{/admin/notices/{id}/delete(id=${notice.noticeId})}" onsubmit="return confirm('공지사항을 삭제하시겠습니까?');">
+                        <button class="button danger" type="submit">삭제</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="admin-toast show" th:if="${message}" th:text="${message}">처리되었습니다.</div>
+
+            <article class="card notice-detail-card">
+                <div class="notice-title-row">
+                    <div><h2 th:text="${notice.title}">공지 제목</h2></div>
+                    <span th:text="|#${notice.noticeId}|">#1</span>
+                </div>
+                <div class="meta">
+                    <span th:text="|분류 ${notice.categoryCode == 'GUIDE' ? '안내' : (notice.categoryCode == 'MAINTENANCE' ? '점검' : notice.categoryCode)}|">분류</span>
+                    <span th:text="${'등록일 ' + (notice.createdAt != null ? #temporals.format(notice.createdAt, 'yyyy-MM-dd HH:mm') : '-')}">등록일 2026-08-11 16:15</span>
+                    <span th:text="|조회 ${notice.viewCount}|">조회</span>
+                </div>
+                <div class="detail-content" th:text="${notice.content}">내용</div>
+            </article>
+            <article class="card publish-info">
+                <h2>게시 정보</h2>
+                <dl class="info-grid">
+                    <div><dt>작성 관리자</dt><dd th:text="${notice.adminName}">관리자</dd></div>
+                </dl>
+            </article>
+        </main>
+    </div>
+</div>
+<script th:src="@{/assets/admin/js/admin.js}"></script>
+</body>
+</html>
