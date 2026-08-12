@@ -106,12 +106,6 @@ const router = createRouter({
       name: 'complete',
       component: () => import('@/views/joinView/JoinCompleteView.vue'),
     },
-    //마이 페이지
-    {
-      path: '/myPage',
-      name: 'myPage',
-      component: () => import('@/views/myPage/MyPage.vue'),
-    },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',

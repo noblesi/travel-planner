@@ -59,6 +59,14 @@ describe('join profile route guard', () => {
   })
 })
 
+describe('unfinished feature routes', () => {
+  it('마이페이지 프로토타입을 공개 라우트로 노출하지 않는다', async () => {
+    await router.push('/myPage')
+
+    expect(router.currentRoute.value.name).toBe('not-found')
+  })
+})
+
 describe('plan route authentication guard', () => {
   it('세션 복원 후 비로그인 사용자를 로그인 화면으로 보낸다', async () => {
     authStore.initialized = false
