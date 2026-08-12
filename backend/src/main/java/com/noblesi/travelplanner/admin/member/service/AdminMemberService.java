@@ -3,6 +3,7 @@ package com.noblesi.travelplanner.admin.member.service;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,17 +13,15 @@ import com.noblesi.travelplanner.admin.member.dto.AdminMemberDetailDTO;
 import com.noblesi.travelplanner.admin.member.dto.AdminMemberListDTO;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class AdminMemberService {
 
 	// MEMBER 테이블의 제약조건에서 허용하는 회원 상태입니다.
 	private static final Set<String> MEMBER_STATUSES = Set.of("ACTIVE", "WITHDRAWN");
 
-	// @RequiredArgsConstructor가 이 final 필드를 받는 생성자를 자동으로 만듭니다.
-	private final AdminMemberMapper adminMemberMapper;
+	// Spring이 MyBatis Mapper 구현 객체를 자동으로 주입합니다.
+	@Autowired
+	private AdminMemberMapper adminMemberMapper;
 
 	/**
 	 * 검색어와 회원 상태를 이용해 관리자 회원 목록을 조회합니다.

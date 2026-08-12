@@ -3,6 +3,7 @@ package com.noblesi.travelplanner.admin.dashboard.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.noblesi.travelplanner.admin.dashboard.mapper.AdminDashboardMapper;
@@ -15,11 +16,8 @@ import com.noblesi.travelplanner.admin.dashboard.dto.WeeklyPlanStatDTO;
 @Service
 public class AdminDashboardService {
 
-	private final AdminDashboardMapper adminDashboardMapper;
-
-	public AdminDashboardService(AdminDashboardMapper adminDashboardMapper) {
-		this.adminDashboardMapper = adminDashboardMapper;
-	}
+	@Autowired
+	private AdminDashboardMapper adminDashboardMapper;
 
 	public AdminDashboardDTO getDashboard() {
 		AdminDashboardDTO dashboard = new AdminDashboardDTO();

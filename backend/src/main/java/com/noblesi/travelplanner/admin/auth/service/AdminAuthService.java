@@ -2,6 +2,7 @@ package com.noblesi.travelplanner.admin.auth.service;
 
 import java.sql.Date;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,13 +17,11 @@ public class AdminAuthService {
 
 	private static final String ACTIVE_STATUS = "ACTIVE";
 
-	private final AdminMapper adminMapper;
-	private final PasswordEncoder passwordEncoder;
+	@Autowired
+	private AdminMapper adminMapper;
 
-	public AdminAuthService(AdminMapper adminMapper, PasswordEncoder passwordEncoder) {
-		this.adminMapper = adminMapper;
-		this.passwordEncoder = passwordEncoder;
-	}
+	@Autowired
+	private PasswordEncoder passwordEncoder;
 
 	public AdminDTO login(AdminDTO request) {
 		AdminDomain adminDomain = adminMapper.loginAdmin(request.getLoginId());

@@ -3,6 +3,7 @@ package com.noblesi.travelplanner.admin.notice.service;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,13 +17,12 @@ import com.noblesi.travelplanner.common.api.PageResponse;
 import com.noblesi.travelplanner.common.api.Pagination;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 
-import lombok.RequiredArgsConstructor;
-
 @Service
-@RequiredArgsConstructor
 public class AdminNoticeService {
 	private static final Set<String> CATEGORY_CODES = Set.of("GUIDE", "MAINTENANCE");
-	private final AdminNoticeMapper adminNoticeMapper;
+
+	@Autowired
+	private AdminNoticeMapper adminNoticeMapper;
 
 	@Transactional(readOnly = true)
 	public PageResponse<AdminNoticeListDTO> getNoticeList(AdminNoticeSearchDTO search) {

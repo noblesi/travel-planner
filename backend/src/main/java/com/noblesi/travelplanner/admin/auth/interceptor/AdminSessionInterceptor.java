@@ -1,5 +1,6 @@
 package com.noblesi.travelplanner.admin.auth.interceptor;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -15,11 +16,8 @@ import tools.jackson.databind.ObjectMapper;
 @Component
 public class AdminSessionInterceptor implements HandlerInterceptor {
 
-	private final ObjectMapper objectMapper;
-
-	public AdminSessionInterceptor(ObjectMapper objectMapper) {
-		this.objectMapper = objectMapper;
-	}
+	@Autowired
+	private ObjectMapper objectMapper;
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)

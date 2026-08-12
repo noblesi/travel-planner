@@ -1,5 +1,6 @@
 package com.noblesi.travelplanner.admin.notice.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -18,20 +19,17 @@ import com.noblesi.travelplanner.admin.notice.dto.AdminNoticeSearchDTO;
 import com.noblesi.travelplanner.admin.notice.service.AdminNoticeService;
 
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 
 @Controller
-@RequiredArgsConstructor
 @RequestMapping("/admin/notices")
 public class AdminNoticeController {
-	private final AdminNoticeService adminNoticeService;
+	@Autowired
+	private AdminNoticeService adminNoticeService;
 
 	@GetMapping
-	public String getNoticeList(
-			@RequestParam(name = "keyword", defaultValue = "") String keyword,
+	public String getNoticeList(@RequestParam(name = "keyword", defaultValue = "") String keyword,
 			@RequestParam(name = "categoryCode", defaultValue = "") String categoryCode,
-			@RequestParam(name = "page", defaultValue = "1") int page,
-			Model model) {
+			@RequestParam(name = "page", defaultValue = "1") int page, Model model) {
 		AdminNoticeSearchDTO search = new AdminNoticeSearchDTO(keyword, categoryCode, page, 10);
 		model.addAttribute("pageTitle", "공지사항 관리");
 		model.addAttribute("keyword", keyword);
@@ -57,8 +55,8 @@ public class AdminNoticeController {
 
 	@PostMapping
 	public String createNotice(@Valid @ModelAttribute("noticeForm") AdminNoticeFormDTO noticeForm,
-			BindingResult bindingResult, @SessionAttribute("loginAdmin") AdminDTO loginAdmin,
-			Model model, RedirectAttributes redirectAttributes) {
+			BindingResult bindingResult, @SessionAttribute("loginAdmin") AdminDTO loginAdmin, Model model,
+			RedirectAttributes redirectAttributes) {
 		if (bindingResult.hasErrors()) {
 			model.addAttribute("pageTitle", "공지사항 등록");
 			model.addAttribute("editMode", false);
@@ -80,8 +78,8 @@ public class AdminNoticeController {
 
 	@PostMapping("/{noticeId}")
 	public String updateNotice(@PathVariable("noticeId") Long noticeId,
-			@Valid @ModelAttribute("noticeForm") AdminNoticeFormDTO noticeForm,
-			BindingResult bindingResult, Model model, RedirectAttributes redirectAttributes) {
+			@Valid @ModelAttribute("noticeForm") AdminNoticeFormDTO noticeForm, BindingResult bindingResult,
+			Model model, RedirectAttributes redirectAttributes) {
 		if (bindingResult.hasErrors()) {
 			model.addAttribute("pageTitle", "공지사항 수정");
 			model.addAttribute("editMode", true);
@@ -94,8 +92,7 @@ public class AdminNoticeController {
 	}
 
 	@PostMapping("/{noticeId}/delete")
-	public String deleteNotice(@PathVariable("noticeId") Long noticeId,
-			RedirectAttributes redirectAttributes) {
+	public String deleteNotice(@PathVariable("noticeId") Long noticeId, RedirectAttributes redirectAttributes) {
 		adminNoticeService.deleteNotice(noticeId);
 		redirectAttributes.addFlashAttribute("message", "공지사항이 삭제되었습니다.");
 		return "redirect:/admin/notices";

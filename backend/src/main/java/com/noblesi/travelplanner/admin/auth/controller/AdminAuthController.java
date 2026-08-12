@@ -1,5 +1,6 @@
 package com.noblesi.travelplanner.admin.auth.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -22,11 +23,8 @@ public class AdminAuthController {
 
 	private static final String LOGIN_ADMIN_SESSION_KEY = "loginAdmin";
 
-	private final AdminAuthService adminAuthService;
-
-	public AdminAuthController(AdminAuthService adminAuthService) {
-		this.adminAuthService = adminAuthService;
-	}
+	@Autowired
+	private AdminAuthService adminAuthService;
 
 	@GetMapping("/login")
 	public String loginForm(Model model) {
