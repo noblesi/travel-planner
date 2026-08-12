@@ -1,6 +1,6 @@
 package com.noblesi.travelplanner.service;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.noblesi.travelplanner.dto.member.JoinMemberRequest;
@@ -10,9 +10,9 @@ import com.noblesi.travelplanner.mapper.MemberMapper;
 public class MemberJoinService {
 
     private final MemberMapper memberMapper;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    private MemberJoinService(MemberMapper memberMapper, BCryptPasswordEncoder passwordEncoder){
+    public MemberJoinService(MemberMapper memberMapper, PasswordEncoder passwordEncoder){
         this.memberMapper = memberMapper;
         this.passwordEncoder = passwordEncoder;
     }
@@ -42,6 +42,7 @@ public class MemberJoinService {
             joinMemberRequest.name(),
             joinMemberRequest.gender(),
             joinMemberRequest.birth(),
+            joinMemberRequest.privacy(),
             joinMemberRequest.phone()
         );
         

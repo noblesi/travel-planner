@@ -5,26 +5,12 @@ import { useUserStore } from '@/stores/useUserStore'
 import { postMemberJoin } from '@/api/users'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const birth = ref('')
 const name = ref('')
-const gender = ref('')
+const gender = ref('N') // 기본값 설정 (N: 선택안함)
 const phone = ref('')
-const userStore = useUserStore()
-
-////////////////////////////////////가데이터
-const testname = "테스터"
-const testbirth = "20001010"
-const testphone = "010-1234-1234"
-
-name.value = testname
-birth.value = testbirth
-phone.value = testphone
-
-console.log("email : " + userStore.userInfo.email)
-console.log("password : " + userStore.userInfo.password)
-
-/////////////////////////////////////
 
 const handleContinue = () => {
   if (!name.value.trim()) {
@@ -32,32 +18,37 @@ const handleContinue = () => {
     return
   }
   if (birth.value.length !== 8) {
-    alert('생년월일을 정확하게 입력하여주세요.')
+    alert('생년월일을 8자리로 정확하게 입력하여 주세요. (예: 20001031)')
     return
   }
-  
-  
 
+  if (privacy.value === false) {
+    alert('개인정보 저장에 동의하여 주세요.')
+    return
+  }
 
- const userInfo = {
-  email: userStore.userInfo.email,
-  password: userStore.userInfo.password,
-  birth: birth.value,
-  name: name.value,
-  gender: gender.value, // 백엔드 DTO에 맞춤
-  phone: phone.value
+  const userInfo = {
+    email: userStore.userInfo.email,
+    password: userStore.userInfo.password,
+    birth: birth.value,
+    privacy: privacy.value ? 'Y' : 'N',
+    name: name.value,
+    gender: gender.value,
+    phone: phone.value
+  }
+
+  postMemberJoin(userInfo)
+    .then((response) => {
+      alert('정상 가입되었습니다.')
+      console.log('서버 응답:', response.data) // 서버에서 반환된 데이터 처리 가능
+      userStore.clearData() // 회원가입 성공 후 스토어 비우기
+      router.push('/joinComplete')
+    })
+    .catch((error) => {
+      console.log('가입 에러 발생:', error)
+      alert('가입이 정상적으로 이루어지지 않았증니다.')
+    })
 }
-
-  postMemberJoin(userInfo).then(response => {
-  alert('정상 가입되었습니다.')
-  console.log('서버 응답:', response)
-  router.push('/joinComplete')
-  }).catch(error => {
-    console.log('가입 에러 발생:', error)
-    alert('가입이 정상적으로 이루어지지 않았습니다.')
-  })
-}
-
 </script>
 
 <template>
@@ -102,9 +93,12 @@ const handleContinue = () => {
         </div>
         <div class="input-container">
           <label class="input-label">성별 : </label>
-          <input type="radio" :name="gender" value="M" checked="checked"/>남성
-          <input type="radio" :name="gender" value="F"/>여성
-          <input type="radio" :name="gender" value="N"/>선택안함
+          <input type="radio" :name="gender" v-model="gender" value="M" checked="checked"/>남성
+          <input type="radio" :name="gender" v-model="gender" value="F"/>여성
+          <input type="radio" :name="gender" v-model="gender" value="N"/>선택안함
+        </div>
+        <div class="input-container">
+          <input type="checkbox" class="input-checkbox" v-model="privacy"/>개인정보 저장에 대해 동의합니다.
         </div>
         <button type="submit" class="btn-submit">가입하기</button>
       </form>
@@ -125,6 +119,12 @@ const handleContinue = () => {
   //font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
   box-sizing: border-box;
   backdrop-filter: blur(20px);
+}
+
+.input-checkbox {
+  margin-right: 10px;
+  transform: scale(1.2);
+  cursor: pointer;
 }
 
 // 노션 특유의 슬림하고 중앙 집중된 박스 레이아웃
