@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/useUserStore'
+import { postMemberJoin } from '@/api/users'
 
 const router = useRouter()
 
@@ -10,6 +11,20 @@ const name = ref('')
 const gender = ref('')
 const phone = ref('')
 const userStore = useUserStore()
+
+////////////////////////////////////가데이터
+const testname = "테스터"
+const testbirth = "20001010"
+const testphone = "010-1234-1234"
+
+name.value = testname
+birth.value = testbirth
+phone.value = testphone
+
+console.log("email : " + userStore.userInfo.email)
+console.log("password : " + userStore.userInfo.password)
+
+/////////////////////////////////////
 
 const handleContinue = () => {
   if (!name.value.trim()) {
@@ -20,9 +35,27 @@ const handleContinue = () => {
     alert('생년월일을 정확하게 입력하여주세요.')
     return
   }
+  
+  
+
+
+ const userInfo = {
+  email: userStore.userInfo.email,
+  password: userStore.userInfo.password,
+  birth: birth.value,
+  name: name.value,
+  gender: gender.value, // 백엔드 DTO에 맞춤
+  phone: phone.value
+}
+
+  postMemberJoin(userInfo).then(response => {
   alert('정상 가입되었습니다.')
-  userStore.setStep2Data(birth.value, name.value.trim(), gender.value, phone.value)
-  router.push({ name: 'complete' })
+  console.log('서버 응답:', response)
+  router.push('/joinComplete')
+  }).catch(error => {
+    console.log('가입 에러 발생:', error)
+    alert('가입이 정상적으로 이루어지지 않았습니다.')
+  })
 }
 
 </script>
@@ -69,9 +102,9 @@ const handleContinue = () => {
         </div>
         <div class="input-container">
           <label class="input-label">성별 : </label>
-          <input v-model="gender" type="radio" name="gender" value="M" />남성
-          <input v-model="gender" type="radio" name="gender" value="F" />여성
-          <input v-model="gender" type="radio" name="gender" value="N" />선택안함
+          <input type="radio" :name="gender" value="M" checked="checked"/>남성
+          <input type="radio" :name="gender" value="F"/>여성
+          <input type="radio" :name="gender" value="N"/>선택안함
         </div>
         <button type="submit" class="btn-submit">가입하기</button>
       </form>
@@ -87,7 +120,7 @@ const handleContinue = () => {
   justify-content: center;
   align-items: flex-start;
   min-height: 100vh;
-  background-color: #f5c150;
+  background-color: #c2410c;
   padding: 60px 20px;
   //font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
   box-sizing: border-box;
@@ -98,7 +131,7 @@ const handleContinue = () => {
 .login-box {
   width: 400px;
   height: 550px;
-  background-color: #eed8a8;
+  background-color: #ec8f6b;
   text-align: center;
   box-shadow: 0 10px 30px 5px rgba(0, 0, 0, 0.1), 
               0 4px 12px 2px rgba(0, 0, 0, 0.1);

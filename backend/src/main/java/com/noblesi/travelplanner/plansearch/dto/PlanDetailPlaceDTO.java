@@ -9,7 +9,7 @@ public class PlanDetailPlaceDTO {
 
 	private String timeSlot;
 	private String placeName;
-	private String description;
+	private String address;
 	private double latitude;
 	private double longitude;
 }
