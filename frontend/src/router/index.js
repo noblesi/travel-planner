@@ -111,11 +111,6 @@ const router = createRouter({
       name: 'myPage',
       component: () => import('@/views/myPage/MyPage.vue'),
     },
-     {
-      path: '/testView',
-      name: 'testView',
-      component: () => import('@/views/myPage/testView.vue'),
-    },
     {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
