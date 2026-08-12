@@ -1,7 +1,7 @@
 import http from './http'
 
 export async function getPlanList({ keyword = '', page = 1, size = 24 } = {}) {
-  const response = await http.get('/plan-search/plans', { params: { keyword, page, size } })
+  const response = await http.get('/plans', { params: { keyword, page, size } })
   const { content, pagination } = response.data.data
   return {
     plans: content,
@@ -13,24 +13,24 @@ export async function getPlanList({ keyword = '', page = 1, size = 24 } = {}) {
 
 export async function getPlanDetail(planId) {
   const encodedPlanId = encodeURIComponent(String(planId))
-  const response = await http.get(`/plan-search/plans/${encodedPlanId}`)
+  const response = await http.get(`/plans/${encodedPlanId}`)
   return response.data.data
 }
 
 export async function toggleLike(planId) {
   const encodedPlanId = encodeURIComponent(String(planId))
-  const response = await http.post(`/plan-search/plans/${encodedPlanId}/like`)
+  const response = await http.post(`/plans/${encodedPlanId}/like`)
   return response.data.data
 }
 
 export async function reportPlan(planId, payload) {
   const encodedPlanId = encodeURIComponent(String(planId))
-  const response = await http.post(`/plan-search/plans/${encodedPlanId}/report`, payload)
+  const response = await http.post(`/plans/${encodedPlanId}/report`, payload)
   return response.data.data
 }
 
 export async function copyPlan(planId, payload) {
   const encodedPlanId = encodeURIComponent(String(planId))
-  const response = await http.post(`/plan-search/plans/${encodedPlanId}/copy`, payload)
+  const response = await http.post(`/plans/${encodedPlanId}/copy`, payload)
   return response.data.data
 }

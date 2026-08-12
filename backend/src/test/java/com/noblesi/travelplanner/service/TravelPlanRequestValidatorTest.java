@@ -65,6 +65,7 @@ class TravelPlanRequestValidatorTest {
 				LocalDate.parse(endDate),
 				PlanVisibility.PRIVATE,
 				PlanPublishStatus.DRAFT,
+				null,
 				3,
 				ParticipantType.CREATOR
 		);

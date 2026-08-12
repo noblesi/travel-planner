@@ -7,7 +7,7 @@ import lombok.Setter;
 @Setter
 public class PlanListResponseDTO {
 
-	private Long planId;
+	private String planId;
 	private String title;
 	private String region;
 	private int days;

@@ -35,7 +35,6 @@ public record AddScheduleItemRequest(
 		@Size(max = 100, message = "외부 장소 ID는 100자 이하여야 합니다.")
 		String externalPlaceId,
 
-		@NotBlank(message = "장소명은 필수 값입니다.")
 		@Size(max = 200, message = "장소명은 200자 이하여야 합니다.")
 		String placeName,
 

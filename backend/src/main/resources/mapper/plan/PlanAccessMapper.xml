@@ -14,6 +14,7 @@
 			<arg column="END_DATE" javaType="java.time.LocalDate" />
 			<arg column="VISIBILITY" javaType="com.noblesi.travelplanner.domain.plan.PlanVisibility" />
 			<arg column="PUBLISH_STATUS" javaType="com.noblesi.travelplanner.domain.plan.PlanPublishStatus" />
+			<arg column="THUMBNAIL_IMG" javaType="string" />
 			<arg column="VERSION_NO" javaType="_int" />
 			<arg column="CURRENT_MEMBER_ROLE" javaType="com.noblesi.travelplanner.domain.plan.ParticipantType" />
 		</constructor>
@@ -28,6 +29,7 @@
 		       P.END_DATE,
 		       P.VISIBILITY,
 		       P.PUBLISH_STATUS,
+		       P.THUMBNAIL_IMG,
 		       P.VERSION_NO,
 		       'CREATOR' AS CURRENT_MEMBER_ROLE
 		  FROM TRAVEL_PLAN P
@@ -47,6 +49,7 @@
 		       P.END_DATE,
 		       P.VISIBILITY,
 		       P.PUBLISH_STATUS,
+		       P.THUMBNAIL_IMG,
 		       P.VERSION_NO,
 		       CASE
 		           WHEN P.OWNER_MEMBER_ID = #{memberId} THEN 'CREATOR'

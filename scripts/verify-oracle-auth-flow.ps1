@@ -265,21 +265,39 @@ try {
     $editor = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans/$planId/editor" -WebSession $invitee.Session
     Assert-Equal $editor.data.plan.planId $planId 'Invited member editor access failed'
 
+	# Pre-encoded UTF-8 for the Korean keyword so Windows PowerShell 5 can parse this UTF-8 file without a BOM.
+	$placeKeyword = '%EA%B2%BD%EB%B3%B5%EA%B6%81'
+	$placeSearch = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/places/search?keyword=$placeKeyword&page=1&size=10" -WebSession $invitee.Session
+	$verifiedPlace = $null
+	foreach ($candidate in @($placeSearch.data.places)) {
+		if ([string]::IsNullOrWhiteSpace($candidate.imageUrl)) {
+			continue
+		}
+		if ($candidate.placeType -eq 'RESTAURANT' -or $candidate.placeType -eq 'ACCOMMODATION') {
+			continue
+		}
+		$verifiedPlace = $candidate
+		break
+	}
+    Assert-NotNull $verifiedPlace 'TourAPI did not return an image-backed place for thumbnail verification'
+
     $item = Invoke-JsonRequest -Method Post -Uri "$baseUrl/api/plans/$planId/days/$dayId/items" -Context $invitee -Body @{
         operationId = [Guid]::NewGuid().ToString()
         scheduleVersion = 0
         timeSlot = 'MORNING'
-        placeProvider = 'TOUR_API'
-        externalPlaceId = 'P3-ORACLE-1'
-        placeName = 'P3 Verification Place'
-        categoryName = 'Verification'
-        address = 'Seoul'
-        latitude = 37.5665
-        longitude = 126.9780
-        imageUrl = $null
-        description = 'Temporary P3 session verification item'
+		placeProvider = $verifiedPlace.placeProvider
+		externalPlaceId = $verifiedPlace.externalPlaceId
+		placeName = 'Client-controlled name must be ignored'
+		categoryName = 'CLIENT_CONTROLLED_CATEGORY'
+		address = 'Client-controlled address'
+		latitude = 0
+		longitude = 0
+		imageUrl = 'https://invalid.example/client-controlled.jpg'
+		description = 'Client-controlled description'
     }
     Assert-Equal $item.data.resultScheduleVersion 1 'Invited member schedule edit failed'
+	Assert-Equal $item.data.editor.days[0].items[0].placeName $verifiedPlace.placeName 'Server place snapshot was not used'
+	Assert-Equal $item.data.editor.days[0].items[0].imageUrl $verifiedPlace.imageUrl 'Server image snapshot was not used'
 
     $published = Invoke-JsonRequest -Method Patch -Uri "$baseUrl/api/plans/$planId/publication" -Context $owner -Body @{
         publishStatus = 'PUBLISHED'
@@ -287,6 +305,7 @@ try {
     }
     Assert-Equal $published.data.plan.publishStatus 'PUBLISHED' 'Plan publication failed'
     Assert-Equal $published.data.plan.versionNo 3 'Plan publication version mismatch'
+	Assert-Equal $published.data.plan.thumbnailImageUrl $verifiedPlace.imageUrl 'Published thumbnail mismatch'
 
     $publicDetail = Invoke-RestMethod -Method Get -Uri "$baseUrl/api/plans/$planId"
     Assert-Equal $publicDetail.data.plan.planId $planId 'Published plan detail was not available'

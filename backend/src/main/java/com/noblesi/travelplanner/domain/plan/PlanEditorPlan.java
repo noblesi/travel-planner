@@ -11,6 +11,7 @@ public record PlanEditorPlan(
 		LocalDate endDate,
 		PlanVisibility visibility,
 		PlanPublishStatus publishStatus,
+		String thumbnailImageUrl,
 		int versionNo,
 		ParticipantType currentMemberRole
 ) {

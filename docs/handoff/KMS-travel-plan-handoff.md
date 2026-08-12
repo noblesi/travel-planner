@@ -423,6 +423,15 @@ backend/src/main/java/com/noblesi/travelplanner/
 - 삭제 플랜은 제작 화면 접근이 차단되고, 복구 후 `ACTIVE + DRAFT`와 최신 Version으로 다시 접근되는 것을 확인했다.
 - `scripts/verify-oracle-auth-flow.ps1`을 위 생명주기 회귀 검증까지 포함하도록 확장했다. 검증용 `e2e.*@withtrip.test` 회원과 생성 데이터는 종료 후 정리했고 잔여 회원 수는 0건이다.
 
+## 2026-08-11 공개 플랜 대표 이미지 자동화
+
+- 사용자가 대표 이미지를 선택하지 않고 일정 장소 중 `관광지 → 문화시설 → 축제·공연·행사 → 여행코스 → 레포츠 → 관광정보 → 쇼핑` 순서로 자동 결정한다.
+- TourAPI `contenttypeid`를 서버 장소 유형으로 정규화하고 검색 결과를 `PLACE_MASTER`에 저장한다. 일정 추가 시 클라이언트가 보낸 장소명·카테고리·이미지는 신뢰하지 않고 `placeProvider + externalPlaceId`로 서버 데이터를 다시 읽는다.
+- `음식점`, `숙박`, 비정상 URL은 대표 이미지 후보에서 제외하고, 후보 또는 이미지 로딩에 실패하면 Frontend 로컬 기본 썸네일을 표시한다.
+- 기존 `PUBLIC + PUBLISHED + ACTIVE` 플랜에 `008_backfill_plan_thumbnails.sql`을 적용했다. 13건 중 후보가 있는 2건은 대표 이미지가 설정됐고 후보가 없는 11건은 `NULL`로 유지됐다.
+- `009_verify_plan_thumbnails.sql`에서 비정상 TourAPI 장소 유형과 계산 결과 불일치가 모두 0건임을 확인했다.
+- 실제 Oracle Session·CSRF·TourAPI 검색으로 클라이언트 Snapshot 변조 무시, 공동 일정 추가, 발행 썸네일 일치까지 E2E를 통과했고 임시 E2E 회원은 0건으로 정리했다.
+
 ## 아직 미정인 항목
 
 - Google OIDC 계정 연결 UX와 `GOOGLE_ACCOUNT_LINK` 생성 정책
@@ -441,17 +450,17 @@ backend/src/main/java/com/noblesi/travelplanner/
 
 완료 기준은 Google 로그인 후 기존 이메일 로그인과 동일한 서버 Session으로 내 플랜·제작 화면에 접근하고, 비밀값을 저장소나 로그에 남기지 않는 것이다.
 
-### 2순위: 사용자 화면의 남은 Mock API 연결
+### 완료: 공개 플랜 사용자 동작
 
-- [ ] 공개 플랜의 `전체 일정 가져오기`가 새 `DRAFT` 플랜을 생성하도록 Import API 계약·Backend·Frontend를 연결한다.
-- [ ] 공개 플랜 `신고하기`가 실제 신고를 접수하도록 중복 신고·본인 플랜 신고·비로그인 정책과 API를 확정하고 연결한다.
-- [ ] 각 흐름에 로딩·성공·실패·재시도 상태와 Controller·Frontend 자동 Test를 추가한다.
+- [x] 공개 플랜의 `전체 일정 가져오기`가 새 `DRAFT` 플랜을 생성하도록 Backend·Frontend를 연결했다.
+- [x] 공개 플랜 신고 API와 중복·본인 플랜·비로그인 정책을 연결했다.
+- [x] 로딩·성공·실패 상태와 Controller·Frontend 자동 Test를 추가했다.
 
 ### 3순위: 배포 환경 검증
 
 - [ ] HTTPS 환경에서 Secure Cookie, Forwarded Header, CSRF와 Google Redirect URI를 검증한다.
 - [ ] 배포 도메인을 Kakao Developers 허용 도메인에 등록하고 지도·Marker·정보창을 최종 확인한다.
-- [ ] Oracle `006` 적용 여부, 환경변수 누락, 데모·E2E 데이터 잔존 여부와 되돌리기 절차를 Release Checklist로 확인한다.
+- [ ] Oracle `006`·`008` 적용 여부, `009` 불일치 0건, 환경변수 누락, 데모·E2E 데이터 잔존 여부와 되돌리기 절차를 Release Checklist로 확인한다.
 
 ### 별도 조율 항목
 
