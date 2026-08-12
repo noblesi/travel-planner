@@ -1,20 +1,26 @@
 import { defineStore } from 'pinia'
+import { ref } from 'vue'
 
 
 export const useUserStore = defineStore('user', () => {
-  const userInfo = {
-    email : "",
-    password : "",
+  const userInfo = ref({
+    email: '',
+    password: ''
+  })
+
+  const setUserInfo = (email, password) => {
+    userInfo.value.email = email
+    userInfo.value.password = password
   }
-}, {
-  actions: {
-    setStep1Data(email, password) { 
-      this.userInfo.email = email
-      this.userInfo.password = password
-    },
-    clearData() {
-      this.userInfo.email = ''
-      this.userInfo.password = ''
-    }
+
+  const clearData = () => {
+    userInfo.value.email = ''
+    userInfo.value.password = ''
+  }
+
+  return {
+    userInfo,
+    setUserInfo,
+    clearData
   }
 })

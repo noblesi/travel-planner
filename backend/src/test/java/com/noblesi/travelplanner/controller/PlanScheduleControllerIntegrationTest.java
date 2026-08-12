@@ -47,6 +47,8 @@ class PlanScheduleControllerIntegrationTest {
 	@BeforeEach
 	void setUp() {
 		deletePlanData();
+		insertPlaceMaster("100", "경복궁", "ATTRACTION", "관광지", "https://example.com/place.jpg");
+		insertPlaceMaster("101", "창덕궁", "ATTRACTION", "관광지", "https://example.com/changdeok.jpg");
 	}
 
 	@AfterEach
@@ -67,6 +69,8 @@ class PlanScheduleControllerIntegrationTest {
 				.andExpect(jsonPath("$.data.operationId").value(ADD_OPERATION_ID))
 				.andExpect(jsonPath("$.data.scheduleItemId").isString())
 				.andExpect(jsonPath("$.data.resultScheduleVersion").value(1))
+				.andExpect(jsonPath("$.data.editor.plan.thumbnailImageUrl")
+						.value("https://example.com/place.jpg"))
 				.andExpect(jsonPath("$.data.editor.days[0].scheduleVersion").value(1))
 				.andExpect(jsonPath("$.data.editor.days[0].items", hasSize(1)))
 				.andExpect(jsonPath("$.data.editor.days[0].items[0].placeName").value("경복궁"))
@@ -78,7 +82,7 @@ class PlanScheduleControllerIntegrationTest {
 	}
 
 	@Test
-	void addsScheduleItemWhenOptionalSnapshotFieldsAreNull() throws Exception {
+	void usesServerCatalogWhenClientSnapshotFieldsAreNull() throws Exception {
 		insertPlan(1L);
 		insertPlanDay(0);
 
@@ -101,19 +105,49 @@ class PlanScheduleControllerIntegrationTest {
 							}
 							""".formatted(ADD_OPERATION_ID)))
 				.andExpect(status().isCreated())
-				.andExpect(jsonPath("$.data.editor.days[0].items[0].categoryName").isEmpty())
-				.andExpect(jsonPath("$.data.editor.days[0].items[0].imageUrl").isEmpty());
+				.andExpect(jsonPath("$.data.editor.days[0].items[0].categoryName").value("관광지"))
+				.andExpect(jsonPath("$.data.editor.days[0].items[0].imageUrl")
+						.value("https://example.com/place.jpg"));
 
 		assertValue("""
 				SELECT COUNT(*)
 				  FROM PLAN_SCHEDULE_ITEM
-				 WHERE CATEGORY_SNAPSHOT IS NULL
-				   AND ADDRESS_SNAPSHOT IS NULL
-				   AND LATITUDE_SNAPSHOT IS NULL
-				   AND LONGITUDE_SNAPSHOT IS NULL
-				   AND IMAGE_URL_SNAPSHOT IS NULL
+				 WHERE CATEGORY_SNAPSHOT = '관광지'
+				   AND ADDRESS_SNAPSHOT = '서울특별시 종로구'
+				   AND IMAGE_URL_SNAPSHOT = 'https://example.com/place.jpg'
 				   AND DESCRIPTION_SNAPSHOT IS NULL
 				""", 1);
+	}
+
+	@Test
+	void ignoresClientControlledThumbnailFields() throws Exception {
+		insertPlan(1L);
+		insertPlanDay(0);
+
+		mockMvc.perform(post(itemsPath())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(addRequest(ADD_OPERATION_ID, 0, "100", "조작된 장소명")
+						.replace("\"관광지\"", "\"음식점\"")
+						.replace("https://example.com/place.jpg", "https://attacker.example/fake.jpg")))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.data.editor.days[0].items[0].placeName").value("경복궁"))
+				.andExpect(jsonPath("$.data.editor.days[0].items[0].categoryName").value("관광지"))
+				.andExpect(jsonPath("$.data.editor.plan.thumbnailImageUrl")
+						.value("https://example.com/place.jpg"));
+	}
+
+	@Test
+	void rejectsPlaceThatWasNotResolvedByServerSearch() throws Exception {
+		insertPlan(1L);
+		insertPlanDay(0);
+
+		mockMvc.perform(post(itemsPath())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(addRequest(ADD_OPERATION_ID, 0, "999", "알 수 없는 장소")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("PLACE_REFERENCE_NOT_FOUND"));
+
+		assertValue("SELECT COUNT(*) FROM PLAN_SCHEDULE_ITEM", 0);
 	}
 
 	@Test
@@ -126,6 +160,7 @@ class PlanScheduleControllerIntegrationTest {
 					.contentType(MediaType.APPLICATION_JSON)
 					.content(request))
 				.andExpect(status().isCreated());
+		jdbcTemplate.update("DELETE FROM PLACE_MASTER WHERE EXTERNAL_PLACE_ID = '100'");
 
 		mockMvc.perform(post(itemsPath())
 					.contentType(MediaType.APPLICATION_JSON)
@@ -297,6 +332,53 @@ class PlanScheduleControllerIntegrationTest {
 	}
 
 	@Test
+	void selectsNextEligibleThumbnailAfterDeletingCurrentThumbnailPlace() throws Exception {
+		insertPlan(1L);
+		insertPlanDay(0);
+		insertScheduleItem(FIRST_ITEM_ID, "MORNING", 1, "100", "경복궁", 0);
+		insertScheduleItem(SECOND_ITEM_ID, "MORNING", 2, "101", "창덕궁", 0);
+		jdbcTemplate.update("UPDATE TRAVEL_PLAN SET THUMBNAIL_IMG = ? WHERE PLAN_ID = ?",
+				"https://example.com/place.jpg", PLAN_ID);
+
+		mockMvc.perform(delete(itemsPath() + "/" + FIRST_ITEM_ID)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "operationId": "%s",
+						  "scheduleVersion": 0,
+						  "itemVersion": 0
+						}
+						""".formatted(DELETE_OPERATION_ID)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.editor.plan.thumbnailImageUrl")
+						.value("https://example.com/changdeok.jpg"));
+	}
+
+	@Test
+	void clearsThumbnailWhenOnlyRestaurantRemains() throws Exception {
+		insertPlaceMaster("200", "서울 맛집", "RESTAURANT", "음식점",
+				"https://example.com/restaurant.jpg");
+		insertPlan(1L);
+		insertPlanDay(0);
+		insertScheduleItem(FIRST_ITEM_ID, "MORNING", 1, "100", "경복궁", 0);
+		insertScheduleItem(SECOND_ITEM_ID, "MORNING", 2, "200", "서울 맛집", 0);
+		jdbcTemplate.update("UPDATE TRAVEL_PLAN SET THUMBNAIL_IMG = ? WHERE PLAN_ID = ?",
+				"https://example.com/place.jpg", PLAN_ID);
+
+		mockMvc.perform(delete(itemsPath() + "/" + FIRST_ITEM_ID)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "operationId": "%s",
+						  "scheduleVersion": 0,
+						  "itemVersion": 0
+						}
+						""".formatted(DELETE_OPERATION_ID)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.editor.plan.thumbnailImageUrl").value(org.hamcrest.Matchers.nullValue()));
+	}
+
+	@Test
 	void reordersAllItemsInSelectedTimeSlot() throws Exception {
 		insertPlan(1L);
 		insertPlanDay(0);
@@ -462,6 +544,22 @@ class PlanScheduleControllerIntegrationTest {
 				""", itemId, DAY_ID, timeSlot, positionNo, externalPlaceId, placeName, itemVersion);
 	}
 
+	private void insertPlaceMaster(
+			String externalPlaceId,
+			String placeName,
+			String placeType,
+			String categoryName,
+			String imageUrl
+	) {
+		jdbcTemplate.update("""
+				INSERT INTO PLACE_MASTER (
+				    PLACE_PROVIDER, EXTERNAL_PLACE_ID, PLACE_TYPE, PLACE_NAME,
+				    CATEGORY_NAME, ADDRESS, LATITUDE, LONGITUDE, IMAGE_URL, ACTIVE_YN
+				) VALUES ('TOUR_API', ?, ?, ?, ?, '서울특별시 종로구',
+				          37.579617, 126.977041, ?, 'Y')
+				""", externalPlaceId, placeType, placeName, categoryName, imageUrl);
+	}
+
 	private void assertValue(String sql, int expected) {
 		Integer actual = jdbcTemplate.queryForObject(sql, Integer.class);
 		org.assertj.core.api.Assertions.assertThat(actual).isEqualTo(expected);
@@ -473,5 +571,6 @@ class PlanScheduleControllerIntegrationTest {
 		jdbcTemplate.update("DELETE FROM PLAN_DAY");
 		jdbcTemplate.update("DELETE FROM PLAN_MEMBER");
 		jdbcTemplate.update("DELETE FROM TRAVEL_PLAN");
+		jdbcTemplate.update("DELETE FROM PLACE_MASTER");
 	}
 }

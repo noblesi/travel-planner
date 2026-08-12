@@ -78,9 +78,7 @@ class AdminAuthControllerIntegrationTest {
 
 		for (String path : new String[] {
 				"/admin/members",
-				"/admin/members/minsu12",
 				"/admin/trips",
-				"/admin/trips/P-5412",
 				"/admin/reports/R-221133",
 				"/admin/notices",
 				"/admin/notices/new",

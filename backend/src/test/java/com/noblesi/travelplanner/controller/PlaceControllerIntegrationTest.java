@@ -16,11 +16,13 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.noblesi.travelplanner.domain.place.PlaceType;
 import com.noblesi.travelplanner.integration.tourapi.TourApiClient;
 import com.noblesi.travelplanner.integration.tourapi.TourApiException;
 import com.noblesi.travelplanner.integration.tourapi.TourApiException.Reason;
 import com.noblesi.travelplanner.integration.tourapi.TourApiSearchResult;
 import com.noblesi.travelplanner.integration.tourapi.TourApiSearchResult.TourApiPlace;
+import com.noblesi.travelplanner.service.PlaceCatalogService;
 import com.noblesi.travelplanner.service.PlaceSearchService;
 
 @WebMvcTest(PlaceController.class)
@@ -34,6 +36,9 @@ class PlaceControllerIntegrationTest {
 	@MockitoBean
 	private TourApiClient tourApiClient;
 
+	@MockitoBean
+	private PlaceCatalogService placeCatalogService;
+
 	@Test
 	void searchesPlacesWithNormalizedResponseContract() throws Exception {
 		when(tourApiClient.searchKeyword("한강", "1", 1, 1))
@@ -41,6 +46,7 @@ class PlaceControllerIntegrationTest {
 						List.of(new TourApiPlace(
 								"1001",
 								"여의도 한강공원",
+								PlaceType.ATTRACTION,
 								"관광지",
 								"서울 영등포구 여의동로 330",
 								new BigDecimal("37.5284"),
@@ -62,6 +68,7 @@ class PlaceControllerIntegrationTest {
 				.andExpect(jsonPath("$.data.places[0].placeProvider").value("TOUR_API"))
 				.andExpect(jsonPath("$.data.places[0].externalPlaceId").value("1001"))
 				.andExpect(jsonPath("$.data.places[0].placeName").value("여의도 한강공원"))
+				.andExpect(jsonPath("$.data.places[0].placeType").value("ATTRACTION"))
 				.andExpect(jsonPath("$.data.places[0].categoryName").value("관광지"))
 				.andExpect(jsonPath("$.data.places[0].latitude").value(37.5284))
 				.andExpect(jsonPath("$.data.places[0].longitude").value(126.9340))
