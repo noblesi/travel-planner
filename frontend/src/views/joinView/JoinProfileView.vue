@@ -11,6 +11,7 @@ const birth = ref('')
 const name = ref('')
 const gender = ref('N') // 기본값 설정 (N: 선택안함)
 const phone = ref('')
+const privacy = ref(false)
 
 const handleContinue = () => {
   if (!name.value.trim()) {
