@@ -48,6 +48,7 @@
 | `400` | `ONGOING_TRAVEL_START_DATE_LOCKED` | 진행 중인 여행의 기존 시작일을 변경함 |
 | `400` | `PAST_TRAVEL_END_DATE` | 진행 중인 여행의 종료일을 오늘보다 과거로 변경함 |
 | `400` | `COMPLETED_TRAVEL_DATES_LOCKED` | 종료된 여행 플랜의 날짜를 변경함 |
+| `400` | `SELF_PLAN_REPORT_NOT_ALLOWED` | 본인 소유 공개 플랜을 신고함 |
 | `403` | `PLAN_ACCESS_DENIED` | 현재 회원에게 플랜 조회 또는 편집 권한이 없음 |
 | `404` | `REGION_NOT_FOUND` | 활성화된 시·도 지역코드가 존재하지 않음 |
 | `404` | `PLAN_NOT_FOUND` | 플랜이 없거나 삭제 상태여서 조회할 수 없음 |
@@ -62,6 +63,7 @@
 | `409` | `DUPLICATE_OPERATION` | 이미 처리된 `operationId`를 다른 Payload로 재요청 |
 | `409` | `SCHEDULE_ITEM_ALREADY_EXISTS` | 같은 일차·시간대에 동일 장소가 존재 |
 | `409` | `SCHEDULE_ITEM_LIMIT_EXCEEDED` | 시간대별 일정 100개 제한 초과 |
+| `409` | `REPORT_ALREADY_EXISTS` | 같은 회원이 같은 공개 플랜을 중복 신고함 |
 | `400` | `TARGET_SCHEDULE_VERSION_REQUIRED` | DAY 간 이동 요청에 대상 DAY 일정 Version이 없음 |
 
 Version 및 Operation 오류는 자동 저장 API에서 사용합니다. 동일한 `operationId`와 동일한 Payload 재요청은 오류가 아니라 멱등 성공으로 처리합니다.

@@ -155,8 +155,100 @@ GET /api/plans/{planId}
 
 | Status | Code | 조건 |
 | --- | --- | --- |
-| `400` | `INVALID_REQUEST_PARAMETER` | `planId` 형식 또는 64비트 범위 오류 |
+| `400` | `INVALID_PATH_PARAMETER` | `planId`가 1 이상의 숫자가 아니거나 64비트 범위를 벗어남 |
 | `404` | `PLAN_NOT_FOUND` | 미존재·비공개·삭제 플랜 또는 비활성 작성자 |
+
+---
+
+## 공개 플랜 좋아요·신고·복사
+
+세 API는 모두 로그인 Session과 유효한 CSRF Token이 필요합니다. 대상 플랜은 공개 상세와 동일하게 `PUBLIC + PUBLISHED + ACTIVE`이고 작성자도 활성 상태여야 합니다. 조건을 만족하지 않으면 존재 여부를 구분하지 않고 `404 PLAN_NOT_FOUND`를 반환합니다.
+
+### 좋아요 등록·취소
+
+```http
+POST /api/plans/{planId}/like
+X-CSRF-TOKEN: server-generated-token
+```
+
+현재 회원이 좋아요를 누르지 않은 플랜이면 등록하고 `data: true`, 이미 누른 플랜이면 취소하고 `data: false`를 반환합니다. 성공 Status는 `200 OK`입니다.
+
+```json
+{
+  "success": true,
+  "data": true
+}
+```
+
+### 플랜 신고
+
+```http
+POST /api/plans/{planId}/report
+Content-Type: application/json
+X-CSRF-TOKEN: server-generated-token
+```
+
+```json
+{
+  "reason": "FALSE_INFO",
+  "detail": "운영 시간이 실제 정보와 다릅니다."
+}
+```
+
+| Property | Required | Validation |
+| --- | --- | --- |
+| `reason` | Yes | `INAPPROPRIATE`, `FALSE_INFO`, `SPAM`, `OTHER` 중 하나 |
+| `detail` | No | 최대 1000자, 공백만 입력하면 `null`로 저장 |
+
+본인 소유 플랜은 신고할 수 없고, 같은 회원이 같은 플랜을 두 번 신고할 수 없습니다. 성공 Status는 `200 OK`이며 응답 `data`는 `null`입니다.
+
+### 공개 플랜 복사
+
+```http
+POST /api/plans/{sourcePlanId}/copy
+Content-Type: application/json
+X-CSRF-TOKEN: server-generated-token
+```
+
+```json
+{
+  "title": "서울 여행 복사본",
+  "startDate": "2026-09-01",
+  "endDate": "2026-09-03"
+}
+```
+
+| Property | Required | Validation |
+| --- | --- | --- |
+| `title` | Yes | 공백 제거 후 1~200자 |
+| `startDate` | Yes | 한국 시간 기준 오늘 이후 또는 오늘 |
+| `endDate` | Yes | `startDate`와 같거나 이후 |
+
+여행 기간은 최대 14일입니다. 복사본은 요청한 기간으로 DAY를 새로 만들고, 원본에서 새 기간의 DAY 수를 초과하는 일정은 복사하지 않습니다. 복사본은 `PRIVATE + DRAFT + ACTIVE` 상태로 생성됩니다.
+
+성공 Status는 `200 OK`이고 `data`는 JavaScript 정밀도 손실을 방지한 새 플랜 ID 문자열입니다.
+
+```json
+{
+  "success": true,
+  "data": "202"
+}
+```
+
+### 좋아요·신고·복사 오류
+
+| Status | Code | 조건 |
+| --- | --- | --- |
+| `400` | `INVALID_PATH_PARAMETER` | `planId` 또는 `sourcePlanId`가 1 이상의 숫자가 아니거나 64비트 범위를 벗어남 |
+| `400` | `VALIDATION_ERROR` | 신고 또는 복사 Request 필수 값·길이·Enum 오류 |
+| `400` | `SELF_PLAN_REPORT_NOT_ALLOWED` | 본인 소유 플랜 신고 |
+| `400` | `INVALID_TRAVEL_DATE_RANGE` | 복사 시작일이 종료일보다 늦음 |
+| `400` | `TRAVEL_PLAN_DURATION_EXCEEDED` | 복사 기간이 14일을 초과함 |
+| `400` | `PAST_TRAVEL_START_DATE` | 복사 시작일이 한국 시간 기준 오늘보다 빠름 |
+| `401` | `CURRENT_MEMBER_NOT_AVAILABLE` | 로그인 Session 없음 |
+| `403` | `ACCESS_DENIED` | CSRF Token 누락 또는 불일치 |
+| `404` | `PLAN_NOT_FOUND` | 미존재·비공개·작성 중·삭제 플랜 또는 비활성 작성자 |
+| `409` | `REPORT_ALREADY_EXISTS` | 같은 회원이 같은 플랜을 중복 신고 |
 
 ---
 

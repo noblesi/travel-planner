@@ -24,6 +24,7 @@ import com.noblesi.travelplanner.plansearch.dto.ReportRequestDTO;
 import com.noblesi.travelplanner.plansearch.service.PlanSearchService;
 import com.noblesi.travelplanner.security.CurrentMemberProvider;
 import com.noblesi.travelplanner.security.SecurityMemberResolver;
+import com.noblesi.travelplanner.service.PositiveIdParser;
 
 import jakarta.validation.Valid;
 
@@ -37,15 +38,18 @@ public class PlanSearchController {
 	private final PlanSearchService planSearchService;
 	private final CurrentMemberProvider currentMemberProvider;
 	private final SecurityMemberResolver securityMemberResolver;
+	private final PositiveIdParser idParser;
 
 	public PlanSearchController(
 			PlanSearchService planSearchService,
 			CurrentMemberProvider currentMemberProvider,
-			SecurityMemberResolver securityMemberResolver
+			SecurityMemberResolver securityMemberResolver,
+			PositiveIdParser idParser
 	) {
 		this.planSearchService = planSearchService;
 		this.currentMemberProvider = currentMemberProvider;
 		this.securityMemberResolver = securityMemberResolver;
+		this.idParser = idParser;
 	}
 
 	// 공개 플랜 목록 조회
@@ -66,20 +70,26 @@ public class PlanSearchController {
 	// 공개 플랜 상세 조회 (같은 브라우저에서 24시간 안에 다시 보면 조회수 증가 안 함)
 	@GetMapping("/{planId}")
 	public ApiResponse<PlanDetailResponseDTO> getPlanDetail(
-			@PathVariable Long planId,
+			@PathVariable String planId,
 			HttpServletRequest httpRequest,
 			HttpServletResponse httpResponse
 	) {
-		if (!hasViewedRecently(httpRequest, planId)) {
-			planSearchService.increasePlanViewCount(planId);
-			markViewed(httpResponse, planId);
-		}
+		long parsedPlanId = idParser.parse(planId, "planId");
+		boolean increaseViewCount = !hasViewedRecently(httpRequest, parsedPlanId);
 		OptionalLong memberId = securityMemberResolver.getAuthenticatedMemberId();
 		Long memberIdOrNull = memberId.isPresent() ? memberId.getAsLong() : null;
-		return ApiResponse.success(planSearchService.searchPlanDetail(planId, memberIdOrNull));
+		PlanDetailResponseDTO detail = planSearchService.searchPlanDetail(
+				parsedPlanId,
+				memberIdOrNull,
+				increaseViewCount
+		);
+		if (increaseViewCount) {
+			markViewed(httpResponse, parsedPlanId);
+		}
+		return ApiResponse.success(detail);
 	}
 
-	private boolean hasViewedRecently(HttpServletRequest request, Long planId) {
+	private boolean hasViewedRecently(HttpServletRequest request, long planId) {
 		Cookie[] cookies = request.getCookies();
 		if (cookies == null) {
 			return false;
@@ -93,7 +103,7 @@ public class PlanSearchController {
 		return false;
 	}
 
-	private void markViewed(HttpServletResponse response, Long planId) {
+	private void markViewed(HttpServletResponse response, long planId) {
 		Cookie cookie = new Cookie(VIEW_COOKIE_PREFIX + planId, "1");
 		cookie.setPath("/");
 		cookie.setHttpOnly(true);
@@ -103,27 +113,30 @@ public class PlanSearchController {
 
 	// 좋아요 토글 (이미 눌렀으면 취소, 안 눌렀으면 등록)
 	@PostMapping("/{planId}/like")
-	public ApiResponse<Boolean> toggleLike(@PathVariable Long planId) {
+	public ApiResponse<Boolean> toggleLike(@PathVariable String planId) {
+		long parsedPlanId = idParser.parse(planId, "planId");
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		return ApiResponse.success(planSearchService.toggleLike(memberId, planId));
+		return ApiResponse.success(planSearchService.toggleLike(memberId, parsedPlanId));
 	}
 
 	// 플랜 신고
 	@PostMapping("/{planId}/report")
-	public ApiResponse<Void> reportPlan(@PathVariable Long planId, @Valid @RequestBody ReportRequestDTO request) {
+	public ApiResponse<Void> reportPlan(@PathVariable String planId, @Valid @RequestBody ReportRequestDTO request) {
+		long parsedPlanId = idParser.parse(planId, "planId");
 		long memberId = currentMemberProvider.getCurrentMemberId();
 		// 식별자는 request body가 아닌 path variable만 신뢰해 서로 다른 planId가 전달될 여지를 제거한다.
-		planSearchService.reportPlan(memberId, planId, request);
+		planSearchService.reportPlan(memberId, parsedPlanId, request);
 		return ApiResponse.successWithoutData();
 	}
 
 	// 탐색 플랜을 내 플랜으로 복사
 	@PostMapping("/{sourcePlanId}/copy")
 	public ApiResponse<String> copyPlan(
-			@PathVariable Long sourcePlanId,
+			@PathVariable String sourcePlanId,
 			@Valid @RequestBody PlanCopyRequestDTO request
 	) {
+		long parsedSourcePlanId = idParser.parse(sourcePlanId, "sourcePlanId");
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		return ApiResponse.success(Long.toString(planSearchService.copyPlan(memberId, sourcePlanId, request)));
+		return ApiResponse.success(Long.toString(planSearchService.copyPlan(memberId, parsedSourcePlanId, request)));
 	}
 }
