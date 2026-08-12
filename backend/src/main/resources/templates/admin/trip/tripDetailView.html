@@ -33,10 +33,19 @@
 					<article class="card">
 						<div class="panel-heading">
 							<h2>날짜별 여행 일정</h2>
-							<span class="badge warning">1일차</span>
+							<div class="schedule-day-tabs" role="tablist" aria-label="여행 일차 선택">
+								<button th:each="day, dayStat : ${scheduleDays}"
+									type="button" role="tab" data-schedule-day-tab
+									th:data-day="${day}"
+									th:classappend="${dayStat.first} ? ' active'"
+									th:aria-selected="${dayStat.first}"
+									th:text="|${day}일차|">1일차</button>
+							</div>
 						</div>
 						<ol class="schedule-list">
 							<li th:each="schedule : ${schedules}"
+								data-schedule-item
+								th:data-day="${schedule.dayNo}"
 								data-map-point
 								th:data-name="${schedule.placeName}"
 								th:data-coordinates="|${schedule.latitude},${schedule.longitude}|">
@@ -47,7 +56,8 @@
 								</div>
 							</li>
 						</ol>
-						<button class="schedule-more-button" type="button">+ 더보기</button>
+						<p class="schedule-empty" th:if="${#lists.isEmpty(schedules)}">등록된 여행 일정이 없습니다.</p>
+						<button class="schedule-more-button" type="button" data-schedule-more hidden>+ 더보기</button>
 					</article>
 
 					<div class="side-stack">
@@ -102,6 +112,51 @@
 
 	<script th:src="@{/assets/admin/js/admin.js}"></script>
 	<script>
+		(() => {
+			const tabs = [...document.querySelectorAll('[data-schedule-day-tab]')];
+			const items = [...document.querySelectorAll('[data-schedule-item]')];
+			const moreButton = document.querySelector('[data-schedule-more]');
+			const visibleLimit = 5;
+			let activeDay = tabs[0]?.dataset.day;
+			let expanded = false;
+
+			const renderSchedules = () => {
+				const activeItems = items.filter((item) => item.dataset.day === activeDay);
+
+				items.forEach((item) => {
+					const dayItems = item.dataset.day === activeDay;
+					const index = activeItems.indexOf(item);
+					item.hidden = !dayItems || (!expanded && index >= visibleLimit);
+				});
+
+				tabs.forEach((tab) => {
+					const active = tab.dataset.day === activeDay;
+					tab.classList.toggle('active', active);
+					tab.setAttribute('aria-selected', String(active));
+				});
+
+				if (moreButton) {
+					moreButton.hidden = activeItems.length <= visibleLimit;
+					moreButton.textContent = expanded ? '접기' : '+ 더보기';
+				}
+			};
+
+			tabs.forEach((tab) => {
+				tab.addEventListener('click', () => {
+					activeDay = tab.dataset.day;
+					expanded = false;
+					renderSchedules();
+				});
+			});
+
+			moreButton?.addEventListener('click', () => {
+				expanded = !expanded;
+				renderSchedules();
+			});
+
+			renderSchedules();
+		})();
+
 		(() => {
 			const mapElement = document.getElementById('admin-plan-map');
 			const messageElement = document.getElementById('admin-plan-map-message');
