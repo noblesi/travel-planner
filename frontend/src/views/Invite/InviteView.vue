@@ -403,7 +403,8 @@ button:disabled {
   font-size: 13px;
 }
 
-.success-actions .back-btn {
+.success-actions .back-btn,
+.success-actions .send-btn {
   margin-top: 0;
 }
 
