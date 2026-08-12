@@ -26,7 +26,7 @@ document.querySelectorAll('[data-pending-action]').forEach((button) => {
 const recommendationModal = document.getElementById('recommendation-rule-modal');
 const recommendationForm = document.querySelector('[data-recommendation-form]');
 const weightTotal = document.querySelector('[data-weight-total]');
-const defaultWeights = { likes: 40, views: 20, saves: 40 };
+const defaultWeights = { likeWeight: 40, viewWeight: 20, copyWeight: 40 };
 
 const closeRecommendationModal = () => {
     if (!recommendationModal) return;
@@ -68,8 +68,11 @@ document.querySelector('[data-rule-reset]')?.addEventListener('click', () => {
     showAdminToast('추천 점수 규칙을 기본값으로 초기화했습니다.');
 });
 recommendationForm?.addEventListener('submit', (event) => {
-    event.preventDefault();
-    if (updateWeightTotal() !== 100) return;
-    closeRecommendationModal();
-    showAdminToast('추천 점수 규칙이 저장되었습니다.');
+    if (updateWeightTotal() !== 100) {
+        event.preventDefault();
+        showAdminToast('추천 점수 가중치의 합계는 100%여야 합니다.');
+    }
 });
+
+// DB에서 조회한 현재 값으로 모달 합계를 최초 한 번 표시합니다.
+updateWeightTotal();
