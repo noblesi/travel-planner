@@ -26,7 +26,7 @@
 		<include refid="publicPlanCondition" />
 	</select>
 
-	<select id="selectPlanList" resultType="com.noblesi.travelplanner.plansearch.dto.PlanListResponseDTO">
+	<select id="selectPlanList" resultType="PlanListResponseDTO">
 		SELECT PLAN_ID, TITLE, REGION, DAYS, LIKE_COUNT, VIEW_COUNT, AUTHOR_NAME, AUTHOR_IMAGE, THUMBNAIL_IMAGE
 		  FROM (
 		        SELECT a.*, ROWNUM AS RN
@@ -51,7 +51,7 @@
 		 WHERE RN &gt; (#{page} - 1) * #{size}
 	</select>
 
-	<select id="selectPlanById" resultType="com.noblesi.travelplanner.plansearch.dto.PlanDetailResponseDTO">
+	<select id="selectPlanById" resultType="PlanDetailResponseDTO">
 		SELECT P.PLAN_ID AS PLAN_ID,
 		       P.TITLE AS TITLE,
 		       M.NICKNAME AS AUTHOR_NAME,
@@ -79,7 +79,7 @@
 		   AND PLAN_STATUS = 'ACTIVE'
 	</update>
 
-	<select id="selectPlanDays" resultType="com.noblesi.travelplanner.plansearch.dto.PlanDetailDayDTO">
+	<select id="selectPlanDays" resultType="PlanDetailDayDTO">
 		SELECT DAY_NO AS DAY_NUMBER,
 		       TRAVEL_DATE AS VISIT_DATE
 		  FROM PLAN_DAY
@@ -87,7 +87,7 @@
 		 ORDER BY DAY_NO ASC
 	</select>
 
-	<select id="selectPlanSchedule" resultType="com.noblesi.travelplanner.plansearch.dao.PlanScheduleRowDTO">
+	<select id="selectPlanSchedule" resultType="PlanScheduleRowDTO">
 		SELECT D.DAY_NO AS DAY_NUMBER,
 		       I.TIME_SLOT AS TIME_SLOT,
 		       I.PLACE_NAME_SNAPSHOT AS PLACE_NAME,
@@ -102,7 +102,7 @@
 		          I.POSITION_NO ASC
 	</select>
 
-	<select id="selectPublishedPlanTarget" resultType="com.noblesi.travelplanner.plansearch.dao.PublishedPlanTargetDTO">
+	<select id="selectPublishedPlanTarget" resultType="PublishedPlanTargetDTO">
 		<!-- 좋아요·신고·가져오기가 동일한 공개 완료 기준과 활성 작성자 조건을 공유하도록 단일 조회로 관리한다. -->
 		SELECT P.OWNER_MEMBER_ID AS OWNER_MEMBER_ID,
 		       P.REGION_CODE AS REGION_CODE
@@ -134,7 +134,7 @@
 			PLAN_STATUS
 		) VALUES (
 			#{planId},
-			#{sourcePlanId},
+			#{sourcePlanId,jdbcType=NUMERIC},
 			#{memberId},
 			#{title},
 			#{regionCode},
@@ -178,7 +178,7 @@
 		)
 	</insert>
 
-	<select id="selectPlanScheduleForCopy" resultType="com.noblesi.travelplanner.plansearch.dao.PlanScheduleCopyRowDTO">
+	<select id="selectPlanScheduleForCopy" resultType="PlanScheduleCopyRowDTO">
 		SELECT D.DAY_NO AS DAY_NUMBER,
 		       I.TIME_SLOT AS TIME_SLOT,
 		       I.POSITION_NO AS POSITION_NO,

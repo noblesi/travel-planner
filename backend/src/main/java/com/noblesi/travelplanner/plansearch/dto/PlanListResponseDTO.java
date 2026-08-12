@@ -1,8 +1,11 @@
 package com.noblesi.travelplanner.plansearch.dto;
 
+import org.apache.ibatis.type.Alias;
+
 import lombok.Getter;
 import lombok.Setter;
 
+@Alias("PlanListResponseDTO")
 @Getter
 @Setter
 public class PlanListResponseDTO {
