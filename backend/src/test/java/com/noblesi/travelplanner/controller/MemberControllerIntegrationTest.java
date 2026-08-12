@@ -56,11 +56,12 @@ class MemberControllerIntegrationTest {
                 .andExpect(jsonPath("$.data").value(true));
 
         MemberRow member = jdbcTemplate.queryForObject(
-                "SELECT EMAIL, MEMBER_NAME, BIRTH_DATE, GENDER_CODE, PHONE_NUMBER, PASSWORD_HASH, PRIVACY_CONSENT_YN "
+                "SELECT EMAIL, MEMBER_NAME, NICKNAME, BIRTH_DATE, GENDER_CODE, PHONE_NUMBER, PASSWORD_HASH, PRIVACY_CONSENT_YN "
                         + "FROM MEMBER WHERE EMAIL = ?",
                 (resultSet, rowNumber) -> new MemberRow(
                         resultSet.getString("EMAIL"),
                         resultSet.getString("MEMBER_NAME"),
+                        resultSet.getString("NICKNAME"),
                         resultSet.getObject("BIRTH_DATE", LocalDate.class),
                         resultSet.getString("GENDER_CODE"),
                         resultSet.getString("PHONE_NUMBER"),
@@ -72,6 +73,7 @@ class MemberControllerIntegrationTest {
 
         assertThat(member.email()).isEqualTo(JOIN_EMAIL);
         assertThat(member.name()).isEqualTo("홍길동");
+        assertThat(member.nickname()).isEqualTo("여행자");
         assertThat(member.birth()).isEqualTo(LocalDate.of(2000, 1, 1));
         assertThat(member.gender()).isEqualTo("F");
         assertThat(member.phone()).isEqualTo("010-1234-5678");
@@ -113,6 +115,7 @@ class MemberControllerIntegrationTest {
                   "email": "%s",
                   "password": "%s",
                   "name": "  홍길동  ",
+                  "nickname": "  여행자  ",
                   "gender": "f",
                   "birth": "20000101",
                   "privacy": "%s",
@@ -124,6 +127,7 @@ class MemberControllerIntegrationTest {
     private record MemberRow(
             String email,
             String name,
+            String nickname,
             LocalDate birth,
             String gender,
             String phone,

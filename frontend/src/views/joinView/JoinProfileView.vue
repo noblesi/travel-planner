@@ -38,7 +38,7 @@ const handleContinue = () => {
     email: userStore.userInfo.email,
     password: userStore.userInfo.password,
     birth: birth.value,
-    privacy: privacy.value,
+    privacy: privacy.value ? 'Y' : 'N',
     name: name.value,
     gender: gender.value,
     phone: phone.value
