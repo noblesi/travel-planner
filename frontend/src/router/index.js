@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '@/views/HomeView.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useUserStore } from '@/stores/useUserStore'
 
 // 사용자 라우트와 기능별로 분리한 관리자 라우트를 하나의 Router에 등록합니다.
 const router = createRouter({
@@ -89,6 +90,16 @@ const router = createRouter({
       path: '/joinProfileView',
       name: 'joinProfile',
       component: () => import('@/views/joinView/JoinProfileView.vue'),
+      beforeEnter: (next) => {
+        const store = useUserStore()
+        // 1단계에서 이메일과 비밀번호가 입력되었는지 검증
+        if (!store.userInfo.email || !store.userInfo.password) {
+          alert('회원가입 정보를 먼저 입력해주세요.')
+          next({ name: 'join' })
+        } else {
+          next({ name : 'complete' })
+        }
+      }
     },
     {
       path: '/joinComplete',

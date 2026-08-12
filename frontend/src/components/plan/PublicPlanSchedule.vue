@@ -59,7 +59,7 @@ const groupedPlaces = computed(() =>
               <span class="place-bar" />
               <div class="place-card">
                 <strong class="place-name">{{ place.name }}</strong>
-                <p class="place-desc">{{ place.description }}</p>
+                <p class="place-desc">{{ place.address }}</p>
               </div>
             </article>
           </div>

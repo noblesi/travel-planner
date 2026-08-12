@@ -9,18 +9,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.noblesi.travelplanner.notice.dto.NoticeSearchRequestDTO;
-import com.noblesi.travelplanner.notice.service.NoticeService;
-
 @Controller
 @RequestMapping("/admin")
 public class AdminPageController {
-
-	private final NoticeService noticeService;
-
-	public AdminPageController(NoticeService noticeService) {
-		this.noticeService = noticeService;
-	}
 
 	@GetMapping("/reports/{reportId}")
 	public String reportDetail(
@@ -31,39 +22,6 @@ public class AdminPageController {
 		model.addAttribute("reportId", reportId);
 		model.addAttribute("planId", planId);
 		return "admin/report/reportDetailView";
-	}
-
-	@GetMapping("/notices")
-	public String notices(@RequestParam(name = "category", required = false) String category,
-			@RequestParam(name = "page", defaultValue = "1") int page, Model model) {
-		// 공지사항은 구현된 Service를 사용하며, 페이지 번호는 화면 기준으로 1부터 시작합니다.
-		model.addAttribute("pageTitle", "공지사항 관리");
-		model.addAttribute("category", category);
-		model.addAttribute("notices", noticeService.getNoticeList(new NoticeSearchRequestDTO(category, page, 10)));
-		return "admin/notice/noticeFormView";
-	}
-
-	@GetMapping("/notices/new")
-	public String newNotice(Model model) {
-		model.addAttribute("pageTitle", "공지사항 작성");
-		model.addAttribute("editMode", false);
-		model.addAttribute("notice", null);
-		return "admin/notice/noticeWriteView";
-	}
-
-	@GetMapping("/notices/{noticeId}")
-	public String noticeDetail(@PathVariable("noticeId") long noticeId, Model model) {
-		model.addAttribute("pageTitle", "공지사항 상세");
-		model.addAttribute("notice", noticeService.getNoticeDetail(noticeId));
-		return "admin/notice/noticeDetailView";
-	}
-
-	@GetMapping("/notices/{noticeId}/edit")
-	public String editNotice(@PathVariable("noticeId") long noticeId, Model model) {
-		model.addAttribute("pageTitle", "공지사항 수정");
-		model.addAttribute("editMode", true);
-		model.addAttribute("notice", noticeService.getNoticeDetail(noticeId));
-		return "admin/notice/noticeWriteView";
 	}
 
 	@GetMapping("/tour-data")

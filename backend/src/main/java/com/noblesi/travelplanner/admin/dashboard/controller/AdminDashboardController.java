@@ -1,5 +1,6 @@
 package com.noblesi.travelplanner.admin.dashboard.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,12 +12,8 @@ import com.noblesi.travelplanner.admin.dashboard.service.AdminDashboardService;
 @RequestMapping("/admin")
 public class AdminDashboardController {
 
-	
-	private final AdminDashboardService adminDashboardService;
-
-	public AdminDashboardController(AdminDashboardService adminDashboardService) {
-		this.adminDashboardService = adminDashboardService;
-	}
+	@Autowired
+	private AdminDashboardService adminDashboardService;
 
 	@GetMapping({"", "/dashboard"})
 	public String getDashboard(Model model) {

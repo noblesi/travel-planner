@@ -18,7 +18,7 @@ import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.dto.auth.AuthenticatedMemberResponse;
 import com.noblesi.travelplanner.dto.auth.AuthenticationSessionResponse;
-import com.noblesi.travelplanner.dto.auth.EmailLoginRequest;
+import com.noblesi.travelplanner.dto.login.EmailLoginRequest;
 import com.noblesi.travelplanner.security.MemberPrincipal;
 
 import jakarta.servlet.http.HttpServletRequest;

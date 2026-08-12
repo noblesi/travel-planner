@@ -3,7 +3,7 @@
 		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.noblesi.travelplanner.admin.dashboard.dao.AdminDashboardDAO">
+<mapper namespace="com.noblesi.travelplanner.admin.dashboard.mapper.AdminDashboardMapper">
 
 	<select id="selectTotalMemberCount" resultType="int">
 		SELECT COUNT(*)

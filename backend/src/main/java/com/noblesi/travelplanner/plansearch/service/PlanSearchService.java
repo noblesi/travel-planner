@@ -93,7 +93,7 @@ public class PlanSearchService {
 			PlanDetailPlaceDTO place = new PlanDetailPlaceDTO();
 			place.setTimeSlot(row.getTimeSlot());
 			place.setPlaceName(row.getPlaceName());
-			place.setDescription(row.getDescription());
+			place.setAddress(row.getAddress());
 			place.setLatitude(row.getLatitude());
 			place.setLongitude(row.getLongitude());
 			placesByDay.computeIfAbsent(row.getDayNumber(), ignored -> new ArrayList<>()).add(place);

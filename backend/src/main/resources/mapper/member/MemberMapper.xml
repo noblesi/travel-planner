@@ -24,4 +24,41 @@
 		 WHERE LOWER(EMAIL) = #{email}
 	</select>
 
+	<insert id="insertMember" parameterType="joinMemberRequest">
+		INSERT INTO MEMBER (
+			MEMBER_ID, 
+			MEMBER_NAME, 
+			EMAIL,
+			BIRTH_DATE, 
+			GENDER_CODE, 
+			PHONE_NUMBER, 
+			NICKNAME, 
+			PASSWORD_HASH, 
+			PRIVACY_CONSENT_YN, 
+			MEMBER_STATUS, 
+			CREATED_AT, 
+			UPDATED_AT
+			)
+    	VALUES (
+			SEQ_MEMBER, 
+			#{NAME}, 
+			#{EMAIL}, 
+			#{BIRTH}, 
+			#{GENDER}, 
+			#{PHONE}, 
+			#{NAME}, 
+			#{PASSWORD}, 
+			#{PRIVACY}, 
+			'ACTIVE',
+			SYSTIMESTAMP, 
+			SYSTIMESTAMP
+			)
+	</insert>
+
+	<select id="selectEmailCnt" resultType="int">
+		SELECT COUNT(*) AS CNT
+		  FROM MEMBER
+		 WHERE EMAIL = #{email}
+	</select>
+
 </mapper>
