@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.noblesi.travelplanner.admin.notice.dao.AdminNoticeDAO;
+import com.noblesi.travelplanner.admin.notice.mapper.AdminNoticeMapper;
 import com.noblesi.travelplanner.admin.notice.dto.AdminNoticeDetailDTO;
 import com.noblesi.travelplanner.admin.notice.dto.AdminNoticeFormDTO;
 import com.noblesi.travelplanner.admin.notice.dto.AdminNoticeListDTO;
@@ -22,22 +22,22 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AdminNoticeService {
 	private static final Set<String> CATEGORY_CODES = Set.of("GUIDE", "MAINTENANCE");
-	private final AdminNoticeDAO adminNoticeDAO;
+	private final AdminNoticeMapper adminNoticeMapper;
 
 	@Transactional(readOnly = true)
 	public PageResponse<AdminNoticeListDTO> getNoticeList(AdminNoticeSearchDTO search) {
-		long totalCount = adminNoticeDAO.countNoticeList(search);
+		long totalCount = adminNoticeMapper.countNoticeList(search);
 		Pagination pagination = Pagination.of(search.page(), search.size(), totalCount);
 		if (totalCount == 0) {
 			return PageResponse.empty(pagination);
 		}
-		List<AdminNoticeListDTO> content = adminNoticeDAO.selectNoticeList(search);
+		List<AdminNoticeListDTO> content = adminNoticeMapper.selectNoticeList(search);
 		return PageResponse.of(content, pagination);
 	}
 
 	@Transactional(readOnly = true)
 	public AdminNoticeDetailDTO getNoticeDetail(Long noticeId) {
-		AdminNoticeDetailDTO notice = adminNoticeDAO.selectNoticeDetail(noticeId);
+		AdminNoticeDetailDTO notice = adminNoticeMapper.selectNoticeDetail(noticeId);
 		if (notice == null) {
 			throw noticeNotFound();
 		}
@@ -57,7 +57,7 @@ public class AdminNoticeService {
 	@Transactional
 	public void createNotice(AdminNoticeFormDTO form, Long adminId) {
 		normalizeForm(form);
-		if (adminNoticeDAO.insertNotice(adminId, form) != 1) {
+		if (adminNoticeMapper.insertNotice(adminId, form) != 1) {
 			throw new BusinessException(HttpStatus.INTERNAL_SERVER_ERROR,
 					"NOTICE_CREATE_FAILED", "공지사항 등록에 실패했습니다.");
 		}
@@ -66,14 +66,14 @@ public class AdminNoticeService {
 	@Transactional
 	public void updateNotice(Long noticeId, AdminNoticeFormDTO form) {
 		normalizeForm(form);
-		if (adminNoticeDAO.updateNotice(noticeId, form) != 1) {
+		if (adminNoticeMapper.updateNotice(noticeId, form) != 1) {
 			throw noticeNotFound();
 		}
 	}
 
 	@Transactional
 	public void deleteNotice(Long noticeId) {
-		if (adminNoticeDAO.deleteNotice(noticeId) != 1) {
+		if (adminNoticeMapper.deleteNotice(noticeId) != 1) {
 			throw noticeNotFound();
 		}
 	}

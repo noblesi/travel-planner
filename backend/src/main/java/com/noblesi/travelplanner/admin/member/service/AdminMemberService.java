@@ -7,7 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.noblesi.travelplanner.admin.member.dao.AdminMemberDAO;
+import com.noblesi.travelplanner.admin.member.mapper.AdminMemberMapper;
 import com.noblesi.travelplanner.admin.member.dto.AdminMemberDetailDTO;
 import com.noblesi.travelplanner.admin.member.dto.AdminMemberListDTO;
 import com.noblesi.travelplanner.common.exception.BusinessException;
@@ -22,7 +22,7 @@ public class AdminMemberService {
 	private static final Set<String> MEMBER_STATUSES = Set.of("ACTIVE", "WITHDRAWN");
 
 	// @RequiredArgsConstructor가 이 final 필드를 받는 생성자를 자동으로 만듭니다.
-	private final AdminMemberDAO adminMemberDAO;
+	private final AdminMemberMapper adminMemberMapper;
 
 	/**
 	 * 검색어와 회원 상태를 이용해 관리자 회원 목록을 조회합니다.
@@ -32,14 +32,14 @@ public class AdminMemberService {
 		String normalizedKeyword = keyword == null ? "" : keyword.strip();
 		String normalizedMemberStatus = memberStatus == null ? "" : memberStatus.strip().toUpperCase();
 
-		return adminMemberDAO.selectMemberList(normalizedKeyword, normalizedMemberStatus);
+		return adminMemberMapper.selectMemberList(normalizedKeyword, normalizedMemberStatus);
 	}
 
 	/**
 	 * 회원 번호에 해당하는 회원 상세 정보를 조회합니다.
 	 */
 	public AdminMemberDetailDTO getMemberDetail(String memberId) {
-		AdminMemberDetailDTO member = adminMemberDAO.selectMemberDetail(memberId);
+		AdminMemberDetailDTO member = adminMemberMapper.selectMemberDetail(memberId);
 
 		// 조회 결과가 없으면 존재하지 않는 회원이므로 404 예외를 발생시킵니다.
 		if (member == null) {
@@ -57,7 +57,7 @@ public class AdminMemberService {
 		// 화면에서 받은 상태 값을 DB에 저장할 수 있는 값인지 검사합니다.
 		String normalizedMemberStatus = normalizeMemberStatus(memberStatus);
 
-		int updatedCount = adminMemberDAO.updateStatus(memberId, normalizedMemberStatus);
+		int updatedCount = adminMemberMapper.updateStatus(memberId, normalizedMemberStatus);
 
 		// 수정된 행이 0개라면 해당 회원 번호가 존재하지 않는 것입니다.
 		if (updatedCount == 0) {

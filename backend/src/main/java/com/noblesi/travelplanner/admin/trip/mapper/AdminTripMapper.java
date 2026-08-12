@@ -1,4 +1,4 @@
-package com.noblesi.travelplanner.admin.trip.dao;
+package com.noblesi.travelplanner.admin.trip.mapper;
 
 import java.util.List;
 
@@ -11,7 +11,7 @@ import com.noblesi.travelplanner.admin.trip.dto.AdminTripReportDTO;
 import com.noblesi.travelplanner.admin.trip.dto.AdminTripScheduleDTO;
 
 @Mapper
-public interface AdminTripDAO {
+public interface AdminTripMapper {
 
 	List<AdminTripListDTO> selectTripList(
 			@Param("keyword") String keyword,

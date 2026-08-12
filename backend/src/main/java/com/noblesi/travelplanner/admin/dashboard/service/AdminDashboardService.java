@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import com.noblesi.travelplanner.admin.dashboard.dao.AdminDashboardDAO;
+import com.noblesi.travelplanner.admin.dashboard.mapper.AdminDashboardMapper;
 import com.noblesi.travelplanner.admin.dashboard.domain.PopularRegionStatDomain;
 import com.noblesi.travelplanner.admin.dashboard.domain.WeeklyPlanStatDomain;
 import com.noblesi.travelplanner.admin.dashboard.dto.AdminDashboardDTO;
@@ -15,20 +15,20 @@ import com.noblesi.travelplanner.admin.dashboard.dto.WeeklyPlanStatDTO;
 @Service
 public class AdminDashboardService {
 
-	private final AdminDashboardDAO adminDashboardDAO;
+	private final AdminDashboardMapper adminDashboardMapper;
 
-	public AdminDashboardService(AdminDashboardDAO adminDashboardDAO) {
-		this.adminDashboardDAO = adminDashboardDAO;
+	public AdminDashboardService(AdminDashboardMapper adminDashboardMapper) {
+		this.adminDashboardMapper = adminDashboardMapper;
 	}
 
 	public AdminDashboardDTO getDashboard() {
 		AdminDashboardDTO dashboard = new AdminDashboardDTO();
-		dashboard.setTotalMemberCount(adminDashboardDAO.selectTotalMemberCount());
-		dashboard.setNewMemberCount(adminDashboardDAO.selectNewMemberCount());
-		dashboard.setPublicPlanCount(adminDashboardDAO.selectPublicPlanCount());
-		dashboard.setPendingReportCount(adminDashboardDAO.selectPendingReportCount());
-		dashboard.setWeeklyPlanStats(toWeeklyPlanStatDTOs(adminDashboardDAO.selectWeeklyPlanStats()));
-		dashboard.setPopularRegionStats(toPopularRegionStatDTOs(adminDashboardDAO.selectPopularRegionStats()));
+		dashboard.setTotalMemberCount(adminDashboardMapper.selectTotalMemberCount());
+		dashboard.setNewMemberCount(adminDashboardMapper.selectNewMemberCount());
+		dashboard.setPublicPlanCount(adminDashboardMapper.selectPublicPlanCount());
+		dashboard.setPendingReportCount(adminDashboardMapper.selectPendingReportCount());
+		dashboard.setWeeklyPlanStats(toWeeklyPlanStatDTOs(adminDashboardMapper.selectWeeklyPlanStats()));
+		dashboard.setPopularRegionStats(toPopularRegionStatDTOs(adminDashboardMapper.selectPopularRegionStats()));
 		return dashboard;
 	}
 

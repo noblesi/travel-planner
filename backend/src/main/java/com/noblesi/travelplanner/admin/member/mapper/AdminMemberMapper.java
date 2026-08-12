@@ -1,4 +1,4 @@
-package com.noblesi.travelplanner.admin.member.dao;
+package com.noblesi.travelplanner.admin.member.mapper;
 
 import java.util.List;
 
@@ -9,7 +9,7 @@ import com.noblesi.travelplanner.admin.member.dto.AdminMemberDetailDTO;
 import com.noblesi.travelplanner.admin.member.dto.AdminMemberListDTO;
 
 @Mapper
-public interface AdminMemberDAO {
+public interface AdminMemberMapper {
 
 	List<AdminMemberListDTO> selectMemberList(
 
@@ -30,4 +30,4 @@ public interface AdminMemberDAO {
 			@Param("memberStatus") String memberStatus
 	);
 
-}// AdminMemberDAO
+}// AdminMemberMapper

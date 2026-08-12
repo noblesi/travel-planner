@@ -1,4 +1,4 @@
-package com.noblesi.travelplanner.admin.dashboard.dao;
+package com.noblesi.travelplanner.admin.dashboard.mapper;
 
 import java.util.List;
 
@@ -8,7 +8,7 @@ import com.noblesi.travelplanner.admin.dashboard.domain.PopularRegionStatDomain;
 import com.noblesi.travelplanner.admin.dashboard.domain.WeeklyPlanStatDomain;
 
 @Mapper
-public interface AdminDashboardDAO {
+public interface AdminDashboardMapper {
 
 	int selectTotalMemberCount();
 

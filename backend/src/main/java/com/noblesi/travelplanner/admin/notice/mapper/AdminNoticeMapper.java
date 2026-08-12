@@ -1,4 +1,4 @@
-package com.noblesi.travelplanner.admin.notice.dao;
+package com.noblesi.travelplanner.admin.notice.mapper;
 
 import java.util.List;
 
@@ -11,7 +11,7 @@ import com.noblesi.travelplanner.admin.notice.dto.AdminNoticeListDTO;
 import com.noblesi.travelplanner.admin.notice.dto.AdminNoticeSearchDTO;
 
 @Mapper
-public interface AdminNoticeDAO {
+public interface AdminNoticeMapper {
 	long countNoticeList(@Param("search") AdminNoticeSearchDTO search);
 	List<AdminNoticeListDTO> selectNoticeList(@Param("search") AdminNoticeSearchDTO search);
 	AdminNoticeDetailDTO selectNoticeDetail(@Param("noticeId") Long noticeId);

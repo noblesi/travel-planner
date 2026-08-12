@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.noblesi.travelplanner.admin.auth.dao.AdminDAO;
+import com.noblesi.travelplanner.admin.auth.mapper.AdminMapper;
 import com.noblesi.travelplanner.admin.auth.domain.AdminDomain;
 import com.noblesi.travelplanner.admin.auth.dto.AdminDTO;
 import com.noblesi.travelplanner.common.exception.BusinessException;
@@ -16,16 +16,16 @@ public class AdminAuthService {
 
 	private static final String ACTIVE_STATUS = "ACTIVE";
 
-	private final AdminDAO adminDAO;
+	private final AdminMapper adminMapper;
 	private final PasswordEncoder passwordEncoder;
 
-	public AdminAuthService(AdminDAO adminDAO, PasswordEncoder passwordEncoder) {
-		this.adminDAO = adminDAO;
+	public AdminAuthService(AdminMapper adminMapper, PasswordEncoder passwordEncoder) {
+		this.adminMapper = adminMapper;
 		this.passwordEncoder = passwordEncoder;
 	}
 
 	public AdminDTO login(AdminDTO request) {
-		AdminDomain adminDomain = adminDAO.loginAdmin(request.getLoginId());
+		AdminDomain adminDomain = adminMapper.loginAdmin(request.getLoginId());
 		if (adminDomain == null || !ACTIVE_STATUS.equals(adminDomain.getAdminStatus())
 				|| !passwordEncoder.matches(request.getPassword(), adminDomain.getPassword())) {
 			throw invalidCredentials();
