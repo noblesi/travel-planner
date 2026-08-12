@@ -16,7 +16,7 @@ public interface AdminRecommendRuleMapper {
 	/**
 	 * 현재 활성화 되어 있는 규칙을 비활성화 합니다.
 	 */
-	int pdateActiveRuleInactive();
+	int updateRecommendRule();
 	
 	/**
 	 * 새로운 추천 규칙을 추가합니다.

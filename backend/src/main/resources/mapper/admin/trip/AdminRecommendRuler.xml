@@ -36,7 +36,7 @@
 			rownum = 1
 	</select>
 	<!-- 활성화 된 추천 점수 규칙 비활성화 -->
-	<update id="pdateActiveRuleInactive" >
+	<update id="updateRecommendRule" >
 		update recommend_rule
 		set
 			active_yn = 'N',
@@ -57,9 +57,9 @@
 		updated_at
 	) values (
 		seq_recommend_rule.nextval,
-		#{likeWeight},	
-		#{viewWeight},	
-		#{copyWeight},	
+		#{rule.likeWeight},	
+		#{rule.viewWeight},	
+		#{rule.copyWeight},	
 		'Y'	,
 		#{adminId},
 		systimestamp,
