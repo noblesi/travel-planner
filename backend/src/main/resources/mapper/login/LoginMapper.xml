@@ -2,9 +2,9 @@
 <!DOCTYPE mapper
 		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.noblesi.travelplanner.mapper.MemberMapper">
+<mapper namespace="com.noblesi.travelplanner.mapper.login.LoginMapper">
 
-	<resultMap id="loginUser" type="com.noblesi.travelplanner.domain.login.LoginUser">
+	<resultMap id="loginUser" type="LoginUser">
 		<constructor>
 			<idArg column="MEMBER_ID" javaType="_long" />
 			<arg column="EMAIL" javaType="string" />
@@ -15,9 +15,6 @@
 			<arg column="PHONE_NUMBER" javaType="string" />
 			<arg column="BIRTH_DATE" javaType="date" />
 			<arg column="MEMBER_STATUS" javaType="string" />
-			<arg column="CREATED_AT" javaType="timestamp" />
-			<arg column="UPDATED_AT" javaType="timestamp" />
-			<arg column="WITHDRAWN_AT" javaType="timestamp" />
 		</constructor>
 	</resultMap>
 

@@ -41,14 +41,14 @@
 			)
     	VALUES (
 			SEQ_MEMBER, 
-			#{NAME}, 
-			#{EMAIL}, 
-			#{BIRTH}, 
-			#{GENDER}, 
-			#{PHONE}, 
-			#{NAME}, 
-			#{PASSWORD}, 
-			#{PRIVACY}, 
+			#{name},
+			#{email}, 
+			#{birth}, 
+			#{gender}, 
+			#{phone}, 
+			#{nickname}, 
+			#{password}, 
+			#{privacy}, 
 			'ACTIVE',
 			SYSTIMESTAMP, 
 			SYSTIMESTAMP

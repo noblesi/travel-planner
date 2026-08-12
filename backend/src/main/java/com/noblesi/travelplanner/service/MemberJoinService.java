@@ -40,12 +40,15 @@ public class MemberJoinService {
             joinMemberRequest.email(),
             passwordEncoder.encode(joinMemberRequest.password()),
             joinMemberRequest.name(),
+            joinMemberRequest.nickname(),
             joinMemberRequest.gender(),
             joinMemberRequest.birth(),
             joinMemberRequest.privacy(),
             joinMemberRequest.phone()
+     
         );
-        
+        System.out.println("============joinMemberRequestHash : " + joinMemberRequestHash.toString());
+
         int insertCnt = memberMapper.insertMember(joinMemberRequestHash);
         
         if( insertCnt > 0 ){
