@@ -6,7 +6,7 @@ import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import com.noblesi.travelplanner.admin.trip.dao.AdminTripDAO;
+import com.noblesi.travelplanner.admin.trip.mapper.AdminTripMapper;
 import com.noblesi.travelplanner.admin.trip.dto.AdminTripDetailDTO;
 import com.noblesi.travelplanner.admin.trip.dto.AdminTripListDTO;
 import com.noblesi.travelplanner.admin.trip.dto.AdminTripReportDTO;
@@ -22,7 +22,7 @@ public class AdminTripService {
 	private static final Set<String> VISIBILITIES = Set.of("", "PUBLIC", "PRIVATE");
 	private static final Set<String> REPORT_STATUSES = Set.of("", "COMPLETED", "INCOMPLETE");
 
-	private final AdminTripDAO adminTripDAO;
+	private final AdminTripMapper adminTripMapper;
 
 	public List<AdminTripListDTO> getTripList(
 			String keyword,
@@ -51,7 +51,7 @@ public class AdminTripService {
 			);
 		}
 
-		return adminTripDAO.selectTripList(
+		return adminTripMapper.selectTripList(
 				normalizedKeyword,
 				normalizedVisibility,
 				normalizedRegionCode,
@@ -61,7 +61,7 @@ public class AdminTripService {
 	}
 
 	public AdminTripDetailDTO getTripDetail(int planId) {
-		AdminTripDetailDTO trip = adminTripDAO.selectTripDetail(planId);
+		AdminTripDetailDTO trip = adminTripMapper.selectTripDetail(planId);
 
 		if (trip == null) {
 			throw tripNotFound();
@@ -71,11 +71,11 @@ public class AdminTripService {
 	}
 
 	public List<AdminTripScheduleDTO> getTripSchedules(int planId) {
-		return adminTripDAO.selectTripSchedules(planId);
+		return adminTripMapper.selectTripSchedules(planId);
 	}
 
 	public List<AdminTripReportDTO> getTripReports(int planId) {
-		return adminTripDAO.selectTripReports(planId);
+		return adminTripMapper.selectTripReports(planId);
 	}
 
 	private BusinessException tripNotFound() {
