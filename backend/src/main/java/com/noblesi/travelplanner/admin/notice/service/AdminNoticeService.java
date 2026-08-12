@@ -24,6 +24,7 @@ public class AdminNoticeService {
 	@Autowired
 	private AdminNoticeMapper adminNoticeMapper;
 
+	/** 검색 조건에 맞는 전체 개수와 현재 페이지의 공지사항 목록을 조회합니다. */
 	@Transactional(readOnly = true)
 	public PageResponse<AdminNoticeListDTO> getNoticeList(AdminNoticeSearchDTO search) {
 		long totalCount = adminNoticeMapper.countNoticeList(search);
@@ -35,6 +36,7 @@ public class AdminNoticeService {
 		return PageResponse.of(content, pagination);
 	}
 
+	/** 공지사항 상세 정보를 조회하고 존재하지 않으면 404 업무 예외를 발생시킵니다. */
 	@Transactional(readOnly = true)
 	public AdminNoticeDetailDTO getNoticeDetail(Long noticeId) {
 		AdminNoticeDetailDTO notice = adminNoticeMapper.selectNoticeDetail(noticeId);
@@ -44,6 +46,7 @@ public class AdminNoticeService {
 		return notice;
 	}
 
+	/** 상세 조회 결과를 등록·수정 화면에서 사용하는 Form DTO로 변환합니다. */
 	@Transactional(readOnly = true)
 	public AdminNoticeFormDTO getNoticeForm(Long noticeId) {
 		AdminNoticeDetailDTO detail = getNoticeDetail(noticeId);
@@ -54,6 +57,7 @@ public class AdminNoticeService {
 		return form;
 	}
 
+	/** 입력값을 정리한 뒤 로그인 관리자 번호와 함께 공지사항을 등록합니다. */
 	@Transactional
 	public void createNotice(AdminNoticeFormDTO form, Long adminId) {
 		normalizeForm(form);
@@ -63,6 +67,7 @@ public class AdminNoticeService {
 		}
 	}
 
+	/** 입력값을 정리한 뒤 공지사항을 수정하고 수정 대상의 존재 여부를 확인합니다. */
 	@Transactional
 	public void updateNotice(Long noticeId, AdminNoticeFormDTO form) {
 		normalizeForm(form);
@@ -71,6 +76,7 @@ public class AdminNoticeService {
 		}
 	}
 
+	/** 공지사항을 실제 삭제하고 삭제된 행이 없으면 존재하지 않는 공지로 처리합니다. */
 	@Transactional
 	public void deleteNotice(Long noticeId) {
 		if (adminNoticeMapper.deleteNotice(noticeId) != 1) {
@@ -78,12 +84,14 @@ public class AdminNoticeService {
 		}
 	}
 
+	/** 제목·내용의 양쪽 공백을 제거하고 분류 코드를 DB 저장 형식으로 통일합니다. */
 	private void normalizeForm(AdminNoticeFormDTO form) {
 		form.setTitle(form.getTitle().strip());
 		form.setContent(form.getContent().strip());
 		form.setCategoryCode(normalizeCategoryCode(form.getCategoryCode()));
 	}
 
+	/** 화면에서 받은 분류 코드를 대문자로 변환하고 허용된 분류인지 검사합니다. */
 	private String normalizeCategoryCode(String categoryCode) {
 		if (categoryCode == null) {
 			throw invalidCategoryCode();
