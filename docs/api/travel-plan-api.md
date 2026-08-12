@@ -75,7 +75,7 @@ GET /api/plans?keyword=서울&page=1&size=8
 - `page` 기본값은 1이며 1 미만이면 1로 보정합니다.
 - `size` 기본값은 10이며 서버에서 1~100 범위로 보정합니다.
 - 기존 호출 호환을 위해 `limit`도 지원하며, 전달하면 `size`보다 우선합니다.
-- `UPDATED_AT DESC`, `PLAN_ID DESC` 순으로 정렬합니다.
+- `VIEW_COUNT DESC`, `UPDATED_AT DESC`, `PLAN_ID DESC` 순으로 정렬합니다.
 - 결과가 없으면 빈 `content` 배열을 반환합니다.
 
 ```json
@@ -144,7 +144,7 @@ GET /api/plans/{planId}
             "placeName": "경복궁",
             "latitude": 37.579617,
             "longitude": 126.977041,
-            "description": "조선의 대표 궁궐에서 시작하는 서울 역사 산책"
+            "address": "서울특별시 종로구 사직로 161"
           }
         ]
       }
