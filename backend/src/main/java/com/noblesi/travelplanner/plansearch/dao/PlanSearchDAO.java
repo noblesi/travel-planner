@@ -6,10 +6,14 @@ import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import com.noblesi.travelplanner.plansearch.dto.NewTravelPlanDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanDetailDayDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanDetailResponseDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanListResponseDTO;
+import com.noblesi.travelplanner.plansearch.dto.PlanScheduleCopyRowDTO;
+import com.noblesi.travelplanner.plansearch.dto.PlanScheduleRowDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanSearchRequestDTO;
+import com.noblesi.travelplanner.plansearch.dto.PublishedPlanTargetDTO;
 
 @Mapper
 public interface PlanSearchDAO {
@@ -39,15 +43,7 @@ public interface PlanSearchDAO {
 	long nextTravelPlanId();
 
 	// 새 여행 플랜 저장 (복사본, 비공개로 생성)
-	int insertTravelPlan(
-			@Param("planId") Long planId,
-			@Param("sourcePlanId") Long sourcePlanId,
-			@Param("memberId") Long memberId,
-			@Param("title") String title,
-			@Param("regionCode") String regionCode,
-			@Param("startDate") LocalDate startDate,
-			@Param("endDate") LocalDate endDate
-	);
+	int insertTravelPlan(NewTravelPlanDTO newPlan);
 
 	// 플랜 참여자(생성자) 등록
 	int insertPlanMember(@Param("planId") Long planId, @Param("memberId") Long memberId);

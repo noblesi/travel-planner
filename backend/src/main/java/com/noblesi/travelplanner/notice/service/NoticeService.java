@@ -26,8 +26,8 @@ public class NoticeService {
 	// 공지사항 목록 조회 (전체 개수로 페이징 정보 계산 후, 있으면 목록까지 조회)
 	@Transactional(readOnly = true)
 	public PageResponse<NoticeListResponseDTO> getNoticeList(NoticeSearchRequestDTO request) {
-		long totalCount = nd.countNoticeList(request.category());
-		Pagination pagination = Pagination.of(request.page(), request.size(), totalCount);
+		long totalCount = nd.countNoticeList(request.getCategory());
+		Pagination pagination = Pagination.of(request.getPage(), request.getSize(), totalCount);
 		if (totalCount == 0) {
 			return PageResponse.empty(pagination);
 		}
@@ -47,7 +47,7 @@ public class NoticeService {
 	}
 
 	// 공지사항 조회수 증가 (대상이 없으면 404)
-	public void increaseNoticeViewCount(Long noticeId) {
+	private void increaseNoticeViewCount(Long noticeId) {
 		if (nd.updateNoticeViewCount(noticeId) != 1) {
 			throw noticeNotFound();
 		}
