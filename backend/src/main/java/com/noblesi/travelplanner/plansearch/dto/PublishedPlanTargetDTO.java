@@ -1,4 +1,4 @@
-package com.noblesi.travelplanner.plansearch.dao;
+package com.noblesi.travelplanner.plansearch.dto;
 
 import org.apache.ibatis.type.Alias;
 
