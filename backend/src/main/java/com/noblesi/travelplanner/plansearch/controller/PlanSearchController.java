@@ -75,17 +75,13 @@ public class PlanSearchController {
 			HttpServletResponse httpResponse
 	) {
 		long parsedPlanId = idParser.parse(planId, "planId");
-		boolean increaseViewCount = !hasViewedRecently(httpRequest, parsedPlanId);
-		OptionalLong memberId = securityMemberResolver.getAuthenticatedMemberId();
-		Long memberIdOrNull = memberId.isPresent() ? memberId.getAsLong() : null;
-		PlanDetailResponseDTO detail = planSearchService.searchPlanDetail(
-				parsedPlanId,
-				memberIdOrNull,
-				increaseViewCount
-		);
-		if (increaseViewCount) {
+		if (!hasViewedRecently(httpRequest, parsedPlanId)) {
+			planSearchService.increasePlanViewCount(parsedPlanId);
 			markViewed(httpResponse, parsedPlanId);
 		}
+		OptionalLong memberId = securityMemberResolver.getAuthenticatedMemberId();
+		Long memberIdOrNull = memberId.isPresent() ? memberId.getAsLong() : null;
+		PlanDetailResponseDTO detail = planSearchService.searchPlanDetail(parsedPlanId, memberIdOrNull);
 		return ApiResponse.success(detail);
 	}
 
