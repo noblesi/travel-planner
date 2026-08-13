@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.admin.report.mapper.AdminReportMapper">
+	<select id="selectReportDetail" resultType="adminReportDTO">
+		select report.report_id as reportid,
+		       report.plan_id as planid,
+		       report.reporter_member_id as reportermemberid,
+		       member.member_name as reportername,
+		       plan.title as plantitle,
+		       report.reason_code as reasoncode,
+		       report.reason_detail as reasondetail,
+		       report.report_status as reportstatus,
+		       report.created_at as createat,
+		       report_process.process_result_code as processresultcode,
+		       report_process.process_reason as processreason,
+		       report_process.processed_at as processedat
+		  from report report
+		  join member member on member.member_id = report.reporter_member_id
+		  join travel_plan plan on plan.plan_id = report.plan_id
+		  left join report_process report_process on report_process.report_id = report.report_id
+		 where report.report_id = #{reportid}
+	</select>
+
+	<insert id="insertReportProcess">
+		merge into report_process target
+		using (
+			select #{reportid} as report_id
+			  from dual
+		) source
+		on (target.report_id = source.report_id)
+		when matched then
+			update set
+				target.processor_admin_id = #{adminid},
+				target.process_result_code = #{processresultcode},
+				target.process_reason = #{processreason},
+				target.processed_at = #{processedat}
+		when not matched then
+			insert (
+				report_id,
+				processor_admin_id,
+				process_result_code,
+				process_reason,
+				processed_at
+			)
+			values (
+				#{reportid},
+				#{adminid},
+				#{processresultcode},
+				#{processreason},
+				#{processedat}
+			)
+	</insert>
+
+	<update id="updateReportStatus">
+		update report set report_status = #{reportstatus} where report_id = #{reportid}
+	</update>
+
+	<update id="updatePlanVisibility">
+		update travel_plan set visibility = #{visibility} where plan_id = #{planid}
+	</update>
+</mapper>
