@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -30,6 +31,9 @@ class SmtpInvitationMailSender implements InvitationMailSender {
 		this.fromAddress = fromAddress;
 	}
 
+	// 초대 대상이 여러 명이면 SMTP 왕복이 그만큼 직렬로 누적돼 HTTP 응답(axios 5초 타임아웃)을
+	// 넘기기 쉽다. 메일 발송은 이미 실패해도 무시되는 best-effort라 응답을 기다릴 이유가 없으므로 비동기로 던진다.
+	@Async
 	@Override
 	public void send(String toEmail, String planTitle, String acceptLink, OffsetDateTime expiresAt) {
 		SimpleMailMessage message = new SimpleMailMessage();

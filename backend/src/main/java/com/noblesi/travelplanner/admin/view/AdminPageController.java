@@ -5,24 +5,11 @@ import java.util.List;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 @RequestMapping("/admin")
 public class AdminPageController {
-
-	@GetMapping("/reports/{reportId}")
-	public String reportDetail(
-			@PathVariable("reportId") String reportId,
-			@RequestParam(name = "planId", required = false) Integer planId,
-			Model model) {
-		model.addAttribute("pageTitle", "신고 상세");
-		model.addAttribute("reportId", reportId);
-		model.addAttribute("planId", planId);
-		return "admin/report/reportDetailView";
-	}
 
 	@GetMapping("/tour-data")
 	public String tourData(Model model) {
@@ -36,7 +23,6 @@ public class AdminPageController {
 		return "admin/tour/tourDataFormView";
 	}
 
-	// Thymeleaf 전용 읽기 모델입니다. 영속 Domain과 화면 표시 데이터를 분리합니다.
 	public record SyncView(String id, String startedAt, int changedCount, int failedCount,
 			String status, String manager) { }
 }

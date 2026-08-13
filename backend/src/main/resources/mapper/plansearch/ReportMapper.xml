@@ -17,7 +17,7 @@
 			#{planId},
 			#{memberId},
 			#{request.reason},
-			#{request.detail}
+			#{request.detail,jdbcType=VARCHAR}
 		)
 	</insert>
 

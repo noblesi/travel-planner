@@ -4,29 +4,9 @@
 		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.noblesi.travelplanner.notice.dao.NoticeDAO">
 
-	<resultMap id="noticeListResultMap" type="com.noblesi.travelplanner.notice.dto.NoticeListResponseDTO">
-		<constructor>
-			<arg column="NOTICE_ID" javaType="java.lang.Long" />
-			<arg column="CATEGORY_CODE" javaType="java.lang.String" />
-			<arg column="TITLE" javaType="java.lang.String" />
-			<arg column="CREATED_AT" javaType="java.time.LocalDate" />
-		</constructor>
-	</resultMap>
-
-	<resultMap id="noticeDetailResultMap" type="com.noblesi.travelplanner.notice.dto.NoticeDetailResponseDTO">
-		<constructor>
-			<arg column="NOTICE_ID" javaType="java.lang.Long" />
-			<arg column="CATEGORY_CODE" javaType="java.lang.String" />
-			<arg column="TITLE" javaType="java.lang.String" />
-			<arg column="CONTENT" javaType="java.lang.String" />
-			<arg column="VIEW_COUNT" javaType="_int" />
-			<arg column="CREATED_AT" javaType="java.time.LocalDate" />
-		</constructor>
-	</resultMap>
-
-	<select id="selectNoticeList" resultMap="noticeListResultMap">
+	<select id="selectNoticeList" resultType="NoticeListResponseDTO">
 		SELECT NOTICE_ID,
-		       CATEGORY_CODE,
+		       CATEGORY_CODE AS CATEGORY,
 		       TITLE,
 		       CREATED_AT
 		  FROM (
@@ -57,9 +37,9 @@
 		</if>
 	</select>
 
-	<select id="selectNoticeById" resultMap="noticeDetailResultMap">
+	<select id="selectNoticeById" resultType="NoticeDetailResponseDTO">
 		SELECT NOTICE_ID,
-		       CATEGORY_CODE,
+		       CATEGORY_CODE AS CATEGORY,
 		       TITLE,
 		       CONTENT,
 		       VIEW_COUNT,

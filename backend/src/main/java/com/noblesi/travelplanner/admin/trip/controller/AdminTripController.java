@@ -79,10 +79,16 @@ public class AdminTripController {
 		AdminTripDetailDTO trip = adminTripService.getTripDetail(planId);
 		List<AdminTripScheduleDTO> schedules = adminTripService.getTripSchedules(planId);
 		List<AdminTripReportDTO> reports = adminTripService.getTripReports(planId);
+		List<Integer> scheduleDays = schedules.stream()
+				.map(AdminTripScheduleDTO::getDayNo)
+				.distinct()
+				.sorted()
+				.toList();
 
 		model.addAttribute("pageTitle", "여행 플랜 상세");
 		model.addAttribute("trip", trip);
 		model.addAttribute("schedules", schedules);
+		model.addAttribute("scheduleDays", scheduleDays);
 		model.addAttribute("reports", reports);
 		model.addAttribute("kakaoJavascriptKey", kakaoJavascriptKey);
 

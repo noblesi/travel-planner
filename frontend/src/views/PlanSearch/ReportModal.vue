@@ -71,6 +71,15 @@ const step = ref('form')
 const submitting = ref(false)
 const errorMessage = ref('')
 
+function apiErrorMessage(error) {
+  if (error?.response?.status === 401) return '로그인 후 신고할 수 있어요.'
+
+  const message = error?.response?.data?.message
+  return typeof message === 'string' && message
+    ? message
+    : '신고를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.'
+}
+
 async function submit() {
   if (!selectedReason.value.trim() || submitting.value) return
   submitting.value = true
@@ -78,8 +87,8 @@ async function submit() {
   try {
     await reportPlan(props.planId, { reason: selectedReason.value, detail: detail.value })
     step.value = 'done'
-  } catch {
-    errorMessage.value = '신고를 접수하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  } catch (error) {
+    errorMessage.value = apiErrorMessage(error)
   } finally {
     submitting.value = false
   }

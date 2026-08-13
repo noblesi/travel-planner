@@ -3,9 +3,12 @@ package com.noblesi.travelplanner.plansearch.dto;
 import java.time.LocalDate;
 import java.util.List;
 
+import org.apache.ibatis.type.Alias;
+
 import lombok.Getter;
 import lombok.Setter;
 
+@Alias("PlanDetailResponseDTO")
 @Getter
 @Setter
 public class PlanDetailResponseDTO {
