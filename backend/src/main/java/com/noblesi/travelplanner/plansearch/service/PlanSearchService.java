@@ -15,17 +15,18 @@ import com.noblesi.travelplanner.common.api.PageResponse;
 import com.noblesi.travelplanner.common.api.Pagination;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.plansearch.dao.PlanLikeDAO;
-import com.noblesi.travelplanner.plansearch.dao.PlanScheduleCopyRowDTO;
-import com.noblesi.travelplanner.plansearch.dao.PlanScheduleRowDTO;
 import com.noblesi.travelplanner.plansearch.dao.PlanSearchDAO;
-import com.noblesi.travelplanner.plansearch.dao.PublishedPlanTargetDTO;
 import com.noblesi.travelplanner.plansearch.dao.ReportDAO;
+import com.noblesi.travelplanner.plansearch.dto.NewTravelPlanDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanCopyRequestDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanDetailDayDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanDetailPlaceDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanDetailResponseDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanListResponseDTO;
+import com.noblesi.travelplanner.plansearch.dto.PlanScheduleCopyRowDTO;
+import com.noblesi.travelplanner.plansearch.dto.PlanScheduleRowDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanSearchRequestDTO;
+import com.noblesi.travelplanner.plansearch.dto.PublishedPlanTargetDTO;
 import com.noblesi.travelplanner.plansearch.dto.ReportRequestDTO;
 import com.noblesi.travelplanner.service.TravelPlanRequestValidator;
 
@@ -56,6 +57,8 @@ public class PlanSearchService {
 	public PageResponse<PlanListResponseDTO> searchPlanList(PlanSearchRequestDTO request) {
 		int page = Math.max(request.getPage(), 1);
 		int size = Math.min(Math.max(request.getSize(), 1), MAX_SIZE);
+		String keyword = request.getKeyword() == null ? "" : request.getKeyword().trim();
+		request.setKeyword(keyword);
 		request.setPage(page);
 		request.setSize(size);
 
@@ -67,9 +70,18 @@ public class PlanSearchService {
 		return PageResponse.of(psd.selectPlanList(request), pagination);
 	}
 
-	// 플랜 상세 조회 (memberId가 없으면 비로그인 조회로 보고 liked는 false로 처리)
+	// 플랜 조회 수 증가
+	@Transactional
+	public void increasePlanViewCount(Long planId) {
+		if (psd.updatePlanViewCount(planId) != 1) {
+			throw planNotFound();
+		}
+	}
+
+	// 플랜 상세 조회
 	@Transactional(readOnly = true)
 	public PlanDetailResponseDTO searchPlanDetail(Long planId, Long memberId) {
+		requirePublishedPlan(planId);
 		PlanDetailResponseDTO detail = psd.selectPlanById(planId);
 		if (detail == null) {
 			throw planNotFound();
@@ -96,14 +108,6 @@ public class PlanSearchService {
 			day.setPlaces(placesByDay.getOrDefault(day.getDayNumber(), new ArrayList<>()));
 		}
 		return days;
-	}
-
-	// 플랜 조회 수 증가
-	@Transactional
-	public void increasePlanViewCount(Long planId) {
-		if (psd.updatePlanViewCount(planId) != 1) {
-			throw planNotFound();
-		}
 	}
 
 	// 좋아요 토글: 이미 눌렀으면 취소, 안 눌렀으면 등록하고 결과 상태를 반환
@@ -160,10 +164,15 @@ public class PlanSearchService {
 		PublishedPlanTargetDTO sourcePlan = requirePublishedPlan(sourcePlanId);
 
 		long newPlanId = psd.nextTravelPlanId();
-		psd.insertTravelPlan(
-				newPlanId, sourcePlanId, memberId, request.getTitle().trim(),
-				sourcePlan.getRegionCode(), request.getStartDate(), request.getEndDate()
-		);
+		NewTravelPlanDTO newPlan = new NewTravelPlanDTO();
+		newPlan.setPlanId(newPlanId);
+		newPlan.setSourcePlanId(sourcePlanId);
+		newPlan.setMemberId(memberId);
+		newPlan.setTitle(request.getTitle().trim());
+		newPlan.setRegionCode(sourcePlan.getRegionCode());
+		newPlan.setStartDate(request.getStartDate());
+		newPlan.setEndDate(request.getEndDate());
+		psd.insertTravelPlan(newPlan);
 		psd.insertPlanMember(newPlanId, memberId);
 
 		Map<Integer, Long> newDayIdByDayNo = new HashMap<>();

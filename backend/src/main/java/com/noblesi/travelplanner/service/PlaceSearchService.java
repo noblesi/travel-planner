@@ -12,16 +12,18 @@ import com.noblesi.travelplanner.integration.tourapi.TourApiException;
 public class PlaceSearchService {
 
 	private final TourApiClient tourApiClient;
+	private final PlaceCatalogService placeCatalogService;
 
-	public PlaceSearchService(TourApiClient tourApiClient) {
+	public PlaceSearchService(TourApiClient tourApiClient, PlaceCatalogService placeCatalogService) {
 		this.tourApiClient = tourApiClient;
+		this.placeCatalogService = placeCatalogService;
 	}
 
 	public PlaceSearchResponse search(String keyword, String regionCode, int page, int size) {
 		try {
-			return PlaceSearchResponse.from(
-					tourApiClient.searchKeyword(keyword.trim(), regionCode, page, size)
-			);
+			var result = tourApiClient.searchKeyword(keyword.trim(), regionCode, page, size);
+			placeCatalogService.rememberTourApiPlaces(result.places());
+			return PlaceSearchResponse.from(result);
 		} catch (TourApiException exception) {
 			throw mapException(exception);
 		}

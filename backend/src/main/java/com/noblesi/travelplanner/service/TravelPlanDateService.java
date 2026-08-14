@@ -19,6 +19,7 @@ class TravelPlanDateService {
 	private final TravelPlanCommandMapper travelPlanCommandMapper;
 	private final PlanDayRangeSynchronizer dayRangeSynchronizer;
 	private final PlanEditorQueryService editorQueryService;
+	private final PlanThumbnailDerivationService thumbnailDerivationService;
 
 	TravelPlanDateService(
 			PositiveIdParser idParser,
@@ -26,7 +27,8 @@ class TravelPlanDateService {
 			TravelPlanRequestValidator requestValidator,
 			TravelPlanCommandMapper travelPlanCommandMapper,
 			PlanDayRangeSynchronizer dayRangeSynchronizer,
-			PlanEditorQueryService editorQueryService
+			PlanEditorQueryService editorQueryService,
+			PlanThumbnailDerivationService thumbnailDerivationService
 	) {
 		this.idParser = idParser;
 		this.planAccessService = planAccessService;
@@ -34,6 +36,7 @@ class TravelPlanDateService {
 		this.travelPlanCommandMapper = travelPlanCommandMapper;
 		this.dayRangeSynchronizer = dayRangeSynchronizer;
 		this.editorQueryService = editorQueryService;
+		this.thumbnailDerivationService = thumbnailDerivationService;
 	}
 
 	@Transactional
@@ -70,6 +73,7 @@ class TravelPlanDateService {
 				request.endDate(),
 				request.force()
 		);
+		thumbnailDerivationService.refresh(planId);
 		PlanEditorPlan updatedPlan = planAccessService.requireOwnedPlan(planId, memberId);
 		return editorQueryService.buildResponse(planId, updatedPlan);
 	}

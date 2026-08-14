@@ -4,12 +4,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -29,6 +32,7 @@ import org.springframework.test.web.servlet.MvcResult;
 class PlanSearchControllerIntegrationTest {
 	private static final long PUBLISHED_PLAN_ID = 81_001L;
 	private static final long DRAFT_PLAN_ID = 81_002L;
+	private static final long HIGH_PRECISION_PLAN_ID = 9_007_199_254_740_998L;
 	private static final String MEMBER_EMAIL = "e2e.owner@withtrip.test";
 	private static final String MEMBER_PASSWORD = "WithTrip-E2E-2026!";
 
@@ -57,13 +61,27 @@ class PlanSearchControllerIntegrationTest {
 
 	@Test
 	void exposesOnlyPublishedPlansInSearchAndDetail() throws Exception {
-		mockMvc.perform(get("/api/plan-search/plans"))
+		mockMvc.perform(get("/api/plans")
+				.queryParam("keyword", "  Published  ")
+				.queryParam("limit", "1"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.data.pagination.totalCount").value(1))
+				.andExpect(jsonPath("$.data.pagination.size").value(1))
 				.andExpect(jsonPath("$.data.content[0].planId").value(Long.toString(PUBLISHED_PLAN_ID)))
 				.andExpect(jsonPath("$.data.content[0].title").value("Published plan"));
 
-		mockMvc.perform(get("/api/plan-search/plans/{planId}", DRAFT_PLAN_ID))
+		MvcResult firstView = mockMvc.perform(get("/api/plans/{planId}", PUBLISHED_PLAN_ID))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.planId").value(Long.toString(PUBLISHED_PLAN_ID)))
+				.andExpect(jsonPath("$.data.viewCount").value(12))
+				.andReturn();
+
+		mockMvc.perform(get("/api/plans/{planId}", PUBLISHED_PLAN_ID)
+				.cookie(firstView.getResponse().getCookie("plan_viewed_" + PUBLISHED_PLAN_ID)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.viewCount").value(12));
+
+		mockMvc.perform(get("/api/plans/{planId}", DRAFT_PLAN_ID))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"));
 
@@ -73,13 +91,112 @@ class PlanSearchControllerIntegrationTest {
 				DRAFT_PLAN_ID
 		);
 		assertThat(draftViewCount).isEqualTo(7);
+
+		Integer publishedViewCount = jdbcTemplate.queryForObject(
+				"SELECT VIEW_COUNT FROM TRAVEL_PLAN WHERE PLAN_ID = ?",
+				Integer.class,
+				PUBLISHED_PLAN_ID
+		);
+		assertThat(publishedViewCount).isEqualTo(12);
+	}
+
+	@Test
+	void doesNotIncreaseViewCountOrSetCookieWhenOwnerIsInactive() throws Exception {
+		Long ownerMemberId = jdbcTemplate.queryForObject(
+				"SELECT OWNER_MEMBER_ID FROM TRAVEL_PLAN WHERE PLAN_ID = ?",
+				Long.class,
+				PUBLISHED_PLAN_ID
+		);
+		jdbcTemplate.update("UPDATE MEMBER SET MEMBER_STATUS = 'WITHDRAWN' WHERE MEMBER_ID = ?", ownerMemberId);
+
+		try {
+			mockMvc.perform(get("/api/plans/{planId}", PUBLISHED_PLAN_ID))
+					.andExpect(status().isNotFound())
+					.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"))
+					.andExpect(cookie().doesNotExist("plan_viewed_" + PUBLISHED_PLAN_ID));
+
+			Integer viewCount = jdbcTemplate.queryForObject(
+					"SELECT VIEW_COUNT FROM TRAVEL_PLAN WHERE PLAN_ID = ?",
+					Integer.class,
+					PUBLISHED_PLAN_ID
+			);
+			assertThat(viewCount).isEqualTo(11);
+		} finally {
+			jdbcTemplate.update("UPDATE MEMBER SET MEMBER_STATUS = 'ACTIVE' WHERE MEMBER_ID = ?", ownerMemberId);
+		}
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"0", "-1", "not-a-number", "9223372036854775808"})
+	void rejectsInvalidPlanIdsWithPathParameterError(String planId) throws Exception {
+		mockMvc.perform(get("/api/plans/{planId}", planId))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PATH_PARAMETER"));
+	}
+
+	@Test
+	void appliesPositiveIdValidationToAuthenticatedPlanActions() throws Exception {
+		MockHttpSession session = login();
+
+		mockMvc.perform(post("/api/plans/{planId}/like", "0")
+				.session(session)
+				.with(csrf().asHeader()))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PATH_PARAMETER"));
+
+		mockMvc.perform(post("/api/plans/{planId}/report", "not-a-number")
+				.session(session)
+				.with(csrf().asHeader())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(reportRequest("SPAM", "Invalid path")))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PATH_PARAMETER"));
+
+		mockMvc.perform(post("/api/plans/{sourcePlanId}/copy", "9223372036854775808")
+				.session(session)
+				.with(csrf().asHeader())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+						{
+						  "title": "Copied plan",
+						  "startDate": "2099-08-10",
+						  "endDate": "2099-08-11"
+						}
+						"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PATH_PARAMETER"));
+	}
+
+	@Test
+	void serializesHighPrecisionPlanIdAsString() throws Exception {
+		Long ownerMemberId = jdbcTemplate.queryForObject(
+				"SELECT MEMBER_ID FROM MEMBER WHERE EMAIL = 'e2e.invitee@withtrip.test'",
+				Long.class
+		);
+		insertPlan(HIGH_PRECISION_PLAN_ID, ownerMemberId, "High precision plan", "PUBLISHED", 0);
+
+		mockMvc.perform(get("/api/plans").queryParam("keyword", "High precision plan"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.content[0].planId").value(Long.toString(HIGH_PRECISION_PLAN_ID)));
+
+		mockMvc.perform(get("/api/plans/{planId}", Long.toString(HIGH_PRECISION_PLAN_ID)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.planId").value(Long.toString(HIGH_PRECISION_PLAN_ID)));
+	}
+
+	@Test
+	void doesNotExposeLegacyPlanSearchEndpoint() throws Exception {
+		MockHttpSession session = login();
+
+		mockMvc.perform(get("/api/plan-search/plans").session(session))
+				.andExpect(status().isNotFound());
 	}
 
 	@Test
 	void rejectsCopyingDraftPlan() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", DRAFT_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/copy", DRAFT_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -98,13 +215,13 @@ class PlanSearchControllerIntegrationTest {
 	void rejectsLikeAndReportForDraftPlan() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/like", DRAFT_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/like", DRAFT_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader()))
 				.andExpect(status().isNotFound())
 				.andExpect(jsonPath("$.code").value("PLAN_NOT_FOUND"));
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", DRAFT_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/report", DRAFT_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -130,7 +247,7 @@ class PlanSearchControllerIntegrationTest {
 	void storesOneReportAndRejectsDuplicate() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/report", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -138,7 +255,7 @@ class PlanSearchControllerIntegrationTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.success").value(true));
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/report", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -158,7 +275,7 @@ class PlanSearchControllerIntegrationTest {
 	void validatesReportReasonAndRejectsSelfReport() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/report", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -174,7 +291,7 @@ class PlanSearchControllerIntegrationTest {
 		long selfOwnedPlanId = 81_003L;
 		insertPlan(selfOwnedPlanId, currentMemberId, "Self owned plan", "PUBLISHED", 0);
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/report", selfOwnedPlanId)
+		mockMvc.perform(post("/api/plans/{planId}/report", selfOwnedPlanId)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -187,7 +304,7 @@ class PlanSearchControllerIntegrationTest {
 	void validatesCopyRequestAndCreatesExplicitDraftState() throws Exception {
 		MockHttpSession session = login();
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/copy", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -201,7 +318,7 @@ class PlanSearchControllerIntegrationTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/copy", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -215,7 +332,7 @@ class PlanSearchControllerIntegrationTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("TRAVEL_PLAN_DURATION_EXCEEDED"));
 
-		mockMvc.perform(post("/api/plan-search/plans/{planId}/copy", PUBLISHED_PLAN_ID)
+		mockMvc.perform(post("/api/plans/{planId}/copy", PUBLISHED_PLAN_ID)
 				.session(session)
 				.with(csrf().asHeader())
 				.contentType(MediaType.APPLICATION_JSON)
@@ -277,6 +394,12 @@ class PlanSearchControllerIntegrationTest {
 		jdbcTemplate.update("DELETE FROM PLAN_DAY WHERE PLAN_ID IN (SELECT PLAN_ID FROM TRAVEL_PLAN WHERE SOURCE_PLAN_ID IN (?, ?))", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
 		jdbcTemplate.update("DELETE FROM PLAN_MEMBER WHERE PLAN_ID IN (SELECT PLAN_ID FROM TRAVEL_PLAN WHERE SOURCE_PLAN_ID IN (?, ?))", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
 		jdbcTemplate.update("DELETE FROM TRAVEL_PLAN WHERE SOURCE_PLAN_ID IN (?, ?)", PUBLISHED_PLAN_ID, DRAFT_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM REPORT WHERE PLAN_ID = ?", HIGH_PRECISION_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM PLAN_SCHEDULE_ITEM WHERE PLAN_DAY_ID IN (SELECT PLAN_DAY_ID FROM PLAN_DAY WHERE PLAN_ID = ?)", HIGH_PRECISION_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM PLAN_DAY WHERE PLAN_ID = ?", HIGH_PRECISION_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM PLAN_MEMBER WHERE PLAN_ID = ?", HIGH_PRECISION_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM PLAN_LIKE WHERE PLAN_ID = ?", HIGH_PRECISION_PLAN_ID);
+		jdbcTemplate.update("DELETE FROM TRAVEL_PLAN WHERE PLAN_ID = ?", HIGH_PRECISION_PLAN_ID);
 		jdbcTemplate.update("DELETE FROM REPORT WHERE PLAN_ID BETWEEN 81_001 AND 81_003");
 		jdbcTemplate.update("DELETE FROM PLAN_SCHEDULE_ITEM WHERE PLAN_DAY_ID IN (SELECT PLAN_DAY_ID FROM PLAN_DAY WHERE PLAN_ID BETWEEN 81_001 AND 81_003)");
 		jdbcTemplate.update("DELETE FROM PLAN_DAY WHERE PLAN_ID BETWEEN 81_001 AND 81_003");

@@ -15,6 +15,8 @@ public interface PlanScheduleItemMapper {
 
 	int countByPlanId(@Param("planId") long planId);
 
+	String findFirstImageUrlByPlanId(@Param("planId") long planId);
+
 	long nextScheduleItemId();
 
 	PlanScheduleItem findByIdAndDayId(

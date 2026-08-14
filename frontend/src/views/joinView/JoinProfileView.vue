@@ -11,7 +11,7 @@ const birth = ref('')
 const name = ref('')
 const gender = ref('N') // 기본값 설정 (N: 선택안함)
 const phone = ref('')
-const privacy = ref('N')
+const privacy = ref(false)
 
 const handleContinue = () => {
   if (!name.value.trim()) {
@@ -38,7 +38,7 @@ const handleContinue = () => {
     email: userStore.userInfo.email,
     password: userStore.userInfo.password,
     birth: birth.value,
-    privacy: privacy.value,
+    privacy: privacy.value ? 'Y' : 'N',
     name: name.value,
     gender: gender.value,
     phone: phone.value

@@ -39,16 +39,16 @@
 			CREATED_AT, 
 			UPDATED_AT
 			)
-    	VALUES (
-			SEQ_MEMBER, 
+		VALUES (
+			SEQ_MEMBER.NEXTVAL,
 			#{name},
-			#{email}, 
-			#{birth}, 
-			#{gender}, 
-			#{phone}, 
-			#{nickname}, 
-			#{password}, 
-			#{privacy}, 
+			#{email},
+			#{birth, jdbcType=DATE},
+			#{gender},
+			#{phone},
+			#{nickname},
+			#{password},
+			#{privacy},
 			'ACTIVE',
 			SYSTIMESTAMP, 
 			SYSTIMESTAMP
@@ -58,7 +58,7 @@
 	<select id="selectEmailCnt" resultType="int">
 		SELECT COUNT(*) AS CNT
 		  FROM MEMBER
-		 WHERE EMAIL = #{email}
+		 WHERE LOWER(EMAIL) = #{email}
 	</select>
 
 </mapper>

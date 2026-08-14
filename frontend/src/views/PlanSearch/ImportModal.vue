@@ -61,6 +61,15 @@ const submitting = ref(false)
 const errorMessage = ref('')
 const newPlanId = ref(null)
 
+function apiErrorMessage(error) {
+  if (error?.response?.status === 401) return '로그인 후 일정을 가져올 수 있어요.'
+
+  const message = error?.response?.data?.message
+  return typeof message === 'string' && message
+    ? message
+    : '일정을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.'
+}
+
 async function submitNew() {
   submitting.value = true
   errorMessage.value = ''
@@ -71,8 +80,8 @@ async function submitNew() {
       endDate: newEndDate.value,
     })
     step.value = 'success'
-  } catch {
-    errorMessage.value = '일정을 가져오지 못했어요. 잠시 후 다시 시도해 주세요.'
+  } catch (error) {
+    errorMessage.value = apiErrorMessage(error)
   } finally {
     submitting.value = false
   }

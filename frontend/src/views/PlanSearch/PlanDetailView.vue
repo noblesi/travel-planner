@@ -7,6 +7,7 @@ import PublicPlanDayMap from '@/components/plan/PublicPlanDayMap.vue'
 import PublicPlanDetailHeader from '@/components/plan/PublicPlanDetailHeader.vue'
 import PublicPlanSchedule from '@/components/plan/PublicPlanSchedule.vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
+import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
 import {
   formatKoreanTravelDate,
@@ -23,12 +24,43 @@ const props = defineProps({
 const router = useRouter()
 const route = useRoute()
 const toast = useToastStore()
+const authStore = useAuthStore()
 const plan = ref(null)
 const loading = ref(false)
 const errorMessage = ref('')
 const selectedDay = ref(1)
 const showReportModal = ref(false)
 const showImportModal = ref(false)
+
+// 신고/가져오기는 비로그인 사용자도 버튼을 누를 수 있어서, 모달을 열기 전에
+// 여기서 먼저 로그인 여부를 확인한다 (백엔드 401을 받은 뒤 안내하면 원인이 불명확해짐).
+// /plans/:id는 requiresAuth 라우트가 아니라 main.js의 restoreSession()을 기다리지 않고
+// 곧바로 진입할 수 있어서, 페이지 로드 직후 클릭하면 세션 복원이 끝나기 전이라
+// 실제로는 로그인된 사용자도 authStore.isAuthenticated가 아직 false일 수 있다.
+async function requireLogin(action) {
+  if (!authStore.initialized) {
+    await authStore.restoreSession()
+  }
+  if (authStore.isAuthenticated) {
+    action()
+    return
+  }
+  if (window.confirm('로그인이 필요한 기능이에요. 로그인 페이지로 이동할까요?')) {
+    router.push({ name: 'login' })
+  }
+}
+
+async function openReportModal() {
+  await requireLogin(() => {
+    showReportModal.value = true
+  })
+}
+
+async function openImportModal() {
+  await requireLogin(() => {
+    showImportModal.value = true
+  })
+}
 
 const currentDay = computed(
   () =>
@@ -128,9 +160,9 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
         <PublicPlanDetailHeader
           :plan="plan"
           @back="goBack"
-          @report="showReportModal = true"
+          @report="openReportModal"
           @toggle-like="toggleLike"
-          @import="showImportModal = true"
+          @import="openImportModal"
         />
         <div class="detail-body">
           <PublicPlanSchedule

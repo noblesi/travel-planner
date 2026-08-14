@@ -9,9 +9,14 @@ import com.noblesi.travelplanner.dto.plan.ScheduleMutationResponse;
 class ScheduleMutationResponseFactory {
 
 	private final PlanEditorQueryService editorQueryService;
+	private final PlanThumbnailDerivationService thumbnailDerivationService;
 
-	ScheduleMutationResponseFactory(PlanEditorQueryService editorQueryService) {
+	ScheduleMutationResponseFactory(
+			PlanEditorQueryService editorQueryService,
+			PlanThumbnailDerivationService thumbnailDerivationService
+	) {
 		this.editorQueryService = editorQueryService;
+		this.thumbnailDerivationService = thumbnailDerivationService;
 	}
 
 	ScheduleMutationResponse fromReplay(PlanEditOperation operation, String planIdValue) {
@@ -29,6 +34,7 @@ class ScheduleMutationResponseFactory {
 			int resultVersion,
 			String planIdValue
 	) {
+		thumbnailDerivationService.refresh(Long.parseLong(planIdValue));
 		return ScheduleMutationResponse.of(
 				operationId,
 				scheduleItemId,
