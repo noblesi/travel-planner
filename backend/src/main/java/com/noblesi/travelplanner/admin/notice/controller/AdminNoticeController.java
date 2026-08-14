@@ -1,6 +1,7 @@
 package com.noblesi.travelplanner.admin.notice.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -10,10 +11,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.noblesi.travelplanner.admin.auth.dto.AdminDTO;
+import com.noblesi.travelplanner.admin.auth.security.AdminPrincipal;
 import com.noblesi.travelplanner.admin.notice.dto.AdminNoticeFormDTO;
 import com.noblesi.travelplanner.admin.notice.dto.AdminNoticeSearchDTO;
 import com.noblesi.travelplanner.admin.notice.service.AdminNoticeService;
@@ -59,7 +59,7 @@ public class AdminNoticeController {
 	/** 입력값을 검증한 뒤 로그인한 관리자 명의로 새 공지사항을 등록합니다. */
 	@PostMapping
 	public String createNotice(@Valid @ModelAttribute("noticeForm") AdminNoticeFormDTO noticeForm,
-			BindingResult bindingResult, @SessionAttribute("loginAdmin") AdminDTO loginAdmin, Model model,
+			BindingResult bindingResult, @AuthenticationPrincipal AdminPrincipal loginAdmin, Model model,
 			RedirectAttributes redirectAttributes) {
 		// 검증 오류가 있으면 사용자가 입력한 값을 유지한 채 작성 화면을 다시 보여줍니다.
 		if (bindingResult.hasErrors()) {
@@ -67,7 +67,7 @@ public class AdminNoticeController {
 			model.addAttribute("editMode", false);
 			return "admin/notice/noticeWriteView";
 		}
-		adminNoticeService.createNotice(noticeForm, (long) loginAdmin.getAdminId());
+		adminNoticeService.createNotice(noticeForm, loginAdmin.adminId());
 		redirectAttributes.addFlashAttribute("message", "공지사항이 등록되었습니다.");
 		return "redirect:/admin/notices";
 	}

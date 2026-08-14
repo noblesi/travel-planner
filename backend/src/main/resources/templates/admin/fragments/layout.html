@@ -7,10 +7,10 @@
 		</div>
 		<div class="admin-profile">
 			<span class="profile-avatar"
-				th:text="${session.loginAdmin != null ? #strings.substring(session.loginAdmin.name, 0, 1) : 'A'}">A</span>
+				th:text="${loginAdmin != null ? #strings.substring(loginAdmin.name, 0, 1) : 'A'}">A</span>
 			<div>
 				<strong
-					th:text="${session.loginAdmin != null ? session.loginAdmin.name : '관리자'}">관리자</strong><small>관리자
+					th:text="${loginAdmin != null ? loginAdmin.name : '관리자'}">관리자</strong><small>관리자
 					계정</small>
 			</div>
 		</div>
@@ -39,7 +39,7 @@
 				th:text="${title}">페이지</strong>
 		</div>
 		<span
-			th:text="${session.loginAdmin != null ? session.loginAdmin.name + ' 관리자' : '관리자'}">관리자</span>
+			th:text="${loginAdmin != null ? loginAdmin.name + ' 관리자' : '관리자'}">관리자</span>
 	</header>
 </body>
 </html>
