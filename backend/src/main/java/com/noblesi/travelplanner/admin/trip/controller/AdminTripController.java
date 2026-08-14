@@ -2,8 +2,6 @@ package com.noblesi.travelplanner.admin.trip.controller;
 
 import java.util.List;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,6 +22,7 @@ import com.noblesi.travelplanner.admin.trip.dto.AdminTripReportDTO;
 import com.noblesi.travelplanner.admin.trip.dto.AdminTripScheduleDTO;
 import com.noblesi.travelplanner.admin.trip.service.AdminRecommendRuleService;
 import com.noblesi.travelplanner.admin.trip.service.AdminTripService;
+import com.noblesi.travelplanner.config.ExternalApiProperties;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,12 +34,8 @@ public class AdminTripController {
 	private static final int PAGE_SIZE = 10;
 
 	private final AdminTripService adminTripService;
-	
-	@Autowired
-	private AdminRecommendRuleService adminRecommendRuleService;
-
-	@Value("${KAKAO_JAVASCRIPT_KEY:}")
-	private String kakaoJavascriptKey;
+	private final AdminRecommendRuleService adminRecommendRuleService;
+	private final ExternalApiProperties externalApiProperties;
 
 	@GetMapping
 	public String getTripList(
@@ -90,7 +85,7 @@ public class AdminTripController {
 		model.addAttribute("schedules", schedules);
 		model.addAttribute("scheduleDays", scheduleDays);
 		model.addAttribute("reports", reports);
-		model.addAttribute("kakaoJavascriptKey", kakaoJavascriptKey);
+		model.addAttribute("kakaoJavascriptKey", externalApiProperties.kakao().javascriptKeyOrEmpty());
 
 		return "admin/trip/tripDetailView";
 	}

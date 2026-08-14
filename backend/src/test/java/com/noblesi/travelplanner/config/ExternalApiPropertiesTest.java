@@ -26,6 +26,7 @@ class ExternalApiPropertiesTest {
 						"app.external-api.tour.read-timeout=5s",
 						"app.external-api.kakao.base-url=https://dapi.kakao.com",
 						"app.external-api.kakao.rest-api-key=kakao-test-key",
+						"app.external-api.kakao.javascript-key=kakao-javascript-test-key",
 						"app.external-api.kakao.connect-timeout=2s",
 						"app.external-api.kakao.read-timeout=4s"
 				)
@@ -43,6 +44,7 @@ class ExternalApiPropertiesTest {
 					assertThat(properties.kakao().connectTimeout()).isEqualTo(Duration.ofSeconds(2));
 					assertThat(properties.kakao().readTimeout()).isEqualTo(Duration.ofSeconds(4));
 					assertThat(properties.kakao().configured()).isTrue();
+					assertThat(properties.kakao().javascriptKeyOrEmpty()).isEqualTo("kakao-javascript-test-key");
 				});
 	}
 
@@ -57,6 +59,7 @@ class ExternalApiPropertiesTest {
 						"app.external-api.tour.read-timeout=5s",
 						"app.external-api.kakao.base-url=https://dapi.kakao.com",
 						"app.external-api.kakao.rest-api-key=",
+						"app.external-api.kakao.javascript-key=",
 						"app.external-api.kakao.connect-timeout=3s",
 						"app.external-api.kakao.read-timeout=5s"
 				)

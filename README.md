@@ -128,9 +128,12 @@ Copy-Item .env.example .env.local
 | `MAIL_USERNAME`, `MAIL_PASSWORD` | `change-me` | SMTP 인증정보 |
 | `MAIL_FROM` | `no-reply@withtrip.com` | 초대 메일 발신 주소 |
 | `MAIL_CONNECTION_TIMEOUT_MS`, `MAIL_READ_TIMEOUT_MS`, `MAIL_WRITE_TIMEOUT_MS` | `5000` | SMTP 연결·읽기·쓰기 대기 상한 |
+| `MAIL_ASYNC_CORE_POOL_SIZE`, `MAIL_ASYNC_MAX_POOL_SIZE` | `2`, `4` | 초대 메일 비동기 실행기 스레드 수 |
+| `MAIL_ASYNC_QUEUE_CAPACITY`, `MAIL_ASYNC_AWAIT_TERMINATION` | `100`, `10s` | 비동기 대기열 크기와 종료 대기 시간 |
 | `FRONTEND_BASE_URL` | `https://service.example.com` | 초대 수락 링크를 생성할 실제 Frontend 주소 |
 | `TOUR_API_SERVICE_KEY` | `change-me` | TourAPI 서비스 인증키 |
 | `KAKAO_REST_API_KEY` | `change-me` | Kakao REST API 키 |
+| `KAKAO_JAVASCRIPT_KEY` | `change-me` | 관리자 여행 상세 지도용 Kakao JavaScript 키 |
 
 macOS/Linux:
 

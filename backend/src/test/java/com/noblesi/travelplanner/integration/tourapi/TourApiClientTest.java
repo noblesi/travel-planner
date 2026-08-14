@@ -157,6 +157,7 @@ class TourApiClientTest {
 				new ExternalApiProperties.KakaoApi(
 						URI.create("https://dapi.kakao.com"),
 						"",
+						"",
 						Duration.ofSeconds(1),
 						Duration.ofSeconds(2)
 				)
