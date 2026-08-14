@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,7 @@ class PlanInvitationCreationService {
 	private final PlanAccessService planAccessService;
 	private final PlanInvitationMapper planInvitationMapper;
 	private final InvitationTokenService tokenService;
-	private final InvitationMailSender mailSender;
+	private final ApplicationEventPublisher eventPublisher;
 	private final String frontendBaseUrl;
 
 	PlanInvitationCreationService(
@@ -34,14 +35,14 @@ class PlanInvitationCreationService {
 			PlanAccessService planAccessService,
 			PlanInvitationMapper planInvitationMapper,
 			InvitationTokenService tokenService,
-			InvitationMailSender mailSender,
+			ApplicationEventPublisher eventPublisher,
 			@Value("${app.frontend.base-url}") String frontendBaseUrl
 	) {
 		this.idParser = idParser;
 		this.planAccessService = planAccessService;
 		this.planInvitationMapper = planInvitationMapper;
 		this.tokenService = tokenService;
-		this.mailSender = mailSender;
+		this.eventPublisher = eventPublisher;
 		this.frontendBaseUrl = frontendBaseUrl;
 	}
 
@@ -89,7 +90,12 @@ class PlanInvitationCreationService {
 			throw new IllegalStateException("Expected one affected row but got " + affectedRows);
 		}
 		String acceptLink = frontendBaseUrl + "/invite/accept?token=" + token;
-		mailSender.send(email, planTitle, acceptLink, expiresAt);
+		eventPublisher.publishEvent(new PlanInvitationMailRequested(
+				email,
+				planTitle,
+				acceptLink,
+				expiresAt
+		));
 		return new CreatedPlanInvitationResponse(
 				Long.toString(invitationId),
 				email,

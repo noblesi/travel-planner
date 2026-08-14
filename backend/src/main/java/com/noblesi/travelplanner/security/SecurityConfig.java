@@ -72,7 +72,8 @@ public class SecurityConfig {
 								"/api/health",
 								"/error").permitAll()
 						.requestMatchers("/api/admin/**").permitAll()
-						.requestMatchers(HttpMethod.GET, "/api/regions", "/api/places/search").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/regions").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/places/search").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/notices", "/api/notices/*").permitAll()

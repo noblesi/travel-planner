@@ -558,4 +558,69 @@ describe('planEditor store', () => {
     expect(store.saveStatus).toBe('saved')
     expect(store.canRetrySave).toBe(false)
   })
+
+  it('serializes schedule and metadata saves so an older response cannot overwrite newer state', async () => {
+    const days = [
+      { planDayId: '201', dayNo: 1, travelDate: '2026-08-10', scheduleVersion: 0, items: [] },
+    ]
+    const place = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '100',
+      placeName: 'Gyeongbokgung Palace',
+    }
+    const scheduled = {
+      plan,
+      days: [
+        {
+          ...days[0],
+          scheduleVersion: 1,
+          items: [
+            {
+              scheduleItemId: '301',
+              timeSlot: 'MORNING',
+              positionNo: 1,
+              itemVersion: 0,
+              ...place,
+            },
+          ],
+        },
+      ],
+    }
+    const metadataSaved = {
+      plan: { ...plan, title: 'Seoul palace trip', versionNo: 1 },
+      days: scheduled.days,
+    }
+    let resolveScheduleSave
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    addScheduleItemMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveScheduleSave = resolve
+        }),
+    )
+    updateTravelPlanMetadataMock.mockResolvedValue(metadataSaved)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const scheduleRequest = store.addPlaceToSchedule(place, 'MORNING')
+    await Promise.resolve()
+    const metadataRequest = store.savePlanMetadata({
+      title: 'Seoul palace trip',
+      visibility: 'PRIVATE',
+      versionNo: 0,
+    })
+    await Promise.resolve()
+
+    expect(addScheduleItemMock).toHaveBeenCalledTimes(1)
+    expect(updateTravelPlanMetadataMock).not.toHaveBeenCalled()
+
+    resolveScheduleSave({ editor: scheduled, resultScheduleVersion: 1 })
+    await scheduleRequest
+    await metadataRequest
+
+    expect(updateTravelPlanMetadataMock).toHaveBeenCalledTimes(1)
+    expect(store.plan.title).toBe('Seoul palace trip')
+    expect(store.days[0].items).toHaveLength(1)
+    expect(store.days[0].items[0].scheduleItemId).toBe('301')
+  })
 })

@@ -7,6 +7,7 @@ import PlanEditorMapWorkspace from '@/components/plan/PlanEditorMapWorkspace.vue
 import PlanEditorSchedulePanel from '@/components/plan/PlanEditorSchedulePanel.vue'
 import PlanEditorToolbar from '@/components/plan/PlanEditorToolbar.vue'
 import { usePlanEditorStore } from '@/stores/planEditor'
+import { readLocalStorage, writeLocalStorage } from '@/utils/browserStorage'
 import { useToastStore } from '@/stores/toast'
 
 const props = defineProps({
@@ -42,7 +43,7 @@ const settingsBusy = ref(false)
 const publicationBusy = ref(false)
 const selectedScheduleItemId = ref(null)
 const draggedSchedule = ref(null)
-const schedulePanelWidth = ref(Number(localStorage.getItem('planEditorPanelWidth')) || 430)
+const schedulePanelWidth = ref(Number(readLocalStorage('planEditorPanelWidth')) || 430)
 const resizingPanel = ref(false)
 
 function retryLoad() {
@@ -176,7 +177,7 @@ function handlePanelResize(event) {
 
 function stopPanelResize() {
   resizingPanel.value = false
-  localStorage.setItem('planEditorPanelWidth', String(schedulePanelWidth.value))
+  writeLocalStorage('planEditorPanelWidth', String(schedulePanelWidth.value))
   document.removeEventListener('pointermove', handlePanelResize)
 }
 
@@ -187,7 +188,7 @@ function adjustPanelWidth(event) {
     560,
     Math.max(340, schedulePanelWidth.value + (event.key === 'ArrowRight' ? 20 : -20)),
   )
-  localStorage.setItem('planEditorPanelWidth', String(schedulePanelWidth.value))
+  writeLocalStorage('planEditorPanelWidth', String(schedulePanelWidth.value))
 }
 
 function retryScheduleSave() {

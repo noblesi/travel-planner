@@ -98,6 +98,7 @@ VITE_KAKAO_MAP_KEY=javascript-key
 - 현재 서버 session 저장소는 단일 인스턴스 기준입니다. Backend를 2대 이상 운영하기 전에는 Spring Session Redis 등 공유 저장소를 먼저 적용합니다.
 - 회원·관리자 로그인 endpoint에는 Reverse Proxy 또는 API Gateway에서 IP 기준 rate limit과 반복 실패 모니터링을 적용합니다.
 - 권장 초기값은 IP당 분당 5회이며, 실제 NAT·사내망 사용자 패턴을 관찰한 뒤 조정합니다.
+- 장소 검색 endpoint는 로그인 Session을 필수로 하고, Reverse Proxy 또는 API Gateway에서 별도의 IP 기준 rate limit과 TourAPI 할당량 경보를 적용합니다.
 - 애플리케이션 내부의 단순 메모리 limiter는 다중 인스턴스에서 우회되고 재시작 시 상태가 사라지므로 현재 코드에 추가하지 않습니다.
 
 ## Kakao Map
