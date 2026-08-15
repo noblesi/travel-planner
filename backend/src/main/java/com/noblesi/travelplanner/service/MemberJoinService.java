@@ -54,7 +54,7 @@ public class MemberJoinService {
             joinMemberRequest.nickname(),
             joinMemberRequest.gender(),
             joinMemberRequest.birth(),
-            joinMemberRequest.privacy(),
+            joinMemberRequest.privacy()=="true"? "Y" : "N",
             joinMemberRequest.phone()
      
         );

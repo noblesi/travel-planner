@@ -90,7 +90,7 @@ const router = createRouter({
       path: '/joinProfileView',
       name: 'joinProfile',
       component: () => import('@/views/joinView/JoinProfileView.vue'),
-      beforeEnter: (to, from, next) => {
+      beforeEnter: (from, to, next) => {
         const store = useUserStore()
         // Step 1에서 반드시 넘겨야 하는 데이터(예: userId)가 있는지 확인
         if (!store.step1Data.email || !store.step1Data.password) {

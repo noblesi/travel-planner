@@ -65,13 +65,14 @@ public class SecurityConfig {
 						.ignoringRequestMatchers("/api/admin/**"))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(
-							"/api/users/**",
 								"/api/auth/**",
 								"/admin/**",
 								"/assets/admin/**",
 								"/api/health",
 								"/error").permitAll()
 						.requestMatchers("/api/admin/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/users/emailCheck","/api/users/join").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/users/joinProfile").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/regions", "/api/places/search").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
