@@ -71,4 +71,7 @@ public record JoinMemberRequest(
             phone = phone.strip();
         }
     }
+    public String getEmail() {
+        return email;
+    }
 }

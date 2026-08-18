@@ -23,13 +23,16 @@ public class MemberController {
         this.memberJoinService = memberJoinService;
     }
 
-    @PostMapping("/join")
-    public ApiResponse<Boolean> joinMember(@Valid @RequestBody JoinMemberRequest userInfo) {
+   @PostMapping("/joinProfile")
+    public ApiResponse<Boolean> postJoinMember(@Valid @RequestBody JoinMemberRequest userInfo) {
+        System.out.println(" post mapping을 했는데 안드러와? ");
+        System.out.println("joinMember userInfo : " + userInfo.toString());
         return ApiResponse.success(memberJoinService.addMember(userInfo));
     }
 
     @GetMapping("/emailCheck")
-    public ApiResponse<Boolean> getMemberEmailCheck(@RequestParam("email") String email) {
+    public ApiResponse<Boolean> getMemberEmailCheck(@Valid @RequestParam String email) {
+        System.out.println("email : " + email + "-=====================================================----------------" );
         return ApiResponse.success(memberJoinService.searchEmail(email));
     }
 }
