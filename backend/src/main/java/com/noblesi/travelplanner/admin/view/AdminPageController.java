@@ -39,7 +39,7 @@ public class AdminPageController {
 			RedirectAttributes redirectAttributes
 	) {
 		try {
-			TourSyncHistoryDTO result = adminTourSyncService.synchronize(loginAdmin.getName());
+			TourSyncHistoryDTO result = adminTourSyncService.synchronize(loginAdmin.getLoginId());
 			redirectAttributes.addFlashAttribute(
 					"message",
 					"TOUR API 데이터 " + result.changedCount() + "건을 동기화했습니다."
