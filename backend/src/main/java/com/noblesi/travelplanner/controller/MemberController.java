@@ -6,7 +6,9 @@ import com.noblesi.travelplanner.service.MemberJoinService;
 
 import jakarta.validation.Valid;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,22 +19,21 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/users")
 public class MemberController {
 
-    private final MemberJoinService memberJoinService;
+    @Autowired(required = false)
+    private MemberJoinService memberJoinService;
 
-    public MemberController(MemberJoinService memberJoinService) {
-        this.memberJoinService = memberJoinService;
-    }
-
-   @PostMapping("/joinProfile")
-    public ApiResponse<Boolean> postJoinMember(@Valid @RequestBody JoinMemberRequest userInfo) {
-        System.out.println(" post mapping을 했는데 안드러와? ");
-        System.out.println("joinMember userInfo : " + userInfo.toString());
+    @PostMapping("/joinProfile")
+    public ApiResponse<Boolean> postJoinMember(@RequestBody JoinMemberRequest userInfo) {
+        System.out.println(" post mapping getin~~~~~~~~~~~====================== ");
+        System.out.println("Controller joinMember userInfo : " + userInfo.toString());
         return ApiResponse.success(memberJoinService.addMember(userInfo));
     }
 
+    //@GetMapping("/emailCheck/{email}")
     @GetMapping("/emailCheck")
-    public ApiResponse<Boolean> getMemberEmailCheck(@Valid @RequestParam String email) {
+    public ApiResponse<Boolean> getMemberEmailCheck(@RequestParam String email) {
         System.out.println("email : " + email + "-=====================================================----------------" );
+        // memberJoinService.searchEmail(email);
         return ApiResponse.success(memberJoinService.searchEmail(email));
     }
 }

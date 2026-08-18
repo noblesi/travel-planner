@@ -37,24 +37,28 @@ const handleContinue = () => {
   const userInfo = {
     email: userStore.userInfo.email,
     password: userStore.userInfo.password,
-    birth: birth.value,
-    privacy: privacy.value ? 'Y' : 'N',
     name: name.value,
+    nickname: name.value, // 닉네임은 이름과 동일하게 설정
     gender: gender.value,
+    birth: birth.value,
+    privacy: privacy.value == true ? 'Y' : 'N',
     phone: phone.value
   }
-
-  postMemberJoin(userInfo)
-    .then((response) => {
-      alert('정상 가입되었습니다.')
-      console.log('서버 응답:', response.data) // 서버에서 반환된 데이터 처리 가능
-      userStore.clearData() // 회원가입 성공 후 스토어 비우기
-      router.push('/joinComplete')
-    })
-    .catch((error) => {
-      console.log('가입 에러 발생:', error)
-      alert('가입이 정상적으로 이루어지지 않았습니다.')
-    })
+  if(userInfo.privacy === "Y"){
+    postMemberJoin(userInfo)
+      .then((response) => {
+        alert('정상 가입되었습니다.')
+        console.log('서버 응답:', response.data) // 서버에서 반환된 데이터 처리 가능
+        userStore.clearData() // 회원가입 성공 후 스토어 비우기
+        router.push('/joinComplete')
+      })
+      .catch((error) => {
+        console.log('가입 에러 발생:', error)
+        alert('가입이 정상적으로 이루어지지 않았습니다.')
+      })
+  } else {
+    alert('개인정보 저장에 동의하지 않으면 가입이 불가합니다.')
+  }
 }
 </script>
 

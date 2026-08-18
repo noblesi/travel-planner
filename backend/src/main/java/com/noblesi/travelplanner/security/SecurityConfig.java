@@ -54,6 +54,8 @@ public class SecurityConfig {
 		return new ProviderManager(authenticationProvider);
 	}
 
+
+
 	@Bean
 	@Order(1)
 	SecurityFilterChain adminSecurityFilterChain(
@@ -116,12 +118,12 @@ public class SecurityConfig {
 								"/api/auth/**",
 								"/api/health",
 								"/error").permitAll()
+						.requestMatchers("/api/admin/**").permitAll()
+						.requestMatchers(HttpMethod.OPTIONS, "/api/users/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/regions").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/places/search").authenticated()
-
-						.requestMatchers(HttpMethod.GET, "/api/users/emailCheck","/api/users/join").permitAll()
-						.requestMatchers(HttpMethod.POST, "/api/users/joinProfile").permitAll()
-					
 						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/notices", "/api/notices/*").permitAll()

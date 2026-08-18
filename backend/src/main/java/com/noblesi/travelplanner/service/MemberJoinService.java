@@ -3,6 +3,7 @@ package com.noblesi.travelplanner.service;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,11 +19,12 @@ public class MemberJoinService {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
-    private final MemberMapper memberMapper;
+    @Autowired(required = false)
+    private MemberMapper memberMapper;
+    
     private final PasswordEncoder passwordEncoder;
 
-    public MemberJoinService(MemberMapper memberMapper, PasswordEncoder passwordEncoder) {
-        this.memberMapper = memberMapper;
+    public MemberJoinService(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -33,6 +35,7 @@ public class MemberJoinService {
      */
     @Transactional(readOnly = true)
     public boolean searchEmail(String email) {
+        System.out.println("service email check: " + email);
         return memberMapper.selectEmailCnt(normalizeEmail(email)) > 0;
     }
 
@@ -54,11 +57,11 @@ public class MemberJoinService {
             joinMemberRequest.nickname(),
             joinMemberRequest.gender(),
             joinMemberRequest.birth(),
-            joinMemberRequest.privacy()=="true"? "Y" : "N",
+            joinMemberRequest.privacy(),
             joinMemberRequest.phone()
      
         );
-        
+        System.out.println("service joinMemberRequestHash : " + joinMemberRequestHash.toString());
         try {
             if (memberMapper.insertMember(joinMemberRequestHash) != 1) {
                 throw new BusinessException(

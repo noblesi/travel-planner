@@ -7,7 +7,7 @@ export async function getMemberEmailCheck(email){
 }
 
 export async function postMemberJoin(userInfo) {
-  console.log("============postMemberJoin : " + JSON.stringify(userInfo));
-  const response = await http.post('/users/join', userInfo)
+  console.log("============postMemberJoin : " + JSON.stringify(userInfo)+"!!!!!!!!!!!!!!!!!");
+  const response = await http.post('/users/joinProfile', userInfo)
   return response.data.data
 }
