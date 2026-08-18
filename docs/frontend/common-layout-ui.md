@@ -31,8 +31,7 @@ frontend/src/
 │       ├── AsyncState.vue
 │       └── ToastRegion.vue
 ├── layouts/
-│   ├── DefaultLayout.vue
-│   └── AdminLayout.vue              # 기존 Vue 관리자 화면, Thymeleaf 전환 대상
+│   └── DefaultLayout.vue             # Vue 사용자 화면 공통 Layout
 └── stores/toast.js
 ```
 
