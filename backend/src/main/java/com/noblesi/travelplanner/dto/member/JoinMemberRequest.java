@@ -38,9 +38,10 @@ public record JoinMemberRequest(
         @NotNull(message = "생년월일을 입력해 주세요.")
         @JsonFormat(pattern = "yyyyMMdd")
         LocalDate birth,
+  
 
         @NotBlank(message = "개인정보 저장에 동의해 주세요.")
-        @Pattern(regexp = "Y", message = "개인정보 저장 동의가 필요합니다.")
+        //@Pattern(regexp = "Y", message = "개인정보 저장 동의가 필요합니다.")
         String privacy,
 
         @NotBlank(message = "전화번호를 입력해 주세요.")

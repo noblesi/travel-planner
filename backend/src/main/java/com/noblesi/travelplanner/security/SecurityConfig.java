@@ -52,6 +52,8 @@ public class SecurityConfig {
 		return new ProviderManager(authenticationProvider);
 	}
 
+
+
 	@Bean
 	@ConditionalOnProperty(name = "app.auth.enforce-security", havingValue = "true", matchIfMissing = true)
 	SecurityFilterChain securedApiFilterChain(
@@ -62,7 +64,7 @@ public class SecurityConfig {
 		http
 				.csrf(csrf -> csrf
 						.csrfTokenRepository(csrfTokenRepository)
-						.ignoringRequestMatchers("/api/admin/**"))
+						.ignoringRequestMatchers("/api/admin/**","/api/users/**"))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(
 								"/api/auth/**",
@@ -71,8 +73,9 @@ public class SecurityConfig {
 								"/api/health",
 								"/error").permitAll()
 						.requestMatchers("/api/admin/**").permitAll()
-						.requestMatchers(HttpMethod.GET, "/api/users/emailCheck","/api/users/join").permitAll()
-						.requestMatchers(HttpMethod.POST, "/api/users/joinProfile").permitAll()
+						.requestMatchers(HttpMethod.OPTIONS, "/api/users/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/regions", "/api/places/search").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
