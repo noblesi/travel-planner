@@ -22,7 +22,7 @@ public class AdminTripDomain {
 	private Date restoredAt;
 	private Integer restoredByAdminId;
 	private String thumbnailImg;
-	private Date createAt;
-	private Date updateAt;
+	private Date createdAt;
+	private Date updatedAt;
 	private int viewCount;
 }

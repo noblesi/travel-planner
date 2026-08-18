@@ -89,7 +89,7 @@
 							<span class="badge danger" th:text="|신고 ${#lists.size(reports)}건|">신고</span>
 						</div>
 						<div class="report-row" th:each="report : ${reports}">
-							<span th:text="${#dates.format(report.createAt, 'yyyy.MM.dd')}">날짜</span>
+							<span th:text="${#dates.format(report.createdAt, 'yyyy.MM.dd')}">날짜</span>
 							<strong th:text="${#strings.isEmpty(report.reasonDetail) ? report.reasonCode : report.reasonDetail}">사유</strong>
 							<span class="badge"
 								th:classappend="${report.reportStatusLabel == '검토 완료'} ? ' success' : ' warning'"

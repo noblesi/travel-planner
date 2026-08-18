@@ -27,9 +27,8 @@ public class AdminReportDTO {
 	private String processResultCode;
 	private String processReason;
 	
-	private Date createAt;
+	private Date createdAt;
 	private Date processedAt;
 	
 	
 }//class 
-

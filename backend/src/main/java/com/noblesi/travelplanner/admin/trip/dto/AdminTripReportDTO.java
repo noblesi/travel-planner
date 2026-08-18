@@ -15,7 +15,7 @@ public class AdminTripReportDTO {
 	private String reasonCode;
 	private String reasonDetail;
 	private String reportStatus;
-	private Date createAt;
+	private Date createdAt;
 
 	public String getReportStatusLabel() {
 		if (reportStatus == null) {

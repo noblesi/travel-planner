@@ -121,6 +121,9 @@ Assert-ConfiguredValues $backendValues @(
     'ORACLE_URL',
     'ORACLE_USERNAME',
     'ORACLE_PASSWORD',
+    'SERVER_FORWARD_HEADERS_STRATEGY',
+    'AUTH_ENFORCE_SECURITY',
+    'SESSION_COOKIE_SECURE',
     'TOUR_API_SERVICE_KEY',
     'KAKAO_REST_API_KEY',
     # 초대 메일이 성공 응답 뒤 실제로 발송되고 수락 링크가 운영 도메인을 가리키도록 release 필수값으로 검증한다.
@@ -145,13 +148,14 @@ Assert-PositiveIntegerValue $backendValues 'MAIL_CONNECTION_TIMEOUT_MS'
 Assert-PositiveIntegerValue $backendValues 'MAIL_READ_TIMEOUT_MS'
 Assert-PositiveIntegerValue $backendValues 'MAIL_WRITE_TIMEOUT_MS'
 
-if ($backendValues.ContainsKey('AUTH_ENFORCE_SECURITY') -and
-    $backendValues.AUTH_ENFORCE_SECURITY -ne 'true') {
+if ($backendValues.AUTH_ENFORCE_SECURITY -ne 'true') {
     throw 'AUTH_ENFORCE_SECURITY must be true for a release.'
 }
-if ($backendValues.ContainsKey('SESSION_COOKIE_SECURE') -and
-    $backendValues.SESSION_COOKIE_SECURE -ne 'true') {
+if ($backendValues.SESSION_COOKIE_SECURE -ne 'true') {
     throw 'SESSION_COOKIE_SECURE must be true for an HTTPS release.'
+}
+if ($backendValues.SERVER_FORWARD_HEADERS_STRATEGY -ne 'framework') {
+    throw 'SERVER_FORWARD_HEADERS_STRATEGY must be framework behind the documented Nginx reverse proxy.'
 }
 if ($frontendValues.VITE_API_BASE_URL -ne '/api') {
     Write-Warning 'VITE_API_BASE_URL is not /api. Confirm CORS and Cookie settings for a cross-origin API.'
@@ -179,6 +183,10 @@ if (-not $SkipBuild) {
 
     Push-Location $frontendDirectory
     try {
+        & npm.cmd run lint:check
+        if ($LASTEXITCODE -ne 0) {
+            throw "Frontend lint failed with exit code $LASTEXITCODE"
+        }
         & npm.cmd run test:unit -- --run
         if ($LASTEXITCODE -ne 0) {
             throw "Frontend tests failed with exit code $LASTEXITCODE"

@@ -144,7 +144,7 @@ Copy-Item .env.example .env.local
 | `KAKAO_REST_API_KEY` | `change-me` | Kakao REST API 키 |
 | `KAKAO_JAVASCRIPT_KEY` | `change-me` | 관리자 여행 상세 지도용 Kakao JavaScript 키 |
 
-현재 `scripts/run-backend.ps1`은 `.env.local`의 `MAIL_ASYNC_*` 네 항목을 직접 로드하지 않습니다. 비동기 실행기 기본값을 변경해야 한다면 PowerShell 세션에 해당 환경변수를 먼저 설정한 뒤 스크립트를 실행합니다. 나머지 지원 변수의 전체 목록과 기본값은 `.env.example`과 `application.yml`을 함께 확인합니다.
+지원 변수의 전체 목록과 기본값은 `.env.example`과 `application.yml`을 함께 확인합니다.
 
 macOS/Linux:
 
