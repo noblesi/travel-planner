@@ -1,7 +1,5 @@
 package com.noblesi.travelplanner.admin.auth.service;
 
-import java.sql.Date;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -9,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.noblesi.travelplanner.admin.auth.mapper.AdminMapper;
 import com.noblesi.travelplanner.admin.auth.domain.AdminDomain;
-import com.noblesi.travelplanner.admin.auth.dto.AdminDTO;
+import com.noblesi.travelplanner.admin.auth.security.AdminPrincipal;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 
 @Service
@@ -23,25 +21,19 @@ public class AdminAuthService {
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
-	public AdminDTO login(AdminDTO request) {
-		AdminDomain adminDomain = adminMapper.loginAdmin(request.getLoginId());
+	public AdminPrincipal authenticate(String loginId, String password) {
+		AdminDomain adminDomain = adminMapper.loginAdmin(loginId);
 		if (adminDomain == null || !ACTIVE_STATUS.equals(adminDomain.getAdminStatus())
-				|| !passwordEncoder.matches(request.getPassword(), adminDomain.getPassword())) {
+				|| !passwordEncoder.matches(password, adminDomain.getPassword())) {
 			throw invalidCredentials();
 		}
 
-		AdminDTO loginAdmin = new AdminDTO();
-		loginAdmin.setAdminId(Math.toIntExact(adminDomain.getAdminId()));
-		loginAdmin.setLoginId(adminDomain.getLoginId());
-		loginAdmin.setName(adminDomain.getName());
-		loginAdmin.setEmail(adminDomain.getEmail());
-		loginAdmin.setPhoneNumber(adminDomain.getPhoneNumber());
-		loginAdmin.setAdminRoleCode(adminDomain.getAdminRoleCode());
-		loginAdmin.setAdminStatus(adminDomain.getAdminStatus());
-		if (adminDomain.getCreatedAt() != null) {
-			loginAdmin.setCreateAt(Date.valueOf(adminDomain.getCreatedAt().toLocalDate()));
-		}
-		return loginAdmin;
+		return new AdminPrincipal(
+				adminDomain.getAdminId(),
+				adminDomain.getLoginId(),
+				adminDomain.getName(),
+				adminDomain.getAdminRoleCode()
+		);
 	}
 
 	private BusinessException invalidCredentials() {

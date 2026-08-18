@@ -46,7 +46,7 @@
 			#{birth, jdbcType=DATE},
 			#{gender},
 			#{phone},
-			#{name},
+			#{nickname},
 			#{password},
 			#{privacy},
 			'ACTIVE',

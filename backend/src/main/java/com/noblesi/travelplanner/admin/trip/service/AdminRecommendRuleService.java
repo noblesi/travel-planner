@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.noblesi.travelplanner.admin.trip.dto.AdminRecommendRuleDTO;
 import com.noblesi.travelplanner.admin.trip.mapper.AdminRecommendRuleMapper;
@@ -38,6 +39,7 @@ public class AdminRecommendRuleService {
 	 * @param rule
 	 * @param loginId
 	 */
+	@Transactional
 	public void saveRecommendRule(AdminRecommendRuleDTO rule, Long loginId) {
 		
 		validateWeight(rule);

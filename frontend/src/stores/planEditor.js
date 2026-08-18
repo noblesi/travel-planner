@@ -214,7 +214,8 @@ export const usePlanEditorStore = defineStore('planEditor', () => {
     saveStatus.value = 'saving'
     saveMessage.value = label
 
-    const task = Promise.resolve().then(operation)
+    const task = queueTail.then(operation)
+    queueTail = task.catch(() => undefined)
     directSavePromises.add(task)
 
     return task

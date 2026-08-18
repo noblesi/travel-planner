@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title th:text="${status + ' 오류 | WithTrip'}">관리자 오류 | WithTrip</title>
+	<link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
+</head>
+<body>
+	<main class="admin-content">
+		<section class="card">
+			<p th:text="${status}">500</p>
+			<h1>요청을 처리할 수 없습니다.</h1>
+			<p th:text="${errorMessage}">관리자 요청 처리 중 오류가 발생했습니다.</p>
+			<small th:text="${errorCode + ' · ' + path}">ADMIN_ERROR</small>
+			<div class="form-actions">
+				<a class="button" th:href="@{/admin/dashboard}">대시보드로 이동</a>
+			</div>
+		</section>
+	</main>
+</body>
+</html>

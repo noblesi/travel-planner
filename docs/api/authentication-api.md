@@ -93,8 +93,8 @@ X-CSRF-TOKEN: server-generated-token
 
 ## 보호 API
 
-- 공개 조회: `GET /api/regions`, `GET /api/places/search`, `GET /api/plans`, `GET /api/plans/{planId}`, 초대 링크 조회
-- 인증 필요: 플랜 생성·편집·초대 수락을 포함한 나머지 상태 변경과 편집 조회
+- 공개 조회: `GET /api/regions`, `GET /api/plans`, `GET /api/plans/{planId}`, 초대 링크 조회
+- 인증 필요: `GET /api/places/search`, 플랜 생성·편집·초대 수락을 포함한 나머지 상태 변경과 편집 조회
 - 인증이 없으면 `401 CURRENT_MEMBER_NOT_AVAILABLE`을 반환합니다.
 - 인증은 있지만 권한 또는 CSRF 검증에 실패하면 `403 ACCESS_DENIED`를 반환합니다.
 

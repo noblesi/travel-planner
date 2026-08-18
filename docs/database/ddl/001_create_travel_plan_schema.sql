@@ -1,6 +1,6 @@
 -- WithTrip travel plan schema
 -- Target: Oracle Database 19c+
--- Source: travelplanner_v2.exerd and KMS-travel-plan-handoff.md
+-- Source: travelplanner_v2.exerd
 -- Run once as the application schema owner.
 
 WHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK

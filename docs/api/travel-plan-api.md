@@ -828,7 +828,7 @@ X-CSRF-TOKEN: server-generated-token
 }
 ```
 
-성공 Status는 `201 Created`입니다. 이메일은 앞뒤 공백 제거와 소문자 변환 후 중복을 제거하며 한 번에 최대 20개까지 처리합니다. 같은 플랜·이메일의 기존 `PENDING` 초대는 `CANCELED`로 바꾸고 새 링크를 발급합니다.
+성공 Status는 `201 Created`입니다. 이메일은 앞뒤 공백 제거와 소문자 변환 후 중복을 제거하며 한 번에 최대 20개까지 처리합니다. 같은 플랜·이메일의 기존 `PENDING` 초대는 `CANCELED`로 바꾸고 새 링크를 발급합니다. 초대 메일 발송은 초대 데이터 Transaction이 커밋된 뒤 시작하며, Transaction이 롤백되면 메일을 발송하지 않습니다.
 
 ```json
 {
@@ -849,6 +849,14 @@ X-CSRF-TOKEN: server-generated-token
 
 Token 원문은 생성 응답에만 반환하고 DB에는 SHA-256 Hash만 저장합니다. 유효시간은 생성 시점부터 24시간입니다.
 
+`inviteeEmail`은 초대 메일의 전달 대상과 화면 표시용 정보이며 수락 권한을 증명하는 값은 아닙니다. 초대 Token은 링크를 소지한 사람이 사용할 수 있는 Bearer Credential입니다. 따라서 로그인한 활성 회원은 계정 이메일이 `inviteeEmail`과 달라도 유효한 Token을 수락할 수 있고, 링크를 전달하면 수락 권한도 함께 전달됩니다.
+
+Bearer Token 보호를 위해 다음 운영 규칙을 적용합니다.
+
+- 초대 Token 원문과 전체 초대 URL을 애플리케이션·Reverse Proxy·분석 도구의 로그에 남기지 않습니다.
+- 초대 수락 화면에서는 외부 리소스로 URL이 전달되지 않도록 `Referrer-Policy: no-referrer`를 적용합니다.
+- 오류·모니터링 이벤트에는 Token 원문 대신 오류 코드와 초대 식별자만 기록합니다.
+
 ### 초대 조회와 수락
 
 ```http
@@ -858,6 +866,8 @@ POST /api/plan-invitations/{token}/accept
 
 - 조회는 로그인하지 않아도 가능하며 플랜 제목·지역·기간·초대 이메일·상태·만료 시각을 반환합니다.
 - 수락은 로그인 session과 CSRF token이 필요합니다.
+- 비로그인 사용자는 Token을 유지한 채 회원가입·로그인으로 이동하고, 인증 완료 후 원래 초대 수락 화면으로 복귀합니다.
+- 로그인 사용자는 계정 이메일 일치 여부를 추가로 검사하지 않고 유효한 Token을 바로 수락합니다.
 - 수락 회원을 `PLAN_MEMBER.INVITEE`로 등록하고 이후 일정 조회·편집을 허용합니다.
 - 초대 참여자는 플랜 Metadata와 날짜를 변경할 수 없습니다.
 - 같은 회원의 같은 token 재수락은 멱등 성공합니다.

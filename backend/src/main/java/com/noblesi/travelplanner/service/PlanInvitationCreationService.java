@@ -5,10 +5,11 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.noblesi.travelplanner.config.FrontendProperties;
 import com.noblesi.travelplanner.domain.plan.InvitationStatus;
 import com.noblesi.travelplanner.domain.plan.PlanEditorPlan;
 import com.noblesi.travelplanner.domain.plan.PlanInvitation;
@@ -26,23 +27,23 @@ class PlanInvitationCreationService {
 	private final PlanAccessService planAccessService;
 	private final PlanInvitationMapper planInvitationMapper;
 	private final InvitationTokenService tokenService;
-	private final InvitationMailSender mailSender;
-	private final String frontendBaseUrl;
+	private final ApplicationEventPublisher eventPublisher;
+	private final FrontendProperties frontendProperties;
 
 	PlanInvitationCreationService(
 			PositiveIdParser idParser,
 			PlanAccessService planAccessService,
 			PlanInvitationMapper planInvitationMapper,
 			InvitationTokenService tokenService,
-			InvitationMailSender mailSender,
-			@Value("${app.frontend.base-url}") String frontendBaseUrl
+			ApplicationEventPublisher eventPublisher,
+			FrontendProperties frontendProperties
 	) {
 		this.idParser = idParser;
 		this.planAccessService = planAccessService;
 		this.planInvitationMapper = planInvitationMapper;
 		this.tokenService = tokenService;
-		this.mailSender = mailSender;
-		this.frontendBaseUrl = frontendBaseUrl;
+		this.eventPublisher = eventPublisher;
+		this.frontendProperties = frontendProperties;
 	}
 
 	@Transactional
@@ -88,8 +89,13 @@ class PlanInvitationCreationService {
 		if (affectedRows != 1) {
 			throw new IllegalStateException("Expected one affected row but got " + affectedRows);
 		}
-		String acceptLink = frontendBaseUrl + "/invite/accept?token=" + token;
-		mailSender.send(email, planTitle, acceptLink, expiresAt);
+		String acceptLink = frontendProperties.invitationAcceptUrl(token);
+		eventPublisher.publishEvent(new PlanInvitationMailRequested(
+				email,
+				planTitle,
+				acceptLink,
+				expiresAt
+		));
 		return new CreatedPlanInvitationResponse(
 				Long.toString(invitationId),
 				email,

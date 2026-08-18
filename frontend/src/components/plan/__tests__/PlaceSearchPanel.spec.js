@@ -1,5 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import PlaceSearchPanel from '@/components/plan/PlaceSearchPanel.vue'
 
@@ -32,7 +32,28 @@ beforeEach(() => {
   })
 })
 
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
 describe('PlaceSearchPanel', () => {
+  it('keeps successful search results when recent-keyword storage is unavailable', async () => {
+    const wrapper = mount(PlaceSearchPanel, {
+      props: { regionCode: '1', regionName: 'Seoul' },
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Storage is blocked', 'SecurityError')
+    })
+
+    await wrapper.get('[name="placeKeyword"]').setValue('palace')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+    expect(wrapper.findAll('.place-search-panel__results > li')).toHaveLength(1)
+    expect(wrapper.emitted('results-change').at(-1)).toEqual([[place]])
+  })
+
   it('현재 여행지역으로 장소를 검색하고 결과 선택을 전달한다', async () => {
     const wrapper = mount(PlaceSearchPanel, {
       props: { regionCode: '1', regionName: '서울특별시' },
