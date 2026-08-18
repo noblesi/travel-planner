@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import axios from 'axios'
 
 const { httpMock } = vi.hoisted(() => ({
   httpMock: {
@@ -26,6 +27,14 @@ beforeEach(() => {
 })
 
 describe('HTTP CSRF interceptor', () => {
+  it('allows the backend external API timeout budget to finish', () => {
+    expect(axios.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        timeout: 12000,
+      }),
+    )
+  })
+
   it('CSRF 처리기를 request interceptor로 등록한다', () => {
     expect(httpMock.interceptors.request.use).toHaveBeenCalledWith(attachCsrfToken)
   })

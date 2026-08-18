@@ -8,6 +8,8 @@
 GET /api/places/search?keyword=한강&regionCode=1&page=1&size=10
 ```
 
+로그인 Session이 필요한 플랜 제작용 API입니다. 비로그인 요청은 외부 TourAPI를 호출하기 전에 `401 CURRENT_MEMBER_NOT_AVAILABLE`로 차단합니다. 조회 요청이므로 CSRF Token은 필요하지 않습니다.
+
 ### Query Parameter
 
 | 이름 | 필수 | 기본값 | 검증 및 의미 |
@@ -60,6 +62,7 @@ Backend는 국문 관광정보 서비스의 `searchKeyword2`를 사용합니다.
 
 | HTTP Status | Code | 조건 |
 | --- | --- | --- |
+| `401` | `CURRENT_MEMBER_NOT_AVAILABLE` | 로그인 Session이 없거나 만료됨 |
 | `400` | `INVALID_REQUEST_PARAMETER` | Query Parameter 형식 또는 범위 오류 |
 | `502` | `TOUR_API_AUTHENTICATION_FAILED` | TourAPI 인증키 거부 |
 | `502` | `TOUR_API_UNAVAILABLE` | TourAPI HTTP 또는 연결 오류 |

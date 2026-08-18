@@ -2,7 +2,8 @@ import axios from 'axios'
 
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  timeout: 5000,
+  // The backend can spend up to 8 seconds connecting to and reading from an external place API.
+  timeout: 12000,
   withCredentials: true,
 })
 

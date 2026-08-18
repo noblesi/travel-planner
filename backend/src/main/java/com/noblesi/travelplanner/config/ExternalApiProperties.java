@@ -27,12 +27,17 @@ public record ExternalApiProperties(
 	public record KakaoApi(
 			URI baseUrl,
 			String restApiKey,
+			String javascriptKey,
 			Duration connectTimeout,
 			Duration readTimeout
 	) {
 
 		public boolean configured() {
 			return restApiKey != null && !restApiKey.isBlank();
+		}
+
+		public String javascriptKeyOrEmpty() {
+			return javascriptKey == null ? "" : javascriptKey;
 		}
 	}
 }

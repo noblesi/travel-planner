@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
@@ -97,7 +97,8 @@ class AdminRecommendRuleControllerIntegrationTest {
                         .param("viewWeight", "30")
                         .param("copyWeight", "30"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_RECOMMEND_WEIGHT"));
+                .andExpect(view().name("admin/error/adminErrorView"))
+                .andExpect(model().attribute("errorCode", "INVALID_RECOMMEND_WEIGHT"));
 
         assertThat(jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM RECOMMEND_RULE",

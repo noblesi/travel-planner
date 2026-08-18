@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 
 import { searchPlaces } from '@/api/places'
 import PlaceDetailCard from '@/components/plan/PlaceDetailCard.vue'
+import { readLocalStorage, writeLocalStorage } from '@/utils/browserStorage'
 
 const props = defineProps({
   regionCode: {
@@ -60,7 +61,7 @@ const visiblePlaces = computed(() =>
 
 function loadRecentKeywords() {
   try {
-    const values = JSON.parse(localStorage.getItem('planEditorRecentKeywords') || '[]')
+    const values = JSON.parse(readLocalStorage('planEditorRecentKeywords', '[]'))
     return Array.isArray(values) ? values.filter((value) => typeof value === 'string').slice(0, 5) : []
   } catch {
     return []
@@ -69,7 +70,7 @@ function loadRecentKeywords() {
 
 function rememberKeyword(value) {
   recentKeywords.value = [value, ...recentKeywords.value.filter((keyword) => keyword !== value)].slice(0, 5)
-  localStorage.setItem('planEditorRecentKeywords', JSON.stringify(recentKeywords.value))
+  writeLocalStorage('planEditorRecentKeywords', JSON.stringify(recentKeywords.value))
 }
 
 function searchRecent(value) {

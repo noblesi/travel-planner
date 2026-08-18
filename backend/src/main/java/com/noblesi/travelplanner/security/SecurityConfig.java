@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,6 +22,7 @@ import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 
+import com.noblesi.travelplanner.admin.auth.security.AdminAuthenticationProvider;
 import com.noblesi.travelplanner.common.api.ErrorResponse;
 
 import jakarta.servlet.http.HttpServletResponse;
@@ -55,6 +57,53 @@ public class SecurityConfig {
 
 
 	@Bean
+	@Order(1)
+	SecurityFilterChain adminSecurityFilterChain(
+			HttpSecurity http,
+			AdminAuthenticationProvider authenticationProvider,
+			ObjectMapper objectMapper
+	) throws Exception {
+		AuthenticationManager adminAuthenticationManager = new ProviderManager(authenticationProvider);
+		http
+				.securityMatcher("/admin/**", "/api/admin/**", "/assets/admin/**")
+				.authenticationManager(adminAuthenticationManager)
+				.authorizeHttpRequests(authorize -> authorize
+						.requestMatchers("/admin/login", "/assets/admin/**").permitAll()
+						.anyRequest().hasRole("ADMIN"))
+				.formLogin(form -> form
+						.loginPage("/admin/login")
+						.loginProcessingUrl("/admin/login")
+						.usernameParameter("loginId")
+						.passwordParameter("password")
+						.defaultSuccessUrl("/admin/dashboard", true)
+						.failureUrl("/admin/login?error"))
+				.logout(logout -> logout
+						.logoutUrl("/admin/logout")
+						.logoutSuccessUrl("/admin/login?logout")
+						.invalidateHttpSession(true)
+						.deleteCookies("JSESSIONID"))
+				.exceptionHandling(exceptions -> exceptions
+						.authenticationEntryPoint((request, response, exception) -> {
+							if (request.getRequestURI().startsWith(request.getContextPath() + "/api/admin/")) {
+								writeError(
+										response,
+										objectMapper,
+										HttpServletResponse.SC_UNAUTHORIZED,
+										ErrorResponse.of(
+												"ADMIN_LOGIN_REQUIRED",
+												"관리자 로그인이 필요합니다.",
+												request.getRequestURI()
+										)
+								);
+								return;
+							}
+							response.sendRedirect(request.getContextPath() + "/admin/login");
+						}));
+		return http.build();
+	}
+
+	@Bean
+	@Order(2)
 	@ConditionalOnProperty(name = "app.auth.enforce-security", havingValue = "true", matchIfMissing = true)
 	SecurityFilterChain securedApiFilterChain(
 			HttpSecurity http,
@@ -63,20 +112,18 @@ public class SecurityConfig {
 	) throws Exception {
 		http
 				.csrf(csrf -> csrf
-						.csrfTokenRepository(csrfTokenRepository)
-						.ignoringRequestMatchers("/api/admin/**","/api/users/**"))
+						.csrfTokenRepository(csrfTokenRepository))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(
 								"/api/auth/**",
-								"/admin/**",
-								"/assets/admin/**",
 								"/api/health",
 								"/error").permitAll()
 						.requestMatchers("/api/admin/**").permitAll()
 						.requestMatchers(HttpMethod.OPTIONS, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
-						.requestMatchers(HttpMethod.GET, "/api/regions", "/api/places/search").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/regions").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/places/search").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans", "/api/plans/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/notices", "/api/notices/*").permitAll()
@@ -107,6 +154,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
+	@Order(2)
 	@ConditionalOnProperty(name = "app.auth.enforce-security", havingValue = "false")
 	SecurityFilterChain localDevelopmentFilterChain(
 			HttpSecurity http,
@@ -118,8 +166,7 @@ public class SecurityConfig {
 						.ignoringRequestMatchers(
 								// local profile의 mutation API에는 개발용 CSRF 예외 정책을 적용한다.
 								"/api/plans/**",
-								"/api/plan-invitations/**",
-								"/api/admin/**"))
+								"/api/plan-invitations/**"))
 				.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
 		return http.build();
 	}
