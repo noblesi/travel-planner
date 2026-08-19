@@ -80,10 +80,22 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import PansleImg from '@/assets/myPageImage/pansle.webp'
 import DefaultImg from '@/assets/myPageImage/default_profile.webp'
 
+import { postMemberInfo } from '@/api/member'
+import {useAuthStore} from '@/stores/auth'
+
 const isReadOnly = ref(true)
 const nickName = ref('')
 const fileInput = ref('')
 const imageURL = ref('')
+
+const authStore = useAuthStore()
+const member = authStore.currentUser
+
+const tempInfo = postMemberInfo(108)
+
+console.log(member + "========================" + tempInfo)
+
+
 
 if(imageURL.value == ''){
     imageURL.value = DefaultImg

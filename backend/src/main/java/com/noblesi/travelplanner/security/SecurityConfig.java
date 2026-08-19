@@ -119,6 +119,7 @@ public class SecurityConfig {
 								"/api/health",
 								"/error").permitAll()
 						.requestMatchers("/api/admin/**").permitAll()
+						//.requestMatchers(HttpMethod.OPTIONS,"/api/Member/**").permitAll()
 						.requestMatchers(HttpMethod.OPTIONS, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()

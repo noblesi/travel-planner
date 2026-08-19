@@ -36,6 +36,10 @@ const handleLogout = async () => {
     // Store에 사용자에게 표시할 오류를 유지하고 현재 화면에 머뭅니다.
   }
 }
+
+const handleMypage = () => {
+  router.push({name : 'myPage'})
+}
 </script>
 
 <template>
@@ -97,7 +101,8 @@ const handleLogout = async () => {
           <RouterLink class="primary-button" :to="{ name: 'join' }">회원가입</RouterLink>
         </div>
         <div v-else class="desktop-actions authenticated-actions">
-          <span class="member-name">{{ authStore.currentUser.displayName }}</span>
+          <!-- <span class="member-name" @click="handleMypage">{{ authStore.currentUser.displayName }}</span> -->
+          <RouterLink class="member-name text-button" :to="{name : 'myPage'}">{{ authStore.currentUser.displayName }}</RouterLink>
           <button
             class="text-button"
             type="button"
