@@ -83,4 +83,25 @@
 		)
 	</insert>
 
+	<select id="countActiveTourApiPlaces" resultType="int">
+		SELECT COUNT(*)
+		  FROM PLACE_MASTER
+		 WHERE PLACE_PROVIDER = 'TOUR_API'
+		   AND ACTIVE_YN = 'Y'
+	</select>
+
+	<select id="countActiveTourApiPlacesByType" resultType="int">
+		SELECT COUNT(*)
+		  FROM PLACE_MASTER
+		 WHERE PLACE_PROVIDER = 'TOUR_API'
+		   AND PLACE_TYPE = #{placeType}
+		   AND ACTIVE_YN = 'Y'
+	</select>
+
+	<select id="findLastTourApiSyncedAt" resultType="java.time.OffsetDateTime">
+		SELECT MAX(SYNCED_AT)
+		  FROM PLACE_MASTER
+		 WHERE PLACE_PROVIDER = 'TOUR_API'
+	</select>
+
 </mapper>

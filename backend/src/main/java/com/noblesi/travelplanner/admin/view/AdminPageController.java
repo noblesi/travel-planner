@@ -1,28 +1,58 @@
 package com.noblesi.travelplanner.admin.view;
 
-import java.util.List;
-
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.SessionAttribute;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import com.noblesi.travelplanner.admin.auth.dto.AdminDTO;
+import com.noblesi.travelplanner.admin.tour.dto.TourSyncHistoryDTO;
+import com.noblesi.travelplanner.admin.tour.service.AdminTourSyncService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Controller
+@Slf4j
+@RequiredArgsConstructor
 @RequestMapping("/admin")
 public class AdminPageController {
+
+	private final AdminTourSyncService adminTourSyncService;
 
 	@GetMapping("/tour-data")
 	public String tourData(Model model) {
 		model.addAttribute("pageTitle", "관광 데이터 관리");
-		model.addAttribute("summary", List.of("관광지|14,500", "음식점|8,321", "숙박|3,432", "최근 갱신|321"));
-		model.addAttribute("history", List.of(
-				new SyncView("S-20260726-03", "2026.07.26 14:20", 4826, 0, "성공", "홍길동"),
-				new SyncView("S-20260724-02", "2026.07.24 11:05", 864, 0, "성공", "김관리"),
-				new SyncView("S-20260721-01", "2026.07.21 09:30", 1237, 3, "부분 성공", "홍길동")
-		));
+		model.addAttribute("summary", adminTourSyncService.getSummary());
+		model.addAttribute("history", adminTourSyncService.getHistory());
+		model.addAttribute("lastSyncedAt", adminTourSyncService.getLastSyncedAt());
+		model.addAttribute("syncing", adminTourSyncService.isSyncing());
 		return "admin/tour/tourDataFormView";
 	}
 
-	public record SyncView(String id, String startedAt, int changedCount, int failedCount,
-			String status, String manager) { }
+	@PostMapping("/tour-data/sync")
+	public String synchronize(
+			@SessionAttribute("loginAdmin") AdminDTO loginAdmin,
+			RedirectAttributes redirectAttributes
+	) {
+		try {
+			TourSyncHistoryDTO result = adminTourSyncService.synchronize(loginAdmin.getLoginId());
+			redirectAttributes.addFlashAttribute(
+					"message",
+					"TOUR API 데이터 " + result.changedCount() + "건을 동기화했습니다."
+			);
+		} catch (IllegalStateException exception) {
+			redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+		} catch (RuntimeException exception) {
+			log.error("TOUR API 동기화 실패", exception);
+			redirectAttributes.addFlashAttribute(
+					"errorMessage",
+					"TOUR API 동기화에 실패했습니다. API 키와 서버 로그를 확인해 주세요."
+			);
+		}
+		return "redirect:/admin/tour-data";
+	}
 }

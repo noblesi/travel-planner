@@ -69,6 +69,38 @@ class TourApiHttpClient {
 		}
 	}
 
+	String searchArea(String regionCode, int page, int size) {
+		if (!properties.configured()) {
+			throw new TourApiException(Reason.NOT_CONFIGURED, "TourAPI service key is missing");
+		}
+
+		try {
+			return restClient.get()
+					.uri(uriBuilder -> uriBuilder
+							.path("/areaBasedList2")
+							.queryParam("serviceKey", properties.serviceKey())
+							.queryParam("MobileOS", "ETC")
+							.queryParam("MobileApp", properties.mobileApp())
+							.queryParam("_type", "json")
+							.queryParam("arrange", "A")
+							.queryParam("areaCode", regionCode)
+							.queryParam("pageNo", page)
+							.queryParam("numOfRows", size)
+							.build())
+					.retrieve()
+					.body(String.class);
+		} catch (RestClientResponseException exception) {
+			throw mapHttpError(exception);
+		} catch (ResourceAccessException exception) {
+			if (hasTimeoutCause(exception)) {
+				throw new TourApiException(Reason.TIMEOUT, "TourAPI request timed out", exception);
+			}
+			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed", exception);
+		} catch (RestClientException exception) {
+			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed", exception);
+		}
+	}
+
 	private TourApiException mapHttpError(RestClientResponseException exception) {
 		HttpStatusCode status = exception.getStatusCode();
 		Reason reason = status.value() == 401 || status.value() == 403
