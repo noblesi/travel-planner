@@ -1,6 +1,6 @@
 # WithTrip 배포·시연 체크리스트
 
-- 기준일: `2026-08-11`
+- 기준일: `2026-08-18`
 - 대상: Linux, Nginx 정적 Frontend, Spring Boot 실행 JAR, Oracle `WITHTRIP_DEV`
 
 ## 빌드 전 검증
@@ -18,19 +18,20 @@ Windows 실행 정책상 로컬 스크립트 실행이 제한된 환경에서도
 - Oracle Application 계정과 TourAPI·Kakao REST 키
 - SMTP 계정·발신 주소와 실제 HTTPS `FRONTEND_BASE_URL`
 - Frontend `/api` 경로와 Kakao JavaScript 키
-- 배포 시 `AUTH_ENFORCE_SECURITY=true`, `SESSION_COOKIE_SECURE=true`
+- 배포 시 `SERVER_FORWARD_HEADERS_STRATEGY=framework`, `AUTH_ENFORCE_SECURITY=true`, `SESSION_COOKIE_SECURE=true`
 - Backend 전체 Test와 `travel-planner.jar`
-- Frontend 전체 Test와 `frontend/dist`
+- Frontend Lint·전체 Test와 `frontend/dist`
 
 ## 권장 배치
 
 ```text
 Browser
   └── https://service.example.com
-      ├── /          -> Nginx -> frontend/dist/index.html
-      └── /api/**    -> Nginx -> http://127.0.0.1:8080/api/**
-                              -> travel-planner.jar
-                              -> Oracle WITHTRIP_DEV
+      ├── /                 -> Nginx -> frontend/dist/index.html
+      ├── /api/**           -> Nginx -> travel-planner.jar
+      ├── /admin/**         -> Nginx -> travel-planner.jar (Thymeleaf)
+      └── /assets/admin/**  -> Nginx -> travel-planner.jar (관리자 정적 자원)
+                                      -> Oracle WITHTRIP_DEV
 ```
 
 Frontend와 API를 같은 Origin으로 제공하면 별도 CORS 없이 Session Cookie와 CSRF를 사용할 수 있습니다.
@@ -47,7 +48,16 @@ server {
     root /opt/withtrip/frontend;
     index index.html;
 
-    location /api/ {
+    # 사용자 REST API와 Thymeleaf 관리자 화면은 URI를 유지해 Spring Boot로 전달합니다.
+    location ~ ^/(api|admin)(/|$) {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # 관리자 CSS·JavaScript가 Vue 정적 파일 또는 SPA fallback으로 처리되지 않게 분리합니다.
+    location ^~ /assets/admin/ {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -132,6 +142,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\invoke-oracle-sql.
 
 - HTTPS에서 로그인 후 Session Cookie에 `Secure`, `HttpOnly`, `SameSite=Lax`가 적용됨
 - 로그인 후 새 CSRF 토큰으로 플랜 상태 변경이 성공함
+- `/admin/login` 로그인 후 대시보드·회원·여행·공지·신고 화면이 정상 표시됨
+- `/assets/admin/**` CSS·JavaScript가 `200`으로 제공되고 `/admin/**`가 Vue SPA fallback으로 처리되지 않음
 - 공개 탐색·상세·Kakao Marker가 Desktop과 Mobile에서 표시됨
 - 일정 추가 Request의 장소명·카테고리·이미지를 변조해도 서버 검색 결과 Snapshot과 대표 이미지가 유지됨
 - Vue Router 직접 접근과 새로고침이 `404`가 아닌 `index.html`로 연결됨

@@ -21,7 +21,7 @@ const handleContinue = () => {
       <div>
         <h1 class="main-title" style="margin-top: 30px;">
             나만의 플랜을 계획해보세요<br />
-            <span>비밀번호 찿기</span>
+            <span>비밀번호 찾기</span>
         </h1>
       </div>
       <!-- 이메일 입력 및 계속하기 폼 -->

@@ -60,7 +60,7 @@
 									<td class="text-column"
 										th:text="|${member.memberName} / ${member.memberNickName}|">이름 / 닉네임</td>
 									<td class="text-column" th:text="${member.email}">member@example.com</td>
-									<td th:text="${#dates.format(member.createAt, 'yyyy.MM.dd')}">2026.08.07</td>
+									<td th:text="${#dates.format(member.createdAt, 'yyyy.MM.dd')}">2026.08.07</td>
 									<td th:text="${member.planCount}">0</td>
 									<td th:text="${member.reportedPlanCount}">0</td>
 									<td>

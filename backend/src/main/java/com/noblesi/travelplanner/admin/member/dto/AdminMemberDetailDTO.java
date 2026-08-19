@@ -16,7 +16,7 @@ public class AdminMemberDetailDTO {
 	private String phoneNumber;
 	private Date birthDate;
 	private String memberStatus;
-	private Date createAt;
+	private Date createdAt;
 	private int planCount;
 	private int reportedPlanCount;
 }

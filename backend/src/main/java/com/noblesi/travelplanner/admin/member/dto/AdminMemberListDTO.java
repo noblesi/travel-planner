@@ -13,7 +13,7 @@ public class AdminMemberListDTO {
 	private String memberName;
 	private String memberNickName;
 	private String email;
-	private Date createAt;
+	private Date createdAt;
 	private String memberStatus;
 	private int planCount;
 	private int reportedPlanCount;

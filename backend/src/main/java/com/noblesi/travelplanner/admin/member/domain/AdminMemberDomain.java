@@ -18,5 +18,5 @@ public class AdminMemberDomain {
 	private Date birthDate;
 	private String phoneNumber;
 	private String memberStatus;
-	private Date createAt;
+	private Date createdAt;
 }//class

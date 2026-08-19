@@ -63,7 +63,7 @@ views/       라우트 단위 화면
 
 ### 공통 레이아웃과 UI Component
 
-- 사용자 route는 특별한 이유가 없으면 `DefaultLayout`, 관리자 route는 `AdminLayout`을 사용합니다.
+- 사용자 route는 특별한 이유가 없으면 `DefaultLayout`을 사용합니다. 관리자 화면은 Vue route를 추가하지 않고 Backend의 `/admin/**` Spring MVC + Thymeleaf 구조에서 구현합니다.
 - 새 버튼·입력·Modal·비동기 상태 UI를 만들기 전에 `src/components/ui`의 기존 Component로 조합할 수 있는지 확인합니다.
 - brand 색상, surface, border, text, layout 너비는 `src/assets/main.css`의 CSS variable을 사용합니다.
 - `BaseModal`을 사용하는 화면은 `close` event로 open state를 소유하며 dialog 내부에 별도 overlay나 document keydown listener를 추가하지 않습니다.
