@@ -28,7 +28,7 @@ public class AdminMemberController {
 	public String getMemberList(@RequestParam(name = "keyword", defaultValue = "") String keyword, 
 			@RequestParam(name="memberStatus", defaultValue = "") String memberStatus , Model model) {
 		
-		// 화면 상단에 표실될 제목 
+		// 화면 상단에 표시될 제목
 		model.addAttribute("pageTitle","회원 관리");
 		
 		// 검색 후에도 화면에 값이 남게 
@@ -44,7 +44,7 @@ public class AdminMemberController {
 	@GetMapping("/{memberId}")
 	public String getMemberDetail(@PathVariable("memberId") String memberId , Model model) {
 		AdminMemberDetailDTO adDTO = adminMemberService.getMemberDetail(memberId);
-		// 화면 상단에 표실될 제목 
+		// 화면 상단에 표시될 제목
 		model.addAttribute("pageTitle","회원 상세");
 		model.addAttribute("member", adDTO);
 		
@@ -56,7 +56,7 @@ public class AdminMemberController {
 			@RequestParam("memberStatus") String memberStatus, RedirectAttributes redirectAttributes) {
 		adminMemberService.removeMemberStatus(memberId, memberStatus);
 		
-		redirectAttributes.addFlashAttribute("message","회원 상태가 변경 되었습니다.");
+		redirectAttributes.addFlashAttribute("message","회원 상태가 변경되었습니다.");
 		
 		
 		

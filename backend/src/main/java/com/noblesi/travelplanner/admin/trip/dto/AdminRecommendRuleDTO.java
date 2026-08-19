@@ -39,8 +39,8 @@ public class AdminRecommendRuleDTO {
 	private String activeYn;
 	private Long adminId;
 	
-	private Date createAt;
-	private Date updateAt;
+	private Date createdAt;
+	private Date updatedAt;
 	
 	
 }//class

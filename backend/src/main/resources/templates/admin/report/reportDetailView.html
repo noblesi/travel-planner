@@ -24,7 +24,7 @@
 							<div><dt>신고 번호</dt><dd th:text="${report.reportId}">1</dd></div>
 							<div><dt>플랜 번호</dt><dd th:text="${report.planId}">1</dd></div>
 							<div><dt>신고인</dt><dd th:text="${report.reporterName}">홍길동</dd></div>
-							<div><dt>신고일</dt><dd th:text="${report.createAt}">2026-08-13</dd></div>
+							<div><dt>신고일</dt><dd th:text="${report.createdAt}">2026-08-13</dd></div>
 							<div><dt>신고 사유</dt><dd th:text="${report.reasonCode}">INAPPROPRIATE</dd></div>
 							<div><dt>처리 상태</dt><dd><span class="badge" th:text="${report.reportStatus}">PENDING</span></dd></div>
 						</dl>

@@ -65,7 +65,22 @@ const joinCheck = () => {
         alert('이메일 체크 중 오류가 발생했습니다.')
       })
   }
+
+  // if(passCheckNull()) {
+  //   emailCheck();
+  // }
+
 }
+
+// async function emailCheck(){
+//   let param = email.value;
+//   try{
+//     const response = await axios.get(`api/users/emailCheck/${param}`)
+//   } catch(error){
+//     console.log('이메일 체크 에러 발생:', error.response)
+//     alert('이메일 체크 중 오류가 발생했습니다.')
+//   }
+// }
 
 const handleContinue = () => {
   joinCheck()

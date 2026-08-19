@@ -4,10 +4,10 @@
         <div name="profileWrapDiv" class="profile-wrap">
             <div name="profileImageDiv" class="profile-div">
                 <img :src="imageURL" class="img-size"/>
-                <img :src="PansleImg" @click="changeProfileImage" alt="프로필 이미지 변경" class="profile-change-btn"/>
+                <img :src="PencilImg" @click="changeProfileImage" alt="프로필 이미지 변경" class="profile-change-btn"/>
                 <input type="file" ref="fileInput" style="display: none;" accept="image/*" @change="handleFileChange" />
                 <input type="text" ref="nickName" :readonly="isReadOnly" @blur="lockInput" class="nickName-text" value="nickName"/>
-                <img :src="PansleImg" @click="changeNickName" class="nickName-change-btn"/>
+                <img :src="PencilImg" @click="changeNickName" class="nickName-change-btn"/>
                 <a href="#void" class="member-draw-btn">회원 탈퇴</a>
             </div>
             <div name="myInfoWrap" class="myInfo-wrap">
@@ -16,7 +16,7 @@
                     <div class="title-section">
                     <h2 class="title">나의 정보</h2>
                         <div>
-                            <button class="password-reword-btn" @click="passwordReword">
+                            <button class="password-reset-btn" @click="handlePasswordReset">
                                 비밀번호 재설정
                             </button>
 
@@ -77,7 +77,7 @@
 <script setup>
 import { ref } from 'vue'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import PansleImg from '@/assets/myPageImage/pansle.webp'
+import PencilImg from '@/assets/myPageImage/pencil.webp'
 import DefaultImg from '@/assets/myPageImage/default_profile.webp'
 
 const isReadOnly = ref(true)
@@ -102,7 +102,7 @@ const changeProfileImage = () => {
     fileInput.value.click()
 }
 
-const passwordReword = () => {
+const handlePasswordReset = () => {
     alert("비밀번호 재설정")
 }
 
@@ -169,8 +169,8 @@ const saveInfo = () => {
   margin: 0;
 }
 
-// 비밀번호 재설정 버트
-.password-reword-btn {
+// 비밀번호 재설정 버튼
+.password-reset-btn {
   background: rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: #ffffff;
@@ -181,7 +181,7 @@ const saveInfo = () => {
   font-weight: 500;
   transition: all 0.2s ease;
 }
-.password-reword-btn:hover {
+.password-reset-btn:hover {
   background: rgba(255, 255, 255, 0.3);
 }
 

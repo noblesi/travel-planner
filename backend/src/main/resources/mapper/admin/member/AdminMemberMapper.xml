@@ -13,7 +13,7 @@
 			member.MEMBER_NAME AS memberName,
 			member.NICKNAME AS memberNickName,
 			member.EMAIL AS email,
-			member.CREATED_AT AS createAt,
+			member.CREATED_AT AS createdAt,
 			member.MEMBER_STATUS AS memberStatus,
 			COUNT(DISTINCT plan.PLAN_ID) AS planCount,
 			COUNT(DISTINCT report.PLAN_ID) AS reportedPlanCount
@@ -54,7 +54,7 @@
 			member.PHONE_NUMBER AS phoneNumber,
 			member.BIRTH_DATE AS birthDate,
 			member.MEMBER_STATUS AS memberStatus,
-			member.CREATED_AT AS createAt,
+			member.CREATED_AT AS createdAt,
 			COUNT(DISTINCT plan.PLAN_ID) AS planCount,
 			COUNT(DISTINCT report.PLAN_ID) AS reportedPlanCount
 		FROM MEMBER member
