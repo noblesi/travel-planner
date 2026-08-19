@@ -54,6 +54,8 @@ public class SecurityConfig {
 		return new ProviderManager(authenticationProvider);
 	}
 
+
+
 	@Bean
 	@Order(1)
 	SecurityFilterChain adminSecurityFilterChain(
@@ -113,10 +115,13 @@ public class SecurityConfig {
 						.csrfTokenRepository(csrfTokenRepository))
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(
-							"/api/users/**",
 								"/api/auth/**",
 								"/api/health",
 								"/error").permitAll()
+						.requestMatchers("/api/admin/**").permitAll()
+						.requestMatchers(HttpMethod.OPTIONS, "/api/users/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
+						.requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/regions").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/places/search").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/plans/mine").authenticated()
