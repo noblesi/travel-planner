@@ -5,9 +5,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.noblesi.travelplanner.common.exception.BusinessException;
-import com.noblesi.travelplanner.domain.plan.ManagedTravelPlan;
 import com.noblesi.travelplanner.domain.plan.PlanEditorPlan;
 import com.noblesi.travelplanner.domain.plan.PlanPublishStatus;
+import com.noblesi.travelplanner.domain.plan.TravelPlanStatus;
 import com.noblesi.travelplanner.dto.plan.MyPlanListResponse;
 import com.noblesi.travelplanner.dto.plan.PlanEditorResponse;
 import com.noblesi.travelplanner.dto.plan.PlanLifecycleResponse;
@@ -15,7 +15,8 @@ import com.noblesi.travelplanner.dto.plan.RestoreTravelPlanRequest;
 import com.noblesi.travelplanner.dto.plan.UpdatePlanPublicationRequest;
 import com.noblesi.travelplanner.mapper.MyPlanMapper;
 import com.noblesi.travelplanner.mapper.PlanScheduleItemMapper;
-import com.noblesi.travelplanner.mapper.TravelPlanCommandMapper;
+import com.noblesi.travelplanner.persistence.jpa.plan.TravelPlanEntity;
+import com.noblesi.travelplanner.persistence.jpa.plan.TravelPlanRepository;
 
 @Service
 class TravelPlanManagementService {
@@ -25,7 +26,7 @@ class TravelPlanManagementService {
 	private final PlanEditorQueryService editorQueryService;
 	private final MyPlanMapper myPlanMapper;
 	private final PlanScheduleItemMapper scheduleItemMapper;
-	private final TravelPlanCommandMapper commandMapper;
+	private final TravelPlanRepository travelPlanRepository;
 	private final PlanThumbnailDerivationService thumbnailDerivationService;
 
 	TravelPlanManagementService(
@@ -34,7 +35,7 @@ class TravelPlanManagementService {
 			PlanEditorQueryService editorQueryService,
 			MyPlanMapper myPlanMapper,
 			PlanScheduleItemMapper scheduleItemMapper,
-			TravelPlanCommandMapper commandMapper,
+			TravelPlanRepository travelPlanRepository,
 			PlanThumbnailDerivationService thumbnailDerivationService
 	) {
 		this.idParser = idParser;
@@ -42,7 +43,7 @@ class TravelPlanManagementService {
 		this.editorQueryService = editorQueryService;
 		this.myPlanMapper = myPlanMapper;
 		this.scheduleItemMapper = scheduleItemMapper;
-		this.commandMapper = commandMapper;
+		this.travelPlanRepository = travelPlanRepository;
 		this.thumbnailDerivationService = thumbnailDerivationService;
 	}
 
@@ -58,8 +59,8 @@ class TravelPlanManagementService {
 	) {
 		long planId = idParser.parse(planIdValue, "planId");
 		long memberId = planAccessService.currentMemberId();
-		PlanEditorPlan plan = planAccessService.requireOwnedPlan(planId, memberId);
-		requireVersion(request.versionNo(), plan.versionNo());
+		TravelPlanEntity plan = requireActiveOwnedPlan(planId, memberId);
+		requireVersion(request.versionNo(), plan.getVersionNo());
 
 		if (request.publishStatus() == PlanPublishStatus.PUBLISHED
 				&& scheduleItemMapper.countByPlanId(planId) == 0) {
@@ -69,27 +70,21 @@ class TravelPlanManagementService {
 					"일정을 한 곳 이상 추가한 후 제작을 완료해 주세요."
 			);
 		}
-		if (request.publishStatus() == plan.publishStatus()) {
+		if (plan.hasPublishStatus(request.publishStatus())) {
 			if (request.publishStatus() == PlanPublishStatus.PUBLISHED) {
 				thumbnailDerivationService.refresh(planId);
 				PlanEditorPlan refreshedPlan = planAccessService.requireOwnedPlan(planId, memberId);
 				return editorQueryService.buildResponse(planId, refreshedPlan);
 			}
-			return editorQueryService.buildResponse(planId, plan);
+			PlanEditorPlan currentPlan = planAccessService.requireOwnedPlan(planId, memberId);
+			return editorQueryService.buildResponse(planId, currentPlan);
 		}
 		String fallbackThumbnailImageUrl = request.publishStatus() == PlanPublishStatus.PUBLISHED
-				? thumbnailDerivationService.refresh(planId)
+				? thumbnailDerivationService.derive(planId)
 				: null;
 
-		if (commandMapper.updatePublishStatus(
-				planId,
-				memberId,
-				request.publishStatus(),
-				fallbackThumbnailImageUrl,
-				request.versionNo()
-		) != 1) {
-			throw planVersionConflict();
-		}
+		plan.updatePublication(request.publishStatus(), fallbackThumbnailImageUrl);
+		travelPlanRepository.flush();
 		PlanEditorPlan updatedPlan = planAccessService.requireOwnedPlan(planId, memberId);
 		return editorQueryService.buildResponse(planId, updatedPlan);
 	}
@@ -98,29 +93,41 @@ class TravelPlanManagementService {
 	PlanLifecycleResponse delete(String planIdValue, int versionNo) {
 		long planId = idParser.parse(planIdValue, "planId");
 		long memberId = planAccessService.currentMemberId();
-		PlanEditorPlan plan = planAccessService.requireOwnedPlan(planId, memberId);
-		requireVersion(versionNo, plan.versionNo());
-		if (commandMapper.softDeleteTravelPlan(planId, memberId, versionNo) != 1) {
-			throw planVersionConflict();
-		}
-		return new PlanLifecycleResponse(Long.toString(planId), "DELETED", versionNo + 1);
+		TravelPlanEntity plan = requireActiveOwnedPlan(planId, memberId);
+		requireVersion(versionNo, plan.getVersionNo());
+		plan.softDelete(memberId);
+		travelPlanRepository.flush();
+		return new PlanLifecycleResponse(
+				Long.toString(planId),
+				plan.getPlanStatus().name(),
+				plan.getVersionNo()
+		);
 	}
 
 	@Transactional
 	PlanLifecycleResponse restore(String planIdValue, RestoreTravelPlanRequest request) {
 		long planId = idParser.parse(planIdValue, "planId");
 		long memberId = planAccessService.currentMemberId();
-		ManagedTravelPlan plan = myPlanMapper.findOwnedById(planId, memberId);
-		if (plan == null) throw planNotFound();
-		requireVersion(request.versionNo(), plan.versionNo());
+		TravelPlanEntity plan = travelPlanRepository.findByPlanIdAndOwnerMemberId(planId, memberId)
+				.orElseThrow(this::planNotFound);
+		requireVersion(request.versionNo(), plan.getVersionNo());
 
-		if ("ACTIVE".equals(plan.planStatus())) {
-			return new PlanLifecycleResponse(Long.toString(planId), "ACTIVE", plan.versionNo());
+		if (plan.isActive()) {
+			return new PlanLifecycleResponse(Long.toString(planId), "ACTIVE", plan.getVersionNo());
 		}
-		if (commandMapper.restoreTravelPlan(planId, memberId, request.versionNo()) != 1) {
-			throw planVersionConflict();
-		}
-		return new PlanLifecycleResponse(Long.toString(planId), "ACTIVE", request.versionNo() + 1);
+		plan.restore();
+		travelPlanRepository.flush();
+		return new PlanLifecycleResponse(
+				Long.toString(planId),
+				plan.getPlanStatus().name(),
+				plan.getVersionNo()
+		);
+	}
+
+	private TravelPlanEntity requireActiveOwnedPlan(long planId, long memberId) {
+		return travelPlanRepository
+				.findByPlanIdAndOwnerMemberIdAndPlanStatus(planId, memberId, TravelPlanStatus.ACTIVE)
+				.orElseThrow(this::planNotFound);
 	}
 
 	private void requireVersion(int requestedVersion, int currentVersion) {

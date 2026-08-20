@@ -8,7 +8,7 @@ import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.domain.plan.PlanEditorPlan;
 import com.noblesi.travelplanner.dto.plan.PlanEditorResponse;
 import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanDatesRequest;
-import com.noblesi.travelplanner.mapper.TravelPlanCommandMapper;
+import com.noblesi.travelplanner.mapper.TravelPlanDateMapper;
 
 @Service
 class TravelPlanDateService {
@@ -16,7 +16,7 @@ class TravelPlanDateService {
 	private final PositiveIdParser idParser;
 	private final PlanAccessService planAccessService;
 	private final TravelPlanRequestValidator requestValidator;
-	private final TravelPlanCommandMapper travelPlanCommandMapper;
+	private final TravelPlanDateMapper travelPlanDateMapper;
 	private final PlanDayRangeSynchronizer dayRangeSynchronizer;
 	private final PlanEditorQueryService editorQueryService;
 	private final PlanThumbnailDerivationService thumbnailDerivationService;
@@ -25,7 +25,7 @@ class TravelPlanDateService {
 			PositiveIdParser idParser,
 			PlanAccessService planAccessService,
 			TravelPlanRequestValidator requestValidator,
-			TravelPlanCommandMapper travelPlanCommandMapper,
+			TravelPlanDateMapper travelPlanDateMapper,
 			PlanDayRangeSynchronizer dayRangeSynchronizer,
 			PlanEditorQueryService editorQueryService,
 			PlanThumbnailDerivationService thumbnailDerivationService
@@ -33,7 +33,7 @@ class TravelPlanDateService {
 		this.idParser = idParser;
 		this.planAccessService = planAccessService;
 		this.requestValidator = requestValidator;
-		this.travelPlanCommandMapper = travelPlanCommandMapper;
+		this.travelPlanDateMapper = travelPlanDateMapper;
 		this.dayRangeSynchronizer = dayRangeSynchronizer;
 		this.editorQueryService = editorQueryService;
 		this.thumbnailDerivationService = thumbnailDerivationService;
@@ -54,7 +54,7 @@ class TravelPlanDateService {
 		}
 		requestValidator.validateDateChangePolicy(plan, request.startDate(), request.endDate());
 
-		int updatedRows = travelPlanCommandMapper.updateTravelDates(
+		int updatedRows = travelPlanDateMapper.updateTravelDates(
 				planId,
 				memberId,
 				request.startDate(),

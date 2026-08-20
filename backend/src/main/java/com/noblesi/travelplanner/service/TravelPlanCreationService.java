@@ -9,14 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.domain.plan.ParticipantType;
 import com.noblesi.travelplanner.domain.plan.PlanDay;
-import com.noblesi.travelplanner.domain.plan.PlanPublishStatus;
 import com.noblesi.travelplanner.domain.plan.TravelPlan;
 import com.noblesi.travelplanner.domain.region.Region;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanRequest;
 import com.noblesi.travelplanner.dto.plan.CreateTravelPlanResponse;
 import com.noblesi.travelplanner.mapper.PlanMemberMapper;
 import com.noblesi.travelplanner.mapper.RegionMapper;
-import com.noblesi.travelplanner.mapper.TravelPlanCommandMapper;
+import com.noblesi.travelplanner.persistence.jpa.plan.TravelPlanEntity;
+import com.noblesi.travelplanner.persistence.jpa.plan.TravelPlanRepository;
 
 @Service
 class TravelPlanCreationService {
@@ -24,7 +24,7 @@ class TravelPlanCreationService {
 	private final PlanAccessService planAccessService;
 	private final TravelPlanRequestValidator requestValidator;
 	private final RegionMapper regionMapper;
-	private final TravelPlanCommandMapper travelPlanCommandMapper;
+	private final TravelPlanRepository travelPlanRepository;
 	private final PlanMemberMapper planMemberMapper;
 	private final PlanDayRangeSynchronizer dayRangeSynchronizer;
 
@@ -32,14 +32,14 @@ class TravelPlanCreationService {
 			PlanAccessService planAccessService,
 			TravelPlanRequestValidator requestValidator,
 			RegionMapper regionMapper,
-			TravelPlanCommandMapper travelPlanCommandMapper,
+			TravelPlanRepository travelPlanRepository,
 			PlanMemberMapper planMemberMapper,
 			PlanDayRangeSynchronizer dayRangeSynchronizer
 	) {
 		this.planAccessService = planAccessService;
 		this.requestValidator = requestValidator;
 		this.regionMapper = regionMapper;
-		this.travelPlanCommandMapper = travelPlanCommandMapper;
+		this.travelPlanRepository = travelPlanRepository;
 		this.planMemberMapper = planMemberMapper;
 		this.dayRangeSynchronizer = dayRangeSynchronizer;
 	}
@@ -50,18 +50,17 @@ class TravelPlanCreationService {
 		Region region = findActiveSidoRegion(request.regionCode());
 		requestValidator.validate(request);
 
-		long planId = travelPlanCommandMapper.nextTravelPlanId();
-		TravelPlan travelPlan = new TravelPlan(
-				planId,
+		TravelPlanEntity planEntity = TravelPlanEntity.create(
 				memberId,
 				region.regionName() + " 여행",
 				region.regionCode(),
 				request.startDate(),
 				request.endDate(),
-				request.visibility(),
-				PlanPublishStatus.DRAFT
+				request.visibility()
 		);
-		requireSingleRow(travelPlanCommandMapper.insertTravelPlan(travelPlan));
+		travelPlanRepository.saveAndFlush(planEntity);
+		TravelPlan travelPlan = planEntity.toDomain();
+		long planId = travelPlan.planId();
 		requireSingleRow(planMemberMapper.insertPlanMember(planId, memberId, ParticipantType.CREATOR));
 		List<PlanDay> planDays = dayRangeSynchronizer.createPlanDays(travelPlan);
 		return CreateTravelPlanResponse.of(travelPlan, region, planDays);

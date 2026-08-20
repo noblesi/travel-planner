@@ -6,6 +6,10 @@ spring:
     username: ${ORACLE_USERNAME:travel_planner}
     password: ${ORACLE_PASSWORD:travel_planner}
     driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
