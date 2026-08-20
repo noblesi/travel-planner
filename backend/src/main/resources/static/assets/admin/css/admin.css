@@ -402,23 +402,52 @@ html, body {
 
 .pagination {
 	display: flex;
+	align-items: center;
 	justify-content: center;
-	gap: 6px;
-	margin-top: 20px;
+	flex-wrap: wrap;
+	gap: 7px;
+	margin-top: 24px;
 }
 
-.pagination a {
-	padding: 8px 11px;
+.pagination a, .pagination span {
+	display: inline-flex;
+	min-width: 38px;
+	height: 38px;
+	align-items: center;
+	justify-content: center;
+	padding: 0 11px;
 	border: 1px solid var(--border);
-	border-radius: 5px;
+	border-radius: 8px;
 	color: var(--text);
+	background: var(--surface);
+	font-size: 13px;
+	font-weight: 700;
 	text-decoration: none;
+	transition: border-color .15s, color .15s, background .15s, transform .15s;
+}
+
+.pagination a:hover {
+	border-color: var(--brand);
+	color: var(--brand);
+	background: var(--brand-soft);
+	transform: translateY(-1px);
 }
 
 .pagination a.active {
 	color: #fff;
 	border-color: var(--brand);
 	background: var(--brand);
+	box-shadow: 0 5px 14px rgb(243 136 59 / 24%);
+}
+
+.pagination .pagination-direction {
+	min-width: 62px;
+}
+
+.pagination .disabled {
+	color: #b5b8bd;
+	background: #f8f5f2;
+	cursor: not-allowed;
 }
 
 @media ( max-width :1000px) {
@@ -1326,6 +1355,84 @@ body.modal-open {
 .admin-toast.show {
 	opacity: 1;
 	transform: none;
+}
+
+.admin-error-body {
+	min-height: 100vh;
+	margin: 0;
+	background: linear-gradient(145deg, #fff8f2 0%, #fff 55%, #fff0e5 100%);
+}
+
+.admin-error-page {
+	display: grid;
+	place-items: center;
+	min-height: 100vh;
+	padding: 32px 20px;
+}
+
+.admin-error-card {
+	width: min(100%, 620px);
+	padding: 52px 48px;
+	border: 1px solid var(--border);
+	border-radius: 18px;
+	background: var(--surface);
+	box-shadow: 0 24px 70px rgb(37 42 49 / 10%);
+	text-align: center;
+}
+
+.admin-error-status {
+	color: var(--brand);
+	font-size: clamp(64px, 12vw, 104px);
+	font-weight: 900;
+	line-height: 1;
+	letter-spacing: -.06em;
+}
+
+.admin-error-label {
+	margin: 16px 0 8px;
+	color: var(--brand);
+	font-size: 12px;
+	font-weight: 900;
+	letter-spacing: .18em;
+}
+
+.admin-error-card h1 {
+	margin: 0;
+	font-size: clamp(25px, 5vw, 34px);
+}
+
+.admin-error-message {
+	margin: 18px 0;
+	color: var(--muted);
+	line-height: 1.7;
+}
+
+.admin-error-code {
+	display: block;
+	padding: 12px;
+	border-radius: 8px;
+	background: #f7f3f0;
+	color: #696f78;
+	font-size: 12px;
+	overflow-wrap: anywhere;
+}
+
+.admin-error-actions {
+	display: flex;
+	justify-content: center;
+	gap: 10px;
+	margin-top: 28px;
+}
+
+@media (max-width: 520px) {
+	.admin-error-card {
+		padding: 40px 24px;
+	}
+
+	.admin-error-actions {
+		align-items: stretch;
+		flex-direction: column;
+	}
 }
 
 @media ( max-width :600px) {

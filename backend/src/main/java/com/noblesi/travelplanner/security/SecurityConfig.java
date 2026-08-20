@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
@@ -64,11 +65,13 @@ public class SecurityConfig {
 			ObjectMapper objectMapper
 	) throws Exception {
 		AuthenticationManager adminAuthenticationManager = new ProviderManager(authenticationProvider);
+		AccessDeniedHandlerImpl adminAccessDeniedHandler = new AccessDeniedHandlerImpl();
+		adminAccessDeniedHandler.setErrorPage("/admin/error/403");
 		http
 				.securityMatcher("/admin/**", "/api/admin/**", "/assets/admin/**")
 				.authenticationManager(adminAuthenticationManager)
 				.authorizeHttpRequests(authorize -> authorize
-						.requestMatchers("/admin/login", "/assets/admin/**").permitAll()
+						.requestMatchers("/admin/login", "/admin/error/**", "/assets/admin/**").permitAll()
 						.anyRequest().hasRole("ADMIN"))
 				.formLogin(form -> form
 						.loginPage("/admin/login")
@@ -83,6 +86,10 @@ public class SecurityConfig {
 						.invalidateHttpSession(true)
 						.deleteCookies("JSESSIONID"))
 				.exceptionHandling(exceptions -> exceptions
+						.accessDeniedHandler((request, response, exception) -> {
+							request.setAttribute("admin.originalRequestUri", request.getRequestURI());
+							adminAccessDeniedHandler.handle(request, response, exception);
+						})
 						.authenticationEntryPoint((request, response, exception) -> {
 							if (request.getRequestURI().startsWith(request.getContextPath() + "/api/admin/")) {
 								writeError(

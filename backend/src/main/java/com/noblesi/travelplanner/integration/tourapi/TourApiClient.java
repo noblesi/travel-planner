@@ -25,4 +25,13 @@ public class TourApiClient {
 		String responseBody = httpClient.searchKeyword(keyword, regionCode, page, size);
 		return responseParser.parse(responseBody, page, size);
 	}
+
+	public TourApiSearchResult searchArea(
+			String regionCode,
+			int page,
+			int size
+	) {
+		String responseBody = httpClient.searchArea(regionCode, page, size);
+		return responseParser.parse(responseBody, page, size);
+	}
 }

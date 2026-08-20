@@ -2,9 +2,11 @@ package com.noblesi.travelplanner.admin.auth.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -150,6 +152,26 @@ class AdminAuthControllerIntegrationTest {
 				.andExpect(status().isBadRequest())
 				.andExpect(view().name("admin/error/adminErrorView"))
 				.andExpect(model().attribute("errorCode", "INVALID_ADMIN_REQUEST"));
+	}
+
+	@Test
+	void rendersForbiddenPageForAuthenticatedNonAdmin() throws Exception {
+		mockMvc.perform(get("/admin/dashboard").with(user("member").roles("MEMBER")))
+				.andExpect(status().isForbidden())
+				.andExpect(forwardedUrl("/admin/error/403"));
+
+		mockMvc.perform(get("/admin/error/403").with(user("member").roles("MEMBER")))
+				.andExpect(status().isForbidden())
+				.andExpect(view().name("admin/error/adminErrorView"))
+				.andExpect(model().attribute("errorCode", "ADMIN_ACCESS_DENIED"));
+	}
+
+	@Test
+	void rendersNotFoundPageForUnknownAdminPath() throws Exception {
+		mockMvc.perform(get("/admin/unknown-page").session(login()))
+				.andExpect(status().isNotFound())
+				.andExpect(view().name("admin/error/adminErrorView"))
+				.andExpect(model().attribute("errorCode", "ADMIN_PAGE_NOT_FOUND"));
 	}
 
 	private MockHttpSession login() throws Exception {

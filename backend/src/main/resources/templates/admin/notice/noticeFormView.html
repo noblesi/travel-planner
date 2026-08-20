@@ -58,10 +58,17 @@
                     </table>
                 </div>
 
-                <nav class="pagination" th:if="${notices.pagination.totalPages > 0}">
+                <nav class="pagination" aria-label="공지사항 목록 페이지" th:if="${notices.pagination.totalPages > 1}">
+                    <a class="pagination-direction" th:if="${notices.pagination.hasPrevious()}"
+                       th:href="@{/admin/notices(page=${notices.pagination.page - 1},keyword=${keyword},categoryCode=${categoryCode})}">이전</a>
+                    <span class="pagination-direction disabled" th:unless="${notices.pagination.hasPrevious()}">이전</span>
                     <a th:each="number : ${#numbers.sequence(notices.pagination.startPage, notices.pagination.endPage)}"
                        th:href="@{/admin/notices(page=${number},keyword=${keyword},categoryCode=${categoryCode})}"
-                       th:text="${number}" th:classappend="${number == notices.pagination.page} ? ' active'">1</a>
+                       th:text="${number}" th:classappend="${number == notices.pagination.page} ? ' active'"
+                       th:attr="aria-current=${number == notices.pagination.page ? 'page' : null}">1</a>
+                    <a class="pagination-direction" th:if="${notices.pagination.hasNext()}"
+                       th:href="@{/admin/notices(page=${notices.pagination.page + 1},keyword=${keyword},categoryCode=${categoryCode})}">다음</a>
+                    <span class="pagination-direction disabled" th:unless="${notices.pagination.hasNext()}">다음</span>
                 </nav>
             </section>
         </main>
