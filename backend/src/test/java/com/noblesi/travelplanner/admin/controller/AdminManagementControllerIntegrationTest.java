@@ -31,6 +31,7 @@ import com.noblesi.travelplanner.admin.member.dto.AdminMemberListDTO;
 import com.noblesi.travelplanner.admin.report.dto.AdminReportDTO;
 import com.noblesi.travelplanner.admin.trip.dto.AdminTripDetailDTO;
 import com.noblesi.travelplanner.admin.trip.dto.AdminTripListDTO;
+import com.noblesi.travelplanner.common.api.PageResponse;
 
 @SpringBootTest(properties = {
         "spring.datasource.url=jdbc:h2:mem:travel_planner_admin_management;MODE=Oracle;DATABASE_TO_UPPER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
@@ -86,11 +87,13 @@ class AdminManagementControllerIntegrationTest {
                 .andReturn();
 
         @SuppressWarnings("unchecked")
-        List<AdminMemberListDTO> members = (List<AdminMemberListDTO>) listResult.getModelAndView()
+        PageResponse<AdminMemberListDTO> members = (PageResponse<AdminMemberListDTO>) listResult.getModelAndView()
                 .getModel()
                 .get("members");
-        assertThat(members).extracting(AdminMemberListDTO::getEmail)
+        assertThat(members.content()).extracting(AdminMemberListDTO::getEmail)
                 .containsExactly("e2e.owner@withtrip.test");
+        assertThat(members.pagination().page()).isEqualTo(1);
+        assertThat(members.pagination().totalCount()).isEqualTo(1);
 
         MvcResult detailResult = mockMvc.perform(get("/admin/members/{memberId}", memberId).session(session))
                 .andExpect(status().isOk())

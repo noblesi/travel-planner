@@ -1,14 +1,14 @@
 package com.noblesi.travelplanner.admin.view;
 
 import org.springframework.stereotype.Controller;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.SessionAttribute;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import com.noblesi.travelplanner.admin.auth.dto.AdminDTO;
+import com.noblesi.travelplanner.admin.auth.security.AdminPrincipal;
 import com.noblesi.travelplanner.admin.tour.dto.TourSyncHistoryDTO;
 import com.noblesi.travelplanner.admin.tour.service.AdminTourSyncService;
 
@@ -35,11 +35,11 @@ public class AdminPageController {
 
 	@PostMapping("/tour-data/sync")
 	public String synchronize(
-			@SessionAttribute("loginAdmin") AdminDTO loginAdmin,
+			@AuthenticationPrincipal AdminPrincipal loginAdmin,
 			RedirectAttributes redirectAttributes
 	) {
 		try {
-			TourSyncHistoryDTO result = adminTourSyncService.synchronize(loginAdmin.getLoginId());
+			TourSyncHistoryDTO result = adminTourSyncService.synchronize(loginAdmin.loginId());
 			redirectAttributes.addFlashAttribute(
 					"message",
 					"TOUR API 데이터 " + result.changedCount() + "건을 동기화했습니다."

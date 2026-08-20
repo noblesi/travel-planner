@@ -6,15 +6,18 @@
 	<title th:text="${status + ' 오류 | WithTrip'}">관리자 오류 | WithTrip</title>
 	<link rel="stylesheet" th:href="@{/assets/admin/css/admin.css}">
 </head>
-<body>
-	<main class="admin-content">
-		<section class="card">
-			<p th:text="${status}">500</p>
-			<h1>요청을 처리할 수 없습니다.</h1>
-			<p th:text="${errorMessage}">관리자 요청 처리 중 오류가 발생했습니다.</p>
-			<small th:text="${errorCode + ' · ' + path}">ADMIN_ERROR</small>
-			<div class="form-actions">
-				<a class="button" th:href="@{/admin/dashboard}">대시보드로 이동</a>
+<body class="admin-error-body">
+	<main class="admin-error-page">
+		<section class="admin-error-card" aria-labelledby="error-title">
+			<div class="admin-error-status" th:text="${status}">500</div>
+			<p class="admin-error-label">ADMIN CONSOLE</p>
+			<h1 id="error-title" th:text="${status == 404 ? '페이지를 찾을 수 없습니다.' : status == 403 ? '접근 권한이 없습니다.' : '요청을 처리할 수 없습니다.'}">요청을 처리할 수 없습니다.</h1>
+			<p class="admin-error-message" th:text="${errorMessage}">관리자 요청 처리 중 오류가 발생했습니다.</p>
+			<code class="admin-error-code" th:text="${errorCode + ' · ' + path}">ADMIN_ERROR</code>
+			<div class="admin-error-actions">
+				<button class="button secondary" type="button" onclick="history.back()">이전 페이지</button>
+				<a class="button" th:if="${showLoginAction}" th:href="@{/admin/login}">관리자 로그인</a>
+				<a class="button" th:unless="${showLoginAction}" th:href="@{/admin/dashboard}">대시보드로 이동</a>
 			</div>
 		</section>
 	</main>
