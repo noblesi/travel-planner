@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -36,6 +37,19 @@ public class GlobalExceptionHandler {
 				request.getRequestURI()
 		);
 		return ResponseEntity.status(exception.getStatus()).body(body);
+	}
+
+	@ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+	public ResponseEntity<ErrorResponse> handleOptimisticLockingFailure(
+			ObjectOptimisticLockingFailureException exception,
+			HttpServletRequest request
+	) {
+		ErrorResponse body = ErrorResponse.of(
+				"PLAN_VERSION_CONFLICT",
+				"다른 변경사항이 먼저 저장되었습니다. 플랜을 새로고침한 후 다시 시도해 주세요.",
+				request.getRequestURI()
+		);
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
 	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)

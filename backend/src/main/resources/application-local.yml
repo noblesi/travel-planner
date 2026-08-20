@@ -9,6 +9,11 @@ spring:
       mode: always
       schema-locations: classpath:db/local/schema.sql
       data-locations: classpath:db/local/data.sql
+  jpa:
+    hibernate:
+      # H2 Oracle mode reports Oracle DATE/NUMBER metadata differently from Oracle JDBC.
+      # Production keeps ddl-auto=validate from application.yml.
+      ddl-auto: none
 
 app:
   auth:

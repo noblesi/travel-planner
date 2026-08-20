@@ -52,12 +52,4 @@
 		 ORDER BY P.UPDATED_AT DESC, P.PLAN_ID DESC
 	</select>
 
-	<select id="findOwnedById" resultMap="managedPlanResultMap">
-		SELECT <include refid="managedPlanProjection" />
-		  FROM TRAVEL_PLAN P
-		  JOIN REGION_MASTER R ON R.REGION_CODE = P.REGION_CODE
-		 WHERE P.PLAN_ID = #{planId}
-		   AND P.OWNER_MEMBER_ID = #{memberId}
-	</select>
-
 </mapper>
