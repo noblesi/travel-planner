@@ -1,6 +1,5 @@
 package com.noblesi.travelplanner.admin.member.service;
 
-import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import com.noblesi.travelplanner.admin.member.mapper.AdminMemberMapper;
 import com.noblesi.travelplanner.admin.member.dto.AdminMemberDetailDTO;
 import com.noblesi.travelplanner.admin.member.dto.AdminMemberListDTO;
+import com.noblesi.travelplanner.admin.member.dto.AdminMemberSearchDTO;
+import com.noblesi.travelplanner.common.api.PageResponse;
+import com.noblesi.travelplanner.common.api.Pagination;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 
 @Service
@@ -26,12 +28,13 @@ public class AdminMemberService {
 	/**
 	 * 검색어와 회원 상태를 이용해 관리자 회원 목록을 조회합니다.
 	 */
-	public List<AdminMemberListDTO> getMemberList(String keyword, String memberStatus) {
-		// 검색 조건이 null이면 MyBatis에서 사용하기 쉽도록 빈 문자열로 바꿉니다.
-		String normalizedKeyword = keyword == null ? "" : keyword.strip();
-		String normalizedMemberStatus = memberStatus == null ? "" : memberStatus.strip().toUpperCase();
-
-		return adminMemberMapper.selectMemberList(normalizedKeyword, normalizedMemberStatus);
+	public PageResponse<AdminMemberListDTO> getMemberList(AdminMemberSearchDTO search) {
+		long totalCount = adminMemberMapper.countMemberList(search);
+		Pagination pagination = Pagination.of(search.page(), search.size(), totalCount);
+		if (totalCount == 0) {
+			return PageResponse.empty(pagination);
+		}
+		return PageResponse.of(adminMemberMapper.selectMemberList(search), pagination);
 	}
 
 	/**

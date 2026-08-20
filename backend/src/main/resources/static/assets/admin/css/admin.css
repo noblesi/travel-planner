@@ -402,23 +402,52 @@ html, body {
 
 .pagination {
 	display: flex;
+	align-items: center;
 	justify-content: center;
-	gap: 6px;
-	margin-top: 20px;
+	flex-wrap: wrap;
+	gap: 7px;
+	margin-top: 24px;
 }
 
-.pagination a {
-	padding: 8px 11px;
+.pagination a, .pagination span {
+	display: inline-flex;
+	min-width: 38px;
+	height: 38px;
+	align-items: center;
+	justify-content: center;
+	padding: 0 11px;
 	border: 1px solid var(--border);
-	border-radius: 5px;
+	border-radius: 8px;
 	color: var(--text);
+	background: var(--surface);
+	font-size: 13px;
+	font-weight: 700;
 	text-decoration: none;
+	transition: border-color .15s, color .15s, background .15s, transform .15s;
+}
+
+.pagination a:hover {
+	border-color: var(--brand);
+	color: var(--brand);
+	background: var(--brand-soft);
+	transform: translateY(-1px);
 }
 
 .pagination a.active {
 	color: #fff;
 	border-color: var(--brand);
 	background: var(--brand);
+	box-shadow: 0 5px 14px rgb(243 136 59 / 24%);
+}
+
+.pagination .pagination-direction {
+	min-width: 62px;
+}
+
+.pagination .disabled {
+	color: #b5b8bd;
+	background: #f8f5f2;
+	cursor: not-allowed;
 }
 
 @media ( max-width :1000px) {
