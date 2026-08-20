@@ -1,9 +1,9 @@
 package com.noblesi.travelplanner.domain.member;
 
-import java.sql.Date;
+import java.util.Date;
 
 public record MemberInfoDomain(
-    Long memberId, 
+    long memberId, 
     String memberName,
     String email, 
     String nickname,

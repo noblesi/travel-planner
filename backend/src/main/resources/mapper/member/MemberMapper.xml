@@ -76,7 +76,7 @@
 		 WHERE LOWER(EMAIL) = #{email}
 	</select>
 
-	<select id="selectMemberInfo" parameterType="int" resultMap="memberInfoDoamin">
+	<select id="selectMemberInfo" parameterType="Long" resultMap="memberInfoDoamin">
 		select 
 			MEMBER_ID, 
 			MEMBER_NAME, 

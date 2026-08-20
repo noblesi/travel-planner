@@ -36,10 +36,12 @@ const handleLogout = async () => {
     // Store에 사용자에게 표시할 오류를 유지하고 현재 화면에 머뭅니다.
   }
 }
-
 const handleMypage = () => {
-  router.push({name : 'myPage'})
+  console.log(authStore.currentUser)
+ // router.push({name : 'myPage'})
 }
+
+
 </script>
 
 <template>

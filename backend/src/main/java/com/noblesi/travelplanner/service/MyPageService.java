@@ -12,8 +12,9 @@ public class MyPageService {
     @Autowired(required = false)
     private MyPageMapper myPageMapper;
     
-    public MemberInfoDomain searchUserInfo(int memberId){
+    public MemberInfoDomain searchUserInfo(long memberId){
         MemberInfoDomain memberInfoDomain = null;
+        System.out.println("emember service =================="+memberId + " // " + myPageMapper);
         memberInfoDomain = myPageMapper.selectMemberInfo(memberId);
         return memberInfoDomain;
     }

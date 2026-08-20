@@ -49,7 +49,7 @@
 
                         <div class="form-group">
                         <label>생년월일</label>
-                        <div v-if="!isEditMode" class="value-text">{{ userInfo.birthdate }}</div>
+                        <div v-if="!isEditMode" class="value-text">{{ userInfo.birthDate }}</div>
                         <input v-else v-model="userInfo.birthdate" type="date" class="info-input" />
                         </div>
                     </div>
@@ -80,8 +80,9 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import PansleImg from '@/assets/myPageImage/pansle.webp'
 import DefaultImg from '@/assets/myPageImage/default_profile.webp'
 
-import { postMemberInfo } from '@/api/member'
-import {useAuthStore} from '@/stores/auth'
+import { getMemberInfo } from '@/api/member'
+import { useAuthStore } from '@/stores/auth'
+import { formToJSON } from 'axios'
 
 const isReadOnly = ref(true)
 const nickName = ref('')
@@ -89,13 +90,37 @@ const fileInput = ref('')
 const imageURL = ref('')
 
 const authStore = useAuthStore()
-const member = authStore.currentUser
-
-const tempInfo = postMemberInfo(108)
-
-console.log(member + "========================" + tempInfo)
 
 
+async function setMember(){
+    const result = await getMemberInfo()
+    return result
+}
+
+const userInfo = ref({
+    // name: '홍길동',
+    // gender: '남성',
+    // birthdate: '1998-04-02',
+    // email: 'hong@example.com'
+    name: '',
+    gender: '',
+    birthDate: '',
+    email: ''
+})
+
+setMember().then((response)=>{
+    // 사용자 정보 데이터 상태 관리
+    const member = response.data ? response.data : response
+    
+    console.log(member.memberName+ "===========")
+
+    userInfo.value = {
+        name: member.memberName,
+        gender: member.genderCode,
+        birthDate: member.birthDate,
+        email: member.email
+    }
+})
 
 if(imageURL.value == ''){
     imageURL.value = DefaultImg
@@ -134,13 +159,7 @@ const handleFileChange = (event) => {
 // 수정 모드 상태 토글
 const isEditMode = ref(false)
 
-// 사용자 정보 데이터 상태 관리
-const userInfo = ref({
-  name: '홍길동',
-  gender: '남성',
-  birthdate: '1998-04-02',
-  email: 'hong@example.com'
-})
+
 // 저장 함수
 const saveInfo = () => {
   // 백엔드 API 연동이 필요할 경우 이곳에 요청 코드를 작성합니다.

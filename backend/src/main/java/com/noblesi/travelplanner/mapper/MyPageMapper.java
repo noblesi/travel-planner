@@ -8,7 +8,7 @@ import com.noblesi.travelplanner.dto.member.MemberInfoRequest;
 @Mapper
 public interface MyPageMapper {
     
-    public MemberInfoDomain selectMemberInfo(int memberId);
+    public MemberInfoDomain selectMemberInfo(long memberId);
 
     public int updateMemberInfo(MemberInfoRequest memberInfoRequest);
 
