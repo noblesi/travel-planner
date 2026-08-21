@@ -12,7 +12,9 @@
 6. `007_add_report_integrity_constraints.sql`: 동일 회원의 중복 신고와 정의되지 않은 신고 사유 차단
 7. `008_backfill_plan_thumbnails.sql`: 기존 공개·제작 완료 플랜의 대표 이미지 멱등 재계산
 8. `009_verify_plan_thumbnails.sql`: 장소 유형과 저장된 대표 이미지 일치 여부 읽기 전용 검증
-9. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
+9. `010_align_schedule_coordinate_types.sql`: 과거 통합 DDL로 만든 Schema의 문자열 좌표를 숫자형으로 변환할 때만 실행
+10. `011_rebuild_public_plan_indexes.sql`: `006`까지 적용된 기존 Schema의 공개 플랜 Index를 canonical 이름과 발행 상태 기준으로 정리
+11. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
 
 빈 애플리케이션 Schema에서 다음과 같이 실행합니다. 비밀번호는 명령행에 넣지 않고 Prompt에서 입력합니다.
 
@@ -28,6 +30,8 @@ sqlplus travel_planner@//localhost:1521/FREEPDB1 `@docs/database/ddl/009_verify_
 Windows Oracle Client의 문자셋이 UTF-8이 아니면 한글 Seed 실행 중 `ORA-01756`이 발생할 수 있으므로 위 `NLS_LANG`을 먼저 설정합니다.
 
 `001`은 일회성 생성 Script입니다. 일부 Object가 이미 있는 Schema에서 재실행하면 실패합니다. 자동 Drop은 데이터 손실 위험이 있어 제공하지 않습니다.
+
+`travelplanner_final.sql`은 전체 Schema를 초기화하는 파괴적 개발용 Script입니다. 기존 데이터가 있는 환경에는 실행하지 않습니다. 신규 여행 플랜 Schema의 canonical 기준은 `001`과 후속 migration이며, 과거 `travelplanner_final.sql`로 생성한 Schema에서 좌표 Column이 `VARCHAR2`인 경우에만 백업 후 `010`을 실행합니다. `011`은 `006`까지 적용되어 `IX_TRAVEL_PLAN_PUBLISH`가 존재하고, 기존 `IX_PLAN_PUBLIC_UPDATED`와 `IX_PLAN_REGION_PUBLIC`에는 `PUBLISH_STATUS`가 없는 Schema에서만 한 번 실행합니다.
 
 ## Oracle 접속 전 로컬 개발
 
