@@ -70,16 +70,6 @@ const router = createRouter({
       name: 'login',
       component: () => import('@/views/loginView/LoginView.vue'),
     },
-    {
-      path: '/emailFind',
-      name: 'emailFind',
-      component: () => import('@/views/loginView/EmailFindView.vue'),
-    },
-    {
-      path: '/passwordFind',
-      name: 'passwordFind',
-      component: () => import('@/views/loginView/PasswordFindView.vue'),
-    },
     //회원 가입
     {
       path: '/joinView',
