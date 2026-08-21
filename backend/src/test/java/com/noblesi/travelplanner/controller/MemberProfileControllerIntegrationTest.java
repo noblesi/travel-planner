@@ -158,8 +158,8 @@ class MemberProfileControllerIntegrationTest {
 						.with(csrf().asHeader())
 						.contentType(MediaType.APPLICATION_JSON)
 						.content(request))
-				.andExpect(status().isNotFound())
-				.andExpect(jsonPath("$.code").value("MEMBER_PROFILE_NOT_FOUND"));
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("CURRENT_MEMBER_NOT_AVAILABLE"));
 	}
 
 	@Test

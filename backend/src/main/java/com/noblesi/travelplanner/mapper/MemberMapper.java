@@ -28,4 +28,6 @@ public interface MemberMapper {
 	int selectEmailCnt(@Param("email") String email);
 
 	AuthenticatedMember findForEmailAuthentication(@Param("email") String email);
+
+	AuthenticatedMember findForSessionValidation(@Param("memberId") long memberId);
 }
