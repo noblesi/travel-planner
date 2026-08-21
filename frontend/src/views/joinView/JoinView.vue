@@ -60,8 +60,7 @@ const joinCheck = () => {
           router.push({ name: 'joinProfile' })
         }
       })
-      .catch((error) => {
-        console.log('이메일 체크 에러 발생:', error)
+      .catch(() => {
         alert('이메일 체크 중 오류가 발생했습니다.')
       })
   }
@@ -71,16 +70,6 @@ const joinCheck = () => {
   // }
 
 }
-
-// async function emailCheck(){
-//   let param = email.value;
-//   try{
-//     const response = await axios.get(`api/users/emailCheck/${param}`)
-//   } catch(error){
-//     console.log('이메일 체크 에러 발생:', error.response)
-//     alert('이메일 체크 중 오류가 발생했습니다.')
-//   }
-// }
 
 const handleContinue = () => {
   joinCheck()

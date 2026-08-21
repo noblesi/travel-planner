@@ -111,6 +111,14 @@ VITE_KAKAO_MAP_KEY=javascript-key
 - 장소 검색 endpoint는 로그인 Session을 필수로 하고, Reverse Proxy 또는 API Gateway에서 별도의 IP 기준 rate limit과 TourAPI 할당량 경보를 적용합니다.
 - 애플리케이션 내부의 단순 메모리 limiter는 다중 인스턴스에서 우회되고 재시작 시 상태가 사라지므로 현재 코드에 추가하지 않습니다.
 
+## 로그 운영
+
+- 운영 기본 로그 수준은 `INFO`로 유지하고 일시적인 장애 분석 외에는 `DEBUG`를 활성화하지 않습니다.
+- 비밀번호, Session·CSRF·초대 Token, API Key, 전체 Query String과 요청·응답 본문이 Application·Nginx·Container 로그에 남지 않는지 확인합니다.
+- 이메일과 전화번호는 원문 대신 마스킹 값 또는 내부 식별자를 사용합니다.
+- Docker `json-file`을 사용한다면 `max-size: 10m`, `max-file: 5` 이상의 Rotation 제한을 운영 `compose.yaml`에 설정하거나 동등한 중앙 Log 보존 정책을 적용합니다.
+- 배포 전 Frontend Lint의 `no-console` 검증과 Backend Source의 `System.out`, `printStackTrace` 잔존 여부를 확인합니다.
+
 ## Kakao Map
 
 - 개발 Origin은 정확히 `http://localhost:5173` 또는 실제 사용하는 Origin을 등록합니다.

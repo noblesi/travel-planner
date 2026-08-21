@@ -60,6 +60,7 @@ describe('JoinProfileView', () => {
       birth: '20000101',
       privacy: 'Y',
       name: '홍길동',
+      nickname: '홍길동',
       gender: 'F',
       phone: '010-1234-5678',
     })

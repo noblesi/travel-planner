@@ -113,9 +113,6 @@ const handleFileChange = (event) => {
   if (file) {
     // 선택한 이미지 파일을 화면에 미리보기 위해 URL을 생성
     imageURL.value = URL.createObjectURL(file)
-    
-    // 백엔드 서버로 전송할 때는 이 'file' 객체를 FormData에 담아 보낸다.
-    console.log('선택된 파일 객체:', file)
   }
 }
 

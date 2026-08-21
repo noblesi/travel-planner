@@ -46,14 +46,12 @@ const handleContinue = () => {
   }
   if(userInfo.privacy === "Y"){
     postMemberJoin(userInfo)
-      .then((response) => {
+      .then(() => {
         alert('정상 가입되었습니다.')
-        console.log('서버 응답:', response.data) // 서버에서 반환된 데이터 처리 가능
         userStore.clearData() // 회원가입 성공 후 스토어 비우기
         router.push('/joinComplete')
       })
-      .catch((error) => {
-        console.log('가입 에러 발생:', error)
+      .catch(() => {
         alert('가입이 정상적으로 이루어지지 않았습니다.')
       })
   } else {
