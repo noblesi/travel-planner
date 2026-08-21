@@ -40,13 +40,10 @@ beforeEach(async () => {
 
 describe('join profile route guard', () => {
   it('1단계 정보가 없으면 회원가입 첫 화면으로 돌려보낸다', async () => {
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {})
-
     await router.push('/joinProfileView')
 
     expect(router.currentRoute.value.name).toBe('join')
-    expect(alertMock).toHaveBeenCalledWith('회원가입 정보를 먼저 입력해주세요.')
-    alertMock.mockRestore()
+    expect(router.currentRoute.value.query.reset).toBe('true')
   })
 
   it('1단계 정보가 있으면 프로필 화면에 진입한다', async () => {
@@ -59,11 +56,20 @@ describe('join profile route guard', () => {
   })
 })
 
-describe('unfinished feature routes', () => {
-  it('마이페이지 프로토타입을 공개 라우트로 노출하지 않는다', async () => {
+describe('my page route authentication guard', () => {
+  it('비로그인 사용자를 로그인 화면으로 보낸다', async () => {
     await router.push('/myPage')
 
-    expect(router.currentRoute.value.name).toBe('not-found')
+    expect(router.currentRoute.value.name).toBe('login')
+    expect(router.currentRoute.value.query.redirect).toBe('/myPage')
+  })
+
+  it('로그인 사용자는 마이페이지에 진입할 수 있다', async () => {
+    authStore.isAuthenticated = true
+
+    await router.push('/myPage')
+
+    expect(router.currentRoute.value.name).toBe('myPage')
   })
 })
 

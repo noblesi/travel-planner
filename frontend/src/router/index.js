@@ -90,15 +90,14 @@ const router = createRouter({
       path: '/joinProfileView',
       name: 'joinProfile',
       component: () => import('@/views/joinView/JoinProfileView.vue'),
-      beforeEnter: (from, to, next) => {
+      beforeEnter: () => {
         const store = useUserStore()
         // Step 1에서 반드시 넘겨야 하는 데이터(예: userId)가 있는지 확인
         if (!store.userInfo.email || !store.userInfo.password) {
           // 데이터가 없으면 1단계로 돌려보냅니다.
-          next({ name: 'join', query: { reset: true } })
-        } else {
-          next()
+          return { name: 'join', query: { reset: true } }
         }
+        return true
       }
     },
     {
@@ -111,6 +110,7 @@ const router = createRouter({
       path: '/myPage',
       name: 'myPage',
       component: () => import('@/views/myPage/MyPage.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/:pathMatch(.*)*',
