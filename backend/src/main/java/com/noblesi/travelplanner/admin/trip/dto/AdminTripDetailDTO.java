@@ -9,10 +9,10 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AdminTripDetailDTO {
 
-	private int planId;
+	private Long planId;
 	private String title;
 	private String regionName;
-	private int ownerMemberId;
+	private Long ownerMemberId;
 	private String ownerName;
 	private Date startDate;
 	private Date endDate;

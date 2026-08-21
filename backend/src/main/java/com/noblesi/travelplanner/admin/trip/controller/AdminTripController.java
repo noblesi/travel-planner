@@ -74,7 +74,7 @@ public class AdminTripController {
 	}
 
 	@GetMapping("/{planId}")
-	public String getTripDetail(@PathVariable("planId") int planId, Model model) {
+	public String getTripDetail(@PathVariable("planId") Long planId, Model model) {
 		AdminTripDetailDTO trip = adminTripService.getTripDetail(planId);
 		List<AdminTripScheduleDTO> schedules = adminTripService.getTripSchedules(planId);
 		List<AdminTripReportDTO> reports = adminTripService.getTripReports(planId);

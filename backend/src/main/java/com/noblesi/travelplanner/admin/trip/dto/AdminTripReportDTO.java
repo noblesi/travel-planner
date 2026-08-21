@@ -9,8 +9,8 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AdminTripReportDTO {
 
-	private int reportId;
-	private int reporterMemberId;
+	private Long reportId;
+	private Long reporterMemberId;
 	private String reporterName;
 	private String reasonCode;
 	private String reasonDetail;

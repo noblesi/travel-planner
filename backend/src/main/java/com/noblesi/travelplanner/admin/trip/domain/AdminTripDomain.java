@@ -7,9 +7,9 @@ import lombok.Getter;
 @Getter
 public class AdminTripDomain {
 
-	private int planId;
-	private Integer sourcePlanId;
-	private int ownerMemberId;
+	private Long planId;
+	private Long sourcePlanId;
+	private Long ownerMemberId;
 	private String title;
 	private String regionCode;
 	private Date startDate;
@@ -18,9 +18,9 @@ public class AdminTripDomain {
 	private String planStatus;
 	private int versionNo;
 	private Date deletedAt;
-	private Integer deletedByMemberId;
+	private Long deletedByMemberId;
 	private Date restoredAt;
-	private Integer restoredByAdminId;
+	private Long restoredByAdminId;
 	private String thumbnailImg;
 	private Date createdAt;
 	private Date updatedAt;

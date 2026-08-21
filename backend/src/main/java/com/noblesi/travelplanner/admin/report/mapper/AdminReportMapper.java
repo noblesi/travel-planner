@@ -14,13 +14,13 @@ public interface AdminReportMapper {
 	 * @param reportId
 	 * @return
 	 */
-	AdminReportDTO selectReportDetail(@Param("reportId") int reportId ); 
+	AdminReportDTO selectReportDetail(@Param("reportId") Long reportId );
 	
-	int updateReportStatus(@Param("reportId") int reportId, @Param("reportStatus") String reportStatus);
+	int updateReportStatus(@Param("reportId") Long reportId, @Param("reportStatus") String reportStatus);
 	
 	int insertReportProcess(AdminReportProcessDomain arpDomain);
 	
-	int updatePlanVisibility(@Param("planId") int planId, @Param("visibility") String visibility );
+	int updatePlanVisibility(@Param("planId") Long planId, @Param("visibility") String visibility );
 	
 	
 }//interface

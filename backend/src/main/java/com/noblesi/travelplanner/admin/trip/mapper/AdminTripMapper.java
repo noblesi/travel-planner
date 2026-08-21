@@ -21,9 +21,9 @@ public interface AdminTripMapper {
 			@Param("reportStatus") String reportStatus
 	);
 
-	AdminTripDetailDTO selectTripDetail(@Param("planId") int planId);
+	AdminTripDetailDTO selectTripDetail(@Param("planId") Long planId);
 
-	List<AdminTripScheduleDTO> selectTripSchedules(@Param("planId") int planId);
+	List<AdminTripScheduleDTO> selectTripSchedules(@Param("planId") Long planId);
 
-	List<AdminTripReportDTO> selectTripReports(@Param("planId") int planId);
+	List<AdminTripReportDTO> selectTripReports(@Param("planId") Long planId);
 }
