@@ -1,5 +1,6 @@
 <script setup>
 import { storeToRefs } from 'pinia'
+import { reactive } from 'vue'
 
 import { useToastStore } from '@/stores/toast'
 
@@ -13,6 +14,7 @@ defineProps({
 
 const toastStore = useToastStore()
 const { toasts } = storeToRefs(toastStore)
+const pendingActionIds = reactive(new Set())
 
 const toastIcon = {
   success: '✓',
@@ -21,13 +23,22 @@ const toastIcon = {
 }
 
 async function runAction(toast) {
-  if (!toast.action) return
+  if (!toast.action || pendingActionIds.has(toast.id)) return
+
+  pendingActionIds.add(toast.id)
   try {
     await toast.action()
     toastStore.dismiss(toast.id)
   } catch {
     toastStore.error('요청한 작업을 완료하지 못했습니다.')
+  } finally {
+    pendingActionIds.delete(toast.id)
   }
+}
+
+function dismissToast(toast) {
+  if (pendingActionIds.has(toast.id)) return
+  toastStore.dismiss(toast.id)
 }
 </script>
 
@@ -44,6 +55,7 @@ async function runAction(toast) {
       :class="['toast', `toast--${toast.type}`]"
       :role="toast.type === 'error' ? 'alert' : 'status'"
       :aria-live="toast.type === 'error' ? 'assertive' : 'polite'"
+      :aria-busy="pendingActionIds.has(toast.id)"
     >
       <span class="toast__icon" aria-hidden="true">{{ toastIcon[toast.type] }}</span>
       <p>{{ toast.message }}</p>
@@ -51,11 +63,19 @@ async function runAction(toast) {
         v-if="toast.action && toast.actionLabel"
         class="toast__action"
         type="button"
+        :disabled="pendingActionIds.has(toast.id)"
         @click="runAction(toast)"
       >
         {{ toast.actionLabel }}
       </button>
-      <button type="button" aria-label="알림 닫기" @click="toastStore.dismiss(toast.id)">×</button>
+      <button
+        type="button"
+        aria-label="알림 닫기"
+        :disabled="pendingActionIds.has(toast.id)"
+        @click="dismissToast(toast)"
+      >
+        ×
+      </button>
     </article>
   </TransitionGroup>
 </template>
@@ -146,6 +166,10 @@ async function runAction(toast) {
 
 .toast button:hover {
   background: var(--color-surface-muted);
+}
+.toast button:disabled {
+  cursor: wait;
+  opacity: 0.55;
 }
 .toast .toast__action { width: auto; min-width: 64px; padding: 0 10px; color: var(--color-brand); border: 1px solid var(--color-brand-border); font-size: 11px; font-weight: 800; }
 

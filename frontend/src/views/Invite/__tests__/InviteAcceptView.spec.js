@@ -21,6 +21,7 @@ vi.mock('@/api/invitations', () => ({
 }))
 
 vi.mock('vue-router', () => ({
+  isNavigationFailure: (failure) => Boolean(failure),
   useRoute: () => route,
   useRouter: () => ({ push: pushMock }),
 }))
@@ -39,7 +40,7 @@ const invitation = {
 beforeEach(() => {
   route.query = { token: 'token-1' }
   route.fullPath = '/invite/accept?token=token-1'
-  pushMock.mockReset()
+  pushMock.mockReset().mockResolvedValue(undefined)
   getPlanInvitationMock.mockReset().mockResolvedValue(invitation)
   acceptPlanInvitationMock.mockReset()
 })
@@ -84,5 +85,39 @@ describe('InviteAcceptView', () => {
       name: 'login',
       query: { redirect: '/invite/accept?token=token-1' },
     })
+  })
+
+  it('초대 수락 후 이동이 실패하면 API 재호출 없이 이동만 다시 시도한다', async () => {
+    acceptPlanInvitationMock.mockResolvedValue({ planId: '101', status: 'ACCEPTED' })
+    pushMock.mockRejectedValueOnce(new Error('navigation failed')).mockResolvedValueOnce(undefined)
+    const wrapper = mount(InviteAcceptView)
+    await flushPromises()
+
+    await wrapper.get('.accept-btn').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      '초대 수락은 완료되었지만 여행 계획을 열지 못했어요.',
+    )
+    expect(wrapper.get('.accept-btn').text()).toBe('여행 계획 다시 열기')
+
+    await wrapper.get('.accept-btn').trigger('click')
+    await flushPromises()
+
+    expect(acceptPlanInvitationMock).toHaveBeenCalledOnce()
+    expect(pushMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('초대 수락 후 NavigationFailure가 resolve되어도 이동 재시도 상태를 표시한다', async () => {
+    acceptPlanInvitationMock.mockResolvedValue({ planId: '101', status: 'ACCEPTED' })
+    pushMock.mockResolvedValueOnce({ type: 'aborted' })
+    const wrapper = mount(InviteAcceptView)
+    await flushPromises()
+
+    await wrapper.get('.accept-btn').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('여행 계획을 열지 못했어요.')
+    expect(wrapper.get('.accept-btn').text()).toBe('여행 계획 다시 열기')
   })
 })

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { isNavigationFailure, useRouter } from 'vue-router'
 
 import { withdrawMyAccount } from '@/api/member'
 import BaseModal from '@/components/ui/BaseModal.vue'
@@ -41,6 +41,21 @@ function close() {
   emit('close')
 }
 
+async function navigateHome() {
+  const message =
+    '회원탈퇴는 완료되었지만 홈 화면으로 이동하지 못했습니다. 새로고침해 주세요.'
+  try {
+    const failure = await router.replace({ name: 'home' })
+    if (!isNavigationFailure(failure)) return true
+  } catch {
+    toastStore.error(message)
+    return false
+  }
+
+  toastStore.error(message)
+  return false
+}
+
 async function submit() {
   if (isSubmitting.value) return
 
@@ -49,15 +64,20 @@ async function submit() {
 
   isSubmitting.value = true
   try {
-    await withdrawMyAccount(currentPassword.value)
+    try {
+      await withdrawMyAccount(currentPassword.value)
+    } catch (error) {
+      errorMessage.value =
+        error?.response?.data?.message ||
+        '회원탈퇴를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+      return
+    }
+
     authStore.clearSession()
     resetForm()
     emit('close')
     toastStore.info('회원탈퇴가 완료되었습니다.')
-    await router.replace({ name: 'home' })
-  } catch (error) {
-    errorMessage.value =
-      error?.response?.data?.message || '회원탈퇴를 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+    await navigateHome()
   } finally {
     isSubmitting.value = false
   }

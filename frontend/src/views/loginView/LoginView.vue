@@ -1,17 +1,21 @@
 <script setup>
 import { ref } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { isNavigationFailure, RouterLink, useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import { getSafeAuthenticationRedirect } from '@/utils/authRedirect'
 
 const email = ref('')
 const password = ref('')
+const navigationError = ref('')
+const loginCompleted = ref(false)
 const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
 const handleContinue = async () => {
+  if (authStore.pending || loginCompleted.value) return
+
   if (!email.value) {
     return
   }
@@ -20,12 +24,27 @@ const handleContinue = async () => {
     return
   }
 
+  navigationError.value = ''
   try {
     await authStore.login({ email: email.value.trim(), password: password.value })
-    await router.replace(getSafeAuthenticationRedirect(route.query.redirect))
   } catch {
     password.value = ''
+    return
   }
+
+  password.value = ''
+  loginCompleted.value = true
+  try {
+    const failure = await router.replace(getSafeAuthenticationRedirect(route.query.redirect))
+    if (!isNavigationFailure(failure)) return
+  } catch {
+    navigationError.value =
+      '로그인은 완료되었지만 다음 화면으로 이동하지 못했습니다. 새로고침해 주세요.'
+    return
+  }
+
+  navigationError.value =
+    '로그인은 완료되었지만 다음 화면으로 이동하지 못했습니다. 새로고침해 주세요.'
 }
 </script>
 
@@ -59,15 +78,23 @@ const handleContinue = async () => {
           />
           <br/>
           <div class="passwordMatchedDiv" aria-live="polite">
-            <span v-if="authStore.errorMessage" class="error-message">
-              {{ authStore.errorMessage }}
+            <span
+              v-if="navigationError || authStore.errorMessage"
+              class="error-message"
+              role="alert"
+            >
+              {{ navigationError || authStore.errorMessage }}
             </span>
           </div>
         </div>
 
 
-        <button type="submit" class="btn-submit" :disabled="authStore.pending">
-          {{ authStore.pending ? '로그인 중...' : '로그인' }}
+        <button
+          type="submit"
+          class="btn-submit"
+          :disabled="authStore.pending || loginCompleted"
+        >
+          {{ loginCompleted ? '로그인 완료' : authStore.pending ? '로그인 중...' : '로그인' }}
         </button>
       </form>
 

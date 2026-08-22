@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { useToastStore } from '@/stores/toast'
 import MyPage from '@/views/myPage/MyPage.vue'
 
 const {
@@ -226,6 +227,35 @@ describe('MyPage', () => {
 
     expect(wrapper.get('#withdrawal-password').element.value).toBe('wrong-password')
     expect(wrapper.text()).toContain('현재 비밀번호가 올바르지 않습니다.')
+  })
+
+  it('회원탈퇴 성공 후 홈 이동이 실패해도 탈퇴 완료 상태를 유지한다', async () => {
+    getMyProfileMock.mockResolvedValue(profile)
+    withdrawMyAccountMock.mockResolvedValue(null)
+    const { router, wrapper } = await mountPage()
+    const authStore = useAuthStore()
+    const toastStore = useToastStore()
+    authStore.setCurrentUser({
+      memberId: '1',
+      email: profile.email,
+      displayName: profile.nickname,
+    })
+    router.beforeEach((to) => (to.name === 'home' ? false : true))
+    await flushPromises()
+
+    await wrapper.get('.withdraw-open-button').trigger('click')
+    await wrapper.get('#withdrawal-password').setValue('WithTrip-E2E-2026!')
+    await wrapper.get('#withdraw-account-form').trigger('submit')
+    await flushPromises()
+
+    expect(withdrawMyAccountMock).toHaveBeenCalledOnce()
+    expect(authStore.isAuthenticated).toBe(false)
+    expect(router.currentRoute.value.name).toBe('myPage')
+    expect(wrapper.find('#withdraw-account-form').exists()).toBe(false)
+    expect(toastStore.toasts.map((toast) => toast.message)).toEqual([
+      '회원탈퇴가 완료되었습니다.',
+      '회원탈퇴는 완료되었지만 홈 화면으로 이동하지 못했습니다. 새로고침해 주세요.',
+    ])
   })
 
   it('현재 비밀번호 확인 후 새 비밀번호로 변경한다', async () => {

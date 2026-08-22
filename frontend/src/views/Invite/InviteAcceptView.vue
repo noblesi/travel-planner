@@ -43,7 +43,13 @@
             :aria-busy="accepting"
             @click="acceptCurrentInvitation"
           >
-            {{ accepting ? '처리 중...' : '초대 수락하고 여행 계획 열기' }}
+            {{
+              accepting
+                ? '처리 중...'
+                : acceptedPlanId
+                  ? '여행 계획 다시 열기'
+                  : '초대 수락하고 여행 계획 열기'
+            }}
           </button>
           <div v-if="errorMessage" class="error-text" role="alert">{{ errorMessage }}</div>
         </template>
@@ -70,7 +76,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { isNavigationFailure, useRoute, useRouter } from 'vue-router'
 
 import { acceptPlanInvitation, getPlanInvitation } from '@/api/invitations'
 
@@ -81,6 +87,20 @@ const status = ref('loading')
 const accepting = ref(false)
 const errorMessage = ref('')
 const invitation = ref(null)
+const acceptedPlanId = ref(null)
+
+async function navigate(location, failureMessage) {
+  try {
+    const failure = await router.push(location)
+    if (!isNavigationFailure(failure)) return true
+  } catch {
+    errorMessage.value = failureMessage
+    return false
+  }
+
+  errorMessage.value = failureMessage
+  return false
+}
 
 async function verifyToken() {
   const token = route.query.token
@@ -115,22 +135,35 @@ async function acceptCurrentInvitation() {
   errorMessage.value = ''
 
   try {
-    const data = await acceptPlanInvitation(route.query.token)
-    router.push({ name: 'plan-editor', params: { planId: data.planId } })
-  } catch (error) {
-    if (error?.response?.status === 401) {
-      router.push({
-        name: 'login',
-        query: { redirect: route.fullPath },
-      })
-      return
+    if (acceptedPlanId.value == null) {
+      try {
+        const data = await acceptPlanInvitation(route.query.token)
+        acceptedPlanId.value = data.planId
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          await navigate(
+            {
+              name: 'login',
+              query: { redirect: route.fullPath },
+            },
+            '로그인 화면으로 이동하지 못했어요. 잠시 후 다시 시도해 주세요.',
+          )
+          return
+        }
+        if (error?.response?.status === 410) {
+          status.value = 'expired'
+          return
+        }
+        errorMessage.value =
+          error?.response?.data?.message ?? '수락 처리에 실패했어요. 다시 시도해 주세요.'
+        return
+      }
     }
-    if (error?.response?.status === 410) {
-      status.value = 'expired'
-      return
-    }
-    errorMessage.value =
-      error?.response?.data?.message ?? '수락 처리에 실패했어요. 다시 시도해 주세요.'
+
+    await navigate(
+      { name: 'plan-editor', params: { planId: acceptedPlanId.value } },
+      '초대 수락은 완료되었지만 여행 계획을 열지 못했어요. 다시 이동해 주세요.',
+    )
   } finally {
     accepting.value = false
   }
