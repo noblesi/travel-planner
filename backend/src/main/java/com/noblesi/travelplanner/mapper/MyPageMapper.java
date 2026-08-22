@@ -4,6 +4,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 import com.noblesi.travelplanner.domain.member.MemberInfoDomain;
 import com.noblesi.travelplanner.dto.member.MemberInfoRequest;
+import com.noblesi.travelplanner.dto.member.NickNameRequest;
 
 @Mapper
 public interface MyPageMapper {
@@ -12,7 +13,7 @@ public interface MyPageMapper {
 
     public int updateMemberInfo(MemberInfoRequest memberInfoRequest);
 
-    public int updateNickname(String nickname);
+    public int updateNickname(NickNameRequest nickNameRequest);
 
     public int updateProfileImage(String profileImage);
 

@@ -6,7 +6,13 @@
                 <img :src="imageURL" class="img-size"/>
                 <img :src="PansleImg" @click="changeProfileImage" alt="프로필 이미지 변경" class="profile-change-btn"/>
                 <input type="file" ref="fileInput" style="display: none;" accept="image/*" @change="handleFileChange" />
-                <input type="text" ref="nickName" :readonly="isReadOnly" @blur="lockInput" class="nickName-text" value="nickName"/>
+                <input type="text" ref='nickNameInput'
+                    v-model="userInfo.nickName" 
+                    :readonly="isReadOnly" 
+                    @blur="handleNicknameSubmit" 
+                    @change="handleNicknameSubmit"
+                    @keyup.enter="$event.target.blur()"
+                    class="nickName-text"/>
                 <img :src="PansleImg" @click="changeNickName" class="nickName-change-btn"/>
                 <a href="#void" class="member-draw-btn">회원 탈퇴</a>
             </div>
@@ -50,7 +56,7 @@
                         <div class="form-group">
                         <label>생년월일</label>
                         <div v-if="!isEditMode" class="value-text">{{ userInfo.birthDate }}</div>
-                        <input v-else v-model="userInfo.birthdate" type="date" class="info-input" />
+                        <input v-else v-model="userInfo.birthDate" type="date" class="info-input" />
                         </div>
                     </div>
 
@@ -60,7 +66,13 @@
                         <div v-if="!isEditMode" class="value-text">{{ userInfo.email }}</div>
                         <input v-else v-model="userInfo.email" type="email" class="info-input" placeholder="example@email.com" />
                     </div>
+
+                    <div class="form-group full-width">
+                        <label>휴대전화 번호</label>
+                        <div v-if="!isEditMode" class="value-text">{{ userInfo.phoneNumber }}</div>
+                        <input v-else v-model="userInfo.phoneNumber" type="tel" class="info-input" placeholder="010-1234-5678" />
                     </div>
+                </div>
 
                     <!-- 수정 모드일 때만 나타나는 저장 버튼 -->
                     <div v-if="isEditMode" class="button-section">
@@ -81,16 +93,18 @@ import PansleImg from '@/assets/myPageImage/pansle.webp'
 import DefaultImg from '@/assets/myPageImage/default_profile.webp'
 
 import { getMemberInfo } from '@/api/member'
-import { useAuthStore } from '@/stores/auth'
-import { formToJSON } from 'axios'
+import { postModifyMemberInfo } from '@/api/member'
+import { getModifyNickname } from '@/api/member'
+import { postModifyProfileImage } from '@/api/member'
+import { getDeleteAccount } from '@/api/member'
+import router from '@/router'
+
 
 const isReadOnly = ref(true)
-const nickName = ref('')
+const nickNameInput = ref('')
 const fileInput = ref('')
 const imageURL = ref('')
-
-const authStore = useAuthStore()
-
+const originalNickName = ref('')
 
 async function setMember(){
     const result = await getMemberInfo()
@@ -103,36 +117,84 @@ const userInfo = ref({
     // birthdate: '1998-04-02',
     // email: 'hong@example.com'
     name: '',
+    nickName: '',
     gender: '',
     birthDate: '',
-    email: ''
+    email: '',
+    phoneNumber: ''
 })
 
 setMember().then((response)=>{
     // 사용자 정보 데이터 상태 관리
     const member = response.data ? response.data : response
-    
-    console.log(member.memberName+ "===========")
+    let memberGender = "N";
 
+   
+    switch (member.genderCode) {
+        case "M":
+            memberGender = "남성"
+            break;
+        case "F":
+            memberGender = "여성"
+            break;    
+        default:
+            memberGender = "선택 안함"
+            break;
+    }
+    
+    originalNickName.value = member.nickname
+    console.log(member.birthDate + "date")
     userInfo.value = {
         name: member.memberName,
-        gender: member.genderCode,
-        birthDate: member.birthDate,
-        email: member.email
+        nickName: member.nickname,
+        birthDate: member.birthDate.split('T')[0],
+        gender: memberGender,
+        email: member.email,
+        phoneNumber: member.phoneNumber
     }
+    
+}).catch((error) => {
+    console.log(error + "값이 없으니 돌아간다.")
+    router.push({name: 'home'})
 })
 
 if(imageURL.value == ''){
     imageURL.value = DefaultImg
 }
 
-const lockInput = () => {
-    isReadOnly.value=true
+const handleNicknameSubmit = () => {
+    console.log(originalNickName.value + " / " + userInfo.value.nickName)
+    // 1. 입력창을 다시 읽기 전용(readonly) 상태로 변경
+    isReadOnly.value = true;
+    
+    // 2. 입력값이 비어있지 않고, 기존 닉네임과 값이 다를 때만 서버로 전송
+    if (userInfo.value.nickName !== originalNickName.value) {
+        changeNicnameApply();
+        
+        // 전송 성공 후 기준 닉네임 업데이트 (실제로는 API 통신 성공(.then) 내부에서 갱신하는 것이 더 안전합니다)
+        originalNickName.value = userInfo.value.nickName; 
+    } else {
+        // 값이 비어있거나 변경사항이 없으면 원래 닉네임으로 원복
+        userInfo.value.nickName = originalNickName.value;
+    }
+}
+
+// 기존에 작성하신 API 호출 로직
+const changeNicnameApply = () => {
+    console.log("보내기 전 변경할 내 닉네임 : " + userInfo.value.nickName + " / " + originalNickName.value)
+    getModifyNickname(userInfo.value.nickName).then((response)=>{
+        console.log("보낸 후 변경할 내 닉네임 : " + userInfo.value.nickName)
+        alert(response + " 성공했습니다.");
+        originalNickName.value = userInfo.value.nickName; // 성공 시 기준값 업데이트
+    }).catch((error) => {
+        alert(error + "닉네임 변경에 실패했습니다.");
+        userInfo.value.nickName = originalNickName.value; // 실패 시 원래 값으로 복구
+    });
 }
 
 const changeNickName = () => {
     isReadOnly.value = false
-    nickName.value.focus()
+    nickNameInput.value.focus()
 }
 
 const changeProfileImage = () => {
@@ -162,9 +224,30 @@ const isEditMode = ref(false)
 
 // 저장 함수
 const saveInfo = () => {
-  // 백엔드 API 연동이 필요할 경우 이곳에 요청 코드를 작성합니다.
-  alert('정보가 성공적으로 수정되었습니다.')
-  isEditMode.value = false
+    let genderCodeStr = 'N'
+
+    if (userInfo.value.gender === '남성') {
+        genderCodeStr = 'M'
+    } else if (userInfo.value.gender === '여성') {
+        genderCodeStr = 'F'
+    }
+
+    const requestData = {
+        memberName: userInfo.value.name,
+        email: userInfo.value.email,
+        genderCode: genderCodeStr,
+        birthDate: userInfo.value.birthDate === '' ? null : userInfo.value.birthDate, 
+        phoneNumber: userInfo.value.phoneNumber === '' ? null : userInfo.value.phoneNumber
+    }
+
+    postModifyMemberInfo(requestData).then((response) => {
+        alert('정보가 성공적으로 수정되었습니다.');
+        isEditMode.value = false;
+    }).catch((error) => {
+        alert('정보 수정에 실패했습니다.');
+        console.error(error);
+    });
+
 }
 
 

@@ -43,21 +43,48 @@ public class MyPageController {
 		} catch (BadCredentialsException exception) {
 			throw new BusinessException(
 					HttpStatus.UNAUTHORIZED,
-					"INVALID_LOGIN_CREDENTIALS",
-					"이메일 또는 비밀번호가 올바르지 않습니다."
+					"DATA_LEADING_FAIL",
+					"데이터를 불러오는데 실패하였습니다."
 			);
 		}
         //return ApiResponse.success(myPageService.searchUserInfo(memberId));
     }
 
-    @GetMapping("/modifyMemberInfo")
-    public ApiResponse<Boolean> postModifyMemberInfo(@RequestParam MemberInfoRequest memberInfoRequest) {
-        return ApiResponse.success(myPageService.modifyUserInfo(memberInfoRequest));
+    @PostMapping("/modifyMemberInfo")
+    public ApiResponse<Boolean> postModifyMemberInfo(Authentication authentication, @RequestBody MemberInfoRequest memberInfoRequest) {
+       try{
+           MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
+           System.out.println("controller in!!!!" + memberInfoRequest);
+            MemberInfoRequest changeMemberInfoRequest = new MemberInfoRequest(
+                principal.memberId(),            
+                memberInfoRequest.memberName(),
+                memberInfoRequest.email(),
+                memberInfoRequest.genderCode(),
+                memberInfoRequest.phoneNumber(),
+                memberInfoRequest.birthDate()
+            );
+            return ApiResponse.success(myPageService.modifyUserInfo(changeMemberInfoRequest));
+        } catch (BadCredentialsException exception) {
+			throw new BusinessException(
+					HttpStatus.UNAUTHORIZED,
+					"MEMBER_INFO_UPDATE_FAIL",
+					"데이터를 업데이트에 실패 하였습니다."
+			);
+        }
     }
 
     @GetMapping("/modifyNickname")
-    public ApiResponse<Boolean> postModifyNickname(@RequestBody String nickname) {
-        return ApiResponse.success(myPageService.modifyNickname(nickname));
+    public ApiResponse<Boolean> getModifyNickname(Authentication authentication, @RequestParam String nickname) {
+        try {
+            MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
+			return ApiResponse.success( myPageService.modifyNickname(principal.memberId(),nickname) );
+		} catch (BadCredentialsException exception) {
+			throw new BusinessException(
+					HttpStatus.UNAUTHORIZED,
+					"NICKNAME_UPDATE_FAIL",
+					"닉네임 변경을 실패하였습니다."
+			);
+		}
     }
     
     @PostMapping("/modifyProfileImage")
@@ -66,7 +93,7 @@ public class MyPageController {
     }
 
     @GetMapping("/deleteAccount")
-    public ApiResponse<Boolean> postDeleteAccount(@RequestBody int memberId) {
+    public ApiResponse<Boolean> getDeleteAccount(@RequestBody int memberId) {
         return ApiResponse.success(myPageService.deleteAccount(memberId));
     }
     

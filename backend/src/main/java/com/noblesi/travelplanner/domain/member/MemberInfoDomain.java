@@ -1,6 +1,6 @@
 package com.noblesi.travelplanner.domain.member;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 public record MemberInfoDomain(
     long memberId, 
@@ -13,7 +13,7 @@ public record MemberInfoDomain(
     String memberStatus,
     String createdAt,
     String withdrawnAt,
-    Date birthDate
+    LocalDate birthDate
 ) {
-    
+   
 }

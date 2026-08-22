@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.noblesi.travelplanner.domain.member.MemberInfoDomain;
 import com.noblesi.travelplanner.dto.member.MemberInfoRequest;
+import com.noblesi.travelplanner.dto.member.NickNameRequest;
 import com.noblesi.travelplanner.mapper.MyPageMapper;
 
 @Service
@@ -14,8 +15,8 @@ public class MyPageService {
     
     public MemberInfoDomain searchUserInfo(long memberId){
         MemberInfoDomain memberInfoDomain = null;
-        System.out.println("emember service =================="+memberId + " // " + myPageMapper);
         memberInfoDomain = myPageMapper.selectMemberInfo(memberId);
+        System.out.println("memeberinfodoamin : " + memberInfoDomain);
         return memberInfoDomain;
     }
 
@@ -23,8 +24,13 @@ public class MyPageService {
         return myPageMapper.updateMemberInfo(memberInfoRequest) > 0;
     }
 
-    public boolean modifyNickname(String nickname){
-        return myPageMapper.updateNickname(nickname) > 0;
+    public boolean modifyNickname(long memberId, String nickname){
+        NickNameRequest nickNameRequest = new NickNameRequest(memberId,nickname);
+        System.out.println(nickNameRequest.toString());
+        int temp = myPageMapper.updateNickname(nickNameRequest);
+        System.out.println(temp+"값이 나오냐?");
+        boolean flag = temp > 0;
+        return flag;
     }
 
     public boolean modifyProfileImage(String profileImage){

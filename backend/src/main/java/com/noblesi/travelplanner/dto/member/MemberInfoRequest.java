@@ -1,22 +1,20 @@
 package com.noblesi.travelplanner.dto.member;
 
-import java.sql.Date;
+import java.time.LocalDate;
 
 import org.apache.ibatis.type.Alias;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 @Alias("memberInfoRequest")
 public record MemberInfoRequest(
     Long memberId, 
     String memberName,
-    String email, 
-    String nickname,
+    String email,
     String genderCode,
     String phoneNumber,
-    String profileImageUrl,
-    String memberStatus,
-    String createdAt,
-    String withdrawnAt,
-    Date birthDate
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    LocalDate birthDate
 ) {
     
 }
