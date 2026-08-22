@@ -1,78 +1,59 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { getMemberEmailCheck } from '@/api/users'
-import { useUserStore } from '@/stores/useUserStore'
 
-const userStore = useUserStore()
+import { getMemberEmailCheck } from '@/api/users'
+import { useJoinDraftStore } from '@/stores/joinDraft'
+import { normalizeJoinEmail, validateJoinCredentials } from '@/utils/joinValidation'
+
+const joinDraftStore = useJoinDraftStore()
+const router = useRouter()
 const email = ref('')
 const password = ref('')
-const passwordCheck = ref('')
-const router = useRouter()
+const passwordConfirmation = ref('')
+const errorMessage = ref('')
+const isCheckingEmail = ref(false)
 
 const isPasswordMatched = computed(() => {
-  if (!passwordCheck.value) return true
-  return password.value === passwordCheck.value
+  if (!passwordConfirmation.value) return true
+  return password.value === passwordConfirmation.value
 })
 
-const backPageMove = () => {
-  history.back()
+function goBack() {
+  router.back()
 }
 
-const passCheckNull = () => {
-  if (!password.value) {
-    alert('비밀번호를 입력해주세요.')
-    return false
+async function handleContinue() {
+  if (isCheckingEmail.value) return
+
+  errorMessage.value = validateJoinCredentials({
+    email: email.value,
+    password: password.value,
+    passwordConfirmation: passwordConfirmation.value,
+  })
+  if (errorMessage.value) return
+
+  const normalizedEmail = normalizeJoinEmail(email.value)
+  isCheckingEmail.value = true
+  try {
+    const isRegistered = await getMemberEmailCheck(normalizedEmail)
+    if (isRegistered) {
+      errorMessage.value = '이미 사용 중인 이메일입니다. 다른 이메일을 입력해 주세요.'
+      return
+    }
+
+    joinDraftStore.beginRegistration({
+      email: normalizedEmail,
+      password: password.value,
+    })
+    await router.push({ name: 'joinProfile' })
+  } catch (error) {
+    errorMessage.value =
+      error?.response?.data?.message ||
+      '이메일 사용 가능 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    isCheckingEmail.value = false
   }
-
-  if (password.value.length < 10) {
-    alert('비밀번호는 10자 이상 입력해주셔야 합니다.')
-    return false
-  }
-
-  if (!isPasswordMatched.value) {
-    alert('비밀번호가 일치하지 않습니다.')
-    return false
-  }
-  return true
-}
-
-const joinCheck = () => {
-  if (!email.value) {
-    alert('이메일 주소를 입력해주세요.')
-    return false
-  }
-
-  // 이메일 유효성 검사 수정 (includes 및 indexOf 활용)
-  if (!email.value.includes('@') || !email.value.includes('.')) {
-    alert('이메일을 정확하게 입력하여 주세요.')
-    return false
-  }
-
-  if (passCheckNull()) {
-    getMemberEmailCheck(email.value)
-      .then((response) => {
-        if (response === true) {
-          alert('이미 존재하는 이메일입니다. 다른 이메일을 입력해주세요.')
-        } else {
-          // 스토어 저장 및 라우트 이동 이름 수정 ('joinProfile')
-          userStore.setUserInfo(email.value, password.value)
-          router.push({ name: 'joinProfile' })
-        }
-      })
-      .catch(() => {
-        alert('이메일 체크 중 오류가 발생했습니다.')
-      })
-  }
-
-  // if(passCheckNull()) {
-  //   emailCheck();
-  // }
-
-}
-
-const handleContinue = () => {
-  joinCheck()
 }
 </script>
 
@@ -80,7 +61,14 @@ const handleContinue = () => {
   <div class="login-container">
     <div class="login-box">
       <div style="height: 30px; text-align: left;">
-        <div class="back-button" v-on:click="backPageMove" style="height: 30px; width: 20px; font-size: 30px; text-align: center;"><strong> &lt; </strong></div>
+        <button
+          type="button"
+          class="back-button"
+          aria-label="이전 화면으로 이동"
+          @click="goBack"
+        >
+          &lt;
+        </button>
       </div>
       <!-- 메인 타이틀 -->
       <div>
@@ -92,30 +80,41 @@ const handleContinue = () => {
       <!-- 이메일 입력 및 계속하기 폼 -->
       <form @submit.prevent="handleContinue" class="join-form">
         <div class="input-container">
-          <label class="input-label">이메일</label>
+          <label class="input-label" for="join-email">이메일</label>
           <input 
+            id="join-email"
             type="email" 
             v-model="email" 
             placeholder="이메일 주소를 입력하세요." 
+            autocomplete="email"
+            maxlength="255"
             required
           />
-          <label class="input-label">비밀번호</label>
+          <label class="input-label" for="join-password">비밀번호</label>
           <input 
+            id="join-password"
             type="password"
             v-model="password" 
             placeholder="비밀번호를 입력해주세요." 
+            autocomplete="new-password"
+            minlength="10"
+            maxlength="72"
             required
           />
-          <label class="input-label">비밀번호 확인</label>
+          <label class="input-label" for="join-password-confirmation">비밀번호 확인</label>
           <input 
+            id="join-password-confirmation"
             type="password" 
-            v-model="passwordCheck"
+            v-model="passwordConfirmation"
             placeholder="비밀번호를 입력해주세요." 
+            autocomplete="new-password"
+            minlength="10"
+            maxlength="72"
             required
           />
           <br/>
            <!-- 비밀번호 확인란에 입력이 시작되었을 때만 메시지 노출 -->
-          <div v-if="passwordCheck" style="margin-top: 5px;" class="passwordMatchedDiv">
+          <div v-if="passwordConfirmation" style="margin-top: 5px;" class="passwordMatchedDiv">
             <!-- 일치하지 않을 때 -->
             <span v-show="!isPasswordMatched" style="color: #ff4d4d; font-size: 14px;">
               ❌ 비밀번호가 맞지 않습니다.
@@ -126,8 +125,11 @@ const handleContinue = () => {
             </span>
           </div>
         </div>
-        
-        <button type="button" @click="handleContinue" class="btn-submit">다음으로</button>
+
+        <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+        <button type="submit" class="btn-submit" :disabled="isCheckingEmail">
+          {{ isCheckingEmail ? '확인 중...' : '다음으로' }}
+        </button>
       </form>
       <div class="divider">
         <span class="divider-text">또는 다음으로 계속하기</span>
@@ -159,12 +161,25 @@ const handleContinue = () => {
 <style lang="scss" scoped>
 .back-button{
   margin-left: 20px;
-    
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  color: #1a1a1a;
+  font-size: 30px;
+  line-height: 1;
+  text-align: center;
 }
 .back-button:hover{
   cursor: pointer;
-  //background-color: #fff;
   color: #2383e2;
+}
+
+.back-button:focus-visible,
+.btn-submit:focus-visible,
+.gsi-material-button:focus-visible {
+  outline: 3px solid rgb(35 131 226 / 35%);
+  outline-offset: 3px;
 }
 
 .passwordMatchedDiv{
@@ -272,6 +287,20 @@ const handleContinue = () => {
   &:hover {
     background-color: #1a6cb9;
   }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+}
+
+.form-error {
+  min-height: 20px;
+  margin: 0 20px 8px;
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 // 또는 다음으로 계속하기 구분선

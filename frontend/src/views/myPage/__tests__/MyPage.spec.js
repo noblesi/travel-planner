@@ -102,6 +102,16 @@ describe('MyPage', () => {
     expect(wrapper.text()).toContain('주말여행자')
   })
 
+  it('profile 응답이 비어 있으면 안전한 오류 상태를 표시한다', async () => {
+    getMyProfileMock.mockResolvedValue(null)
+
+    const { wrapper } = await mountPage()
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('회원 정보를 불러오지 못했습니다.')
+    expect(wrapper.find('.profile-content').exists()).toBe(false)
+  })
+
   it('수정한 회원정보를 저장하고 인증 스토어의 닉네임을 동기화한다', async () => {
     const updatedProfile = {
       ...profile,

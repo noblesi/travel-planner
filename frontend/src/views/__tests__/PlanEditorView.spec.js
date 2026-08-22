@@ -26,7 +26,7 @@ const {
   updateTravelPlanDatesMock: vi.fn(),
   updateTravelPlanMetadataMock: vi.fn(),
   updatePlanPublicationMock: vi.fn(),
-  routeLeaveState: { guard: null },
+  routeLeaveState: { guard: null, updateGuard: null },
 }))
 
 vi.mock('vue-router', async (importOriginal) => {
@@ -35,6 +35,9 @@ vi.mock('vue-router', async (importOriginal) => {
     ...actual,
     onBeforeRouteLeave: (guard) => {
       routeLeaveState.guard = guard
+    },
+    onBeforeRouteUpdate: (guard) => {
+      routeLeaveState.updateGuard = guard
     },
   }
 })
@@ -126,6 +129,7 @@ beforeEach(() => {
   deleteScheduleItemMock.mockReset()
   reorderScheduleItemsMock.mockReset()
   routeLeaveState.guard = null
+  routeLeaveState.updateGuard = null
 })
 
 afterEach(() => {
@@ -315,6 +319,38 @@ describe('PlanEditorView', () => {
     resolveSave(updatedEditor)
     await expect(leaveRequest).resolves.toBe(true)
     expect(confirmSpy).not.toHaveBeenCalled()
+  })
+
+  it('공개 상태 저장 중 같은 Editor route의 플랜 변경을 저장 완료까지 기다린다', async () => {
+    const publishedEditor = {
+      ...editor,
+      plan: { ...editor.plan, publishStatus: 'PUBLISHED', versionNo: 1 },
+    }
+    let resolvePublication
+    updatePlanPublicationMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePublication = resolve
+        }),
+    )
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('.complete-button').trigger('click')
+    await Promise.resolve()
+
+    let updateFinished = false
+    const updateRequest = routeLeaveState.updateGuard().then((result) => {
+      updateFinished = true
+      return result
+    })
+    await Promise.resolve()
+
+    expect(updateFinished).toBe(false)
+    expect(wrapper.get('.exit-button').text()).toContain('저장 후 나가기')
+
+    resolvePublication(publishedEditor)
+    await expect(updateRequest).resolves.toBe(true)
   })
 
   it('저장 실패 후 이탈과 브라우저 종료를 경고한다', async () => {

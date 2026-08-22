@@ -559,6 +559,202 @@ describe('planEditor store', () => {
     expect(store.canRetrySave).toBe(false)
   })
 
+  it('새 플랜을 불러오면 queue에서 대기하던 이전 플랜 저장을 전송하지 않는다', async () => {
+    const days = [
+      { planDayId: '201', dayNo: 1, travelDate: '2026-08-10', scheduleVersion: 0, items: [] },
+    ]
+    const nextEditor = {
+      plan: { ...plan, planId: '202', title: '부산 여행' },
+      days: [
+        { planDayId: '301', dayNo: 1, travelDate: '2026-09-01', scheduleVersion: 0, items: [] },
+      ],
+    }
+    const place = {
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '100',
+      placeName: '경복궁',
+    }
+    let resolveScheduleSave
+    getTravelPlanEditorMock
+      .mockResolvedValueOnce({ plan, days })
+      .mockResolvedValueOnce(nextEditor)
+    addScheduleItemMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveScheduleSave = resolve
+        }),
+    )
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const scheduleRequest = store.addPlaceToSchedule(place, 'MORNING')
+    await Promise.resolve()
+    const metadataRequest = store.savePlanMetadata({
+      title: '서울 궁궐 여행',
+      visibility: 'PRIVATE',
+      versionNo: 0,
+    })
+    await Promise.resolve()
+
+    await store.loadPlanEditor('202')
+    resolveScheduleSave({ editor: { plan, days }, resultScheduleVersion: 1 })
+
+    await expect(scheduleRequest).resolves.toBeNull()
+    await expect(metadataRequest).resolves.toBeNull()
+    expect(updateTravelPlanMetadataMock).not.toHaveBeenCalled()
+    expect(store.plan).toEqual(nextEditor.plan)
+  })
+
+  it('이전 플랜에서 이미 전송된 저장 응답은 새 플랜 snapshot에 적용하지 않는다', async () => {
+    const days = [
+      { planDayId: '201', dayNo: 1, travelDate: '2026-08-10', scheduleVersion: 0, items: [] },
+    ]
+    const oldUpdatedEditor = {
+      plan: { ...plan, title: '늦게 저장된 서울 여행', versionNo: 1 },
+      days,
+    }
+    const nextEditor = {
+      plan: { ...plan, planId: '202', title: '부산 여행' },
+      days: [
+        { planDayId: '301', dayNo: 1, travelDate: '2026-09-01', scheduleVersion: 0, items: [] },
+      ],
+    }
+    let resolveMetadataSave
+    getTravelPlanEditorMock
+      .mockResolvedValueOnce({ plan, days })
+      .mockResolvedValueOnce(nextEditor)
+    updateTravelPlanMetadataMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveMetadataSave = resolve
+        }),
+    )
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const saveRequest = store.savePlanMetadata({
+      title: '늦게 저장된 서울 여행',
+      visibility: 'PRIVATE',
+      versionNo: 0,
+    })
+    await Promise.resolve()
+    expect(updateTravelPlanMetadataMock).toHaveBeenCalledWith(
+      '101',
+      expect.objectContaining({ title: '늦게 저장된 서울 여행' }),
+    )
+
+    await store.loadPlanEditor('202')
+    resolveMetadataSave(oldUpdatedEditor)
+
+    await expect(saveRequest).resolves.toBeNull()
+    expect(store.plan).toEqual(nextEditor.plan)
+    expect(store.selectedDayId).toBe('301')
+  })
+
+  it('A에서 B를 거쳐 다시 A로 진입해도 이전 A session 응답을 적용하지 않는다', async () => {
+    const initialEditor = {
+      plan,
+      days: [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }],
+    }
+    const nextEditor = {
+      plan: { ...plan, planId: '202', title: '부산 여행' },
+      days: [{ planDayId: '301', dayNo: 1, travelDate: '2026-09-01', items: [] }],
+    }
+    const latestEditor = {
+      plan: { ...plan, title: '다시 불러온 최신 서울 여행', versionNo: 2 },
+      days: initialEditor.days,
+    }
+    const oldSavedEditor = {
+      plan: { ...plan, title: '첫 번째 서울 session 응답', versionNo: 1 },
+      days: initialEditor.days,
+    }
+    let resolveOldSave
+    getTravelPlanEditorMock
+      .mockResolvedValueOnce(initialEditor)
+      .mockResolvedValueOnce(nextEditor)
+      .mockResolvedValueOnce(latestEditor)
+    updateTravelPlanMetadataMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveOldSave = resolve
+        }),
+    )
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const oldSave = store.savePlanMetadata({
+      title: '첫 번째 서울 session 응답',
+      visibility: 'PRIVATE',
+      versionNo: 0,
+    })
+    await Promise.resolve()
+
+    await store.loadPlanEditor('202')
+    await store.loadPlanEditor('101')
+    resolveOldSave(oldSavedEditor)
+
+    await expect(oldSave).resolves.toBeNull()
+    expect(store.plan).toEqual(latestEditor.plan)
+  })
+
+  it('서로 겹친 Editor 조회에서는 마지막 session의 응답만 적용한다', async () => {
+    const oldEditor = {
+      plan,
+      days: [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }],
+    }
+    const nextEditor = {
+      plan: { ...plan, planId: '202', title: '부산 여행' },
+      days: [{ planDayId: '301', dayNo: 1, travelDate: '2026-09-01', items: [] }],
+    }
+    let resolveOldLoad
+    getTravelPlanEditorMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveOldLoad = resolve
+          }),
+      )
+      .mockResolvedValueOnce(nextEditor)
+    const store = usePlanEditorStore()
+
+    const oldLoad = store.loadPlanEditor('101')
+    const nextLoad = store.loadPlanEditor('202')
+    await expect(nextLoad).resolves.toEqual(nextEditor)
+    resolveOldLoad(oldEditor)
+
+    await expect(oldLoad).resolves.toBeNull()
+    expect(store.plan).toEqual(nextEditor.plan)
+  })
+
+  it('공개 상태 저장도 pending 저장으로 추적한다', async () => {
+    const days = [{ planDayId: '201', dayNo: 1, travelDate: '2026-08-10', items: [] }]
+    const published = {
+      plan: { ...plan, publishStatus: 'PUBLISHED', versionNo: 1 },
+      days,
+    }
+    let resolvePublication
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    updatePlanPublicationMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePublication = resolve
+        }),
+    )
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    const publicationRequest = store.savePlanPublication('PUBLISHED')
+    await Promise.resolve()
+
+    expect(store.isSaving).toBe(true)
+    expect(store.pendingSaveCount).toBe(1)
+    resolvePublication(published)
+
+    await expect(publicationRequest).resolves.toEqual(published)
+    expect(store.isSaving).toBe(false)
+    expect(store.hasUnsavedChanges).toBe(false)
+  })
+
   it('serializes schedule and metadata saves so an older response cannot overwrite newer state', async () => {
     const days = [
       { planDayId: '201', dayNo: 1, travelDate: '2026-08-10', scheduleVersion: 0, items: [] },

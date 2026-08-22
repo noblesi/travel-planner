@@ -88,6 +88,39 @@ describe('PlanSearchView', () => {
     wrapper.unmount()
   })
 
+  it('직접 접근한 누적 25페이지를 2개의 batch 요청으로 복원한다', async () => {
+    route.query = { keyword: '제주', page: '25' }
+    getPlanListMock.mockImplementation(({ page }) =>
+      Promise.resolve({
+        page,
+        totalCount: 200,
+        hasNext: page < 2,
+        plans: Array.from({ length: 100 }, (_, index) => ({
+          ...publicPlan,
+          planId: String((page - 1) * 100 + index + 1),
+        })),
+      }),
+    )
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(getPlanListMock).toHaveBeenCalledTimes(2)
+    expect(getPlanListMock).toHaveBeenNthCalledWith(1, {
+      keyword: '제주',
+      page: 1,
+      size: 100,
+    })
+    expect(getPlanListMock).toHaveBeenNthCalledWith(2, {
+      keyword: '제주',
+      page: 2,
+      size: 100,
+    })
+    expect(wrapper.findAll('.card')).toHaveLength(200)
+
+    wrapper.unmount()
+  })
+
   it('더 보기를 누르면 다음 서버 페이지를 이어 붙인다', async () => {
     getPlanListMock
       .mockResolvedValueOnce({

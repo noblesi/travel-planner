@@ -1,18 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { authStore, joinStore, restoreSessionMock } = vi.hoisted(() => {
+const { authStore, joinStore, restoreSessionMock, clearRegistrationMock } = vi.hoisted(() => {
   const store = {
     initialized: false,
     isAuthenticated: false,
   }
+  const draft = {
+    hasCredentials: false,
+  }
   return {
     authStore: store,
-    joinStore: {
-      userInfo: {
-        email: '',
-        password: '',
-      },
-    },
+    joinStore: draft,
+    clearRegistrationMock: vi.fn(() => {
+      draft.hasCredentials = false
+    }),
     restoreSessionMock: vi.fn(async () => {
       store.initialized = true
     }),
@@ -23,18 +24,18 @@ vi.mock('@/stores/auth', () => ({
   useAuthStore: () => ({ ...authStore, restoreSession: restoreSessionMock }),
 }))
 
-vi.mock('@/stores/useUserStore', () => ({
-  useUserStore: () => joinStore,
+vi.mock('@/stores/joinDraft', () => ({
+  useJoinDraftStore: () => ({ ...joinStore, clearRegistration: clearRegistrationMock }),
 }))
 
 import router from '@/router'
 
 beforeEach(async () => {
   restoreSessionMock.mockClear()
+  clearRegistrationMock.mockClear()
   authStore.initialized = true
   authStore.isAuthenticated = false
-  joinStore.userInfo.email = ''
-  joinStore.userInfo.password = ''
+  joinStore.hasCredentials = false
   await router.replace('/')
 })
 
@@ -47,12 +48,20 @@ describe('join profile route guard', () => {
   })
 
   it('1단계 정보가 있으면 프로필 화면에 진입한다', async () => {
-    joinStore.userInfo.email = 'member@example.com'
-    joinStore.userInfo.password = 'password-value'
+    joinStore.hasCredentials = true
 
     await router.push('/joinProfileView')
 
     expect(router.currentRoute.value.name).toBe('joinProfile')
+  })
+
+  it('회원가입 flow를 벗어나면 credential draft를 정리한다', async () => {
+    joinStore.hasCredentials = true
+    await router.push('/joinProfileView')
+
+    await router.push('/')
+
+    expect(clearRegistrationMock).toHaveBeenCalled()
   })
 })
 
