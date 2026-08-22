@@ -13,6 +13,7 @@ const { getMemberEmailCheckMock, pushMock, backMock } = vi.hoisted(() => ({
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: pushMock, back: backMock }),
+  isNavigationFailure: (failure) => Boolean(failure),
 }))
 
 vi.mock('@/api/users', () => ({
@@ -88,6 +89,35 @@ describe('JoinView', () => {
     await flushPromises()
 
     expect(wrapper.get('[role="alert"]').text()).toBe('이메일 확인 서비스 오류')
+    wrapper.unmount()
+  })
+
+  it('email 확인 성공 후 화면 이동이 실패하면 navigation 오류를 구분해 표시한다', async () => {
+    pushMock.mockRejectedValueOnce(new Error('navigation failed'))
+    const { store, wrapper } = mountView()
+    await fillCredentials(wrapper)
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(getMemberEmailCheckMock).toHaveBeenCalledOnce()
+    expect(store.hasCredentials).toBe(true)
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      '이메일 확인은 완료됐지만 다음 화면으로 이동하지 못했습니다.',
+    )
+    expect(wrapper.get('button[type="submit"]').attributes()).not.toHaveProperty('disabled')
+    wrapper.unmount()
+  })
+
+  it('router가 NavigationFailure를 resolve해도 다음 단계 이동 실패로 처리한다', async () => {
+    pushMock.mockResolvedValueOnce({ type: 'aborted' })
+    const { wrapper } = mountView()
+    await fillCredentials(wrapper)
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('다음 화면으로 이동하지 못했습니다.')
     wrapper.unmount()
   })
 })

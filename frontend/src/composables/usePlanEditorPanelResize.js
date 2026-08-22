@@ -12,9 +12,18 @@ export function clampPlanEditorPanelWidth(width) {
   return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, width))
 }
 
+export function resolveStoredPlanEditorPanelWidth(storedValue) {
+  if (storedValue === null || String(storedValue).trim() === '') return DEFAULT_PANEL_WIDTH
+
+  const width = Number(storedValue)
+  if (!Number.isFinite(width)) return DEFAULT_PANEL_WIDTH
+  return clampPlanEditorPanelWidth(width)
+}
+
 export function usePlanEditorPanelResize() {
-  const storedWidth = Number(readLocalStorage(PANEL_WIDTH_STORAGE_KEY))
-  const schedulePanelWidth = ref(storedWidth || DEFAULT_PANEL_WIDTH)
+  const schedulePanelWidth = ref(
+    resolveStoredPlanEditorPanelWidth(readLocalStorage(PANEL_WIDTH_STORAGE_KEY)),
+  )
   const resizingPanel = ref(false)
 
   function resizePanelTo(clientX) {

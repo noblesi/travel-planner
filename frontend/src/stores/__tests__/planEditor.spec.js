@@ -48,6 +48,46 @@ const plan = {
   versionNo: 0,
 }
 
+function createReorderDays() {
+  return [
+    {
+      planDayId: '201',
+      dayNo: 1,
+      travelDate: '2026-08-10',
+      scheduleVersion: 4,
+      items: [
+        { scheduleItemId: '301', timeSlot: 'MORNING', positionNo: 2, itemVersion: 0 },
+        { scheduleItemId: '401', timeSlot: 'AFTERNOON', positionNo: 1, itemVersion: 0 },
+        { scheduleItemId: '302', timeSlot: 'MORNING', positionNo: 1, itemVersion: 0 },
+        { scheduleItemId: '303', timeSlot: 'MORNING', positionNo: 3, itemVersion: 0 },
+      ],
+    },
+  ]
+}
+
+function createReorderResult(days, scheduleItemIds) {
+  const day = days[0]
+  const itemsById = new Map(day.items.map((item) => [item.scheduleItemId, item]))
+  const reorderedMorningItems = scheduleItemIds.map((scheduleItemId, index) => ({
+    ...itemsById.get(scheduleItemId),
+    positionNo: index + 1,
+  }))
+  const editor = {
+    plan,
+    days: [
+      {
+        ...day,
+        scheduleVersion: day.scheduleVersion + 1,
+        items: [...reorderedMorningItems, itemsById.get('401')],
+      },
+    ],
+  }
+  return {
+    editor,
+    resultScheduleVersion: editor.days[0].scheduleVersion,
+  }
+}
+
 beforeEach(() => {
   setActivePinia(createPinia())
   getTravelPlanEditorMock.mockReset()
@@ -433,6 +473,88 @@ describe('planEditor store', () => {
     expect(store.days).toEqual(updated.days)
     expect(store.saveStatus).toBe('saved')
     expect(store.pendingSaveCount).toBe(0)
+  })
+
+  it('일정을 target 앞에 배치하고 정렬된 ID와 현재 Version을 전송한다', async () => {
+    const days = createReorderDays()
+    const result = createReorderResult(days, ['302', '303', '301'])
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    reorderScheduleItemsMock.mockResolvedValue(result)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await expect(store.moveScheduleItemBefore('303', '301')).resolves.toEqual(result)
+
+    expect(reorderScheduleItemsMock).toHaveBeenCalledWith('101', '201', {
+      operationId: expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      ),
+      scheduleVersion: 4,
+      timeSlot: 'MORNING',
+      scheduleItemIds: ['302', '303', '301'],
+    })
+    expect(store.days).toEqual(result.editor.days)
+    expect(store.selectedDayId).toBe('201')
+  })
+
+  it('일정을 한 칸 이동하고 서버가 반환한 최신 순서를 반영한다', async () => {
+    const days = createReorderDays()
+    const result = createReorderResult(days, ['301', '302', '303'])
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    reorderScheduleItemsMock.mockResolvedValue(result)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await expect(store.moveScheduleItemPosition('301', -1)).resolves.toEqual(result)
+
+    expect(reorderScheduleItemsMock).toHaveBeenCalledWith(
+      '101',
+      '201',
+      expect.objectContaining({
+        scheduleVersion: 4,
+        timeSlot: 'MORNING',
+        scheduleItemIds: ['301', '302', '303'],
+      }),
+    )
+    expect(store.morningItems.map((item) => item.scheduleItemId)).toEqual(['301', '302', '303'])
+  })
+
+  it('같은 시간대의 일정을 마지막으로 이동한다', async () => {
+    const days = createReorderDays()
+    const result = createReorderResult(days, ['301', '303', '302'])
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    reorderScheduleItemsMock.mockResolvedValue(result)
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await expect(store.moveScheduleItemToEnd('302')).resolves.toEqual(result)
+
+    expect(reorderScheduleItemsMock).toHaveBeenCalledWith(
+      '101',
+      '201',
+      expect.objectContaining({
+        scheduleVersion: 4,
+        timeSlot: 'MORNING',
+        scheduleItemIds: ['301', '303', '302'],
+      }),
+    )
+  })
+
+  it('경계 이동과 다른 시간대 target은 reorder 요청 없이 종료한다', async () => {
+    const days = createReorderDays()
+    getTravelPlanEditorMock.mockResolvedValue({ plan, days })
+    const store = usePlanEditorStore()
+    await store.loadPlanEditor('101')
+
+    await expect(store.moveScheduleItemPosition('302', -1)).resolves.toBeNull()
+    await expect(store.moveScheduleItemPosition('303', 1)).resolves.toBeNull()
+    await expect(store.moveScheduleItemToEnd('303')).resolves.toBeNull()
+    await expect(store.moveScheduleItemBefore('301', '301')).resolves.toBeNull()
+    await expect(store.moveScheduleItemBefore('301', '401')).resolves.toBeNull()
+
+    expect(reorderScheduleItemsMock).not.toHaveBeenCalled()
+    expect(store.pendingSaveCount).toBe(0)
+    expect(store.days).toEqual(days)
   })
 
   it('여러 작업을 직렬화하고 앞 작업의 최신 Version으로 다음 요청을 보낸다', async () => {

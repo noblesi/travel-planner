@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { isNavigationFailure, useRouter } from 'vue-router'
 
 import { postMemberJoin } from '@/api/users'
 import { useJoinDraftStore } from '@/stores/joinDraft'
@@ -16,9 +16,23 @@ const phone = ref('')
 const privacy = ref(false)
 const errorMessage = ref('')
 const isSubmitting = ref(false)
+const isRegistrationCompleted = ref(false)
+
+async function replaceRoute(location, failureMessage) {
+  try {
+    const failure = await router.replace(location)
+    if (!isNavigationFailure(failure)) return true
+  } catch {
+    errorMessage.value = failureMessage
+    return false
+  }
+
+  errorMessage.value = failureMessage
+  return false
+}
 
 async function handleContinue() {
-  if (isSubmitting.value) return
+  if (isSubmitting.value || isRegistrationCompleted.value) return
 
   errorMessage.value = validateJoinProfile({
     name: name.value,
@@ -41,18 +55,30 @@ async function handleContinue() {
       phone: phone.value.trim(),
     })
   } catch {
-    await router.replace({ name: 'join', query: { reset: true } })
+    await replaceRoute(
+      { name: 'join', query: { reset: true } },
+      '회원가입 정보를 다시 입력할 화면으로 이동하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    )
     return
   }
 
   isSubmitting.value = true
   try {
-    await postMemberJoin(payload)
+    try {
+      await postMemberJoin(payload)
+    } catch (error) {
+      errorMessage.value =
+        error?.response?.data?.message ||
+        '회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+      return
+    }
+
+    isRegistrationCompleted.value = true
     joinDraftStore.clearRegistration()
-    await router.replace({ name: 'complete' })
-  } catch (error) {
-    errorMessage.value =
-      error?.response?.data?.message || '회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+    await replaceRoute(
+      { name: 'complete' },
+      '회원가입은 완료되었지만 완료 화면으로 이동하지 못했습니다. 로그인 화면에서 로그인해 주세요.',
+    )
   } finally {
     isSubmitting.value = false
   }
@@ -122,8 +148,12 @@ async function handleContinue() {
           <label for="join-privacy">개인정보 저장에 동의합니다.</label>
         </div>
         <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
-        <button type="submit" class="btn-submit" :disabled="isSubmitting">
-          {{ isSubmitting ? '가입 처리 중...' : '가입하기' }}
+        <button
+          type="submit"
+          class="btn-submit"
+          :disabled="isSubmitting || isRegistrationCompleted"
+        >
+          {{ isRegistrationCompleted ? '가입 완료' : isSubmitting ? '가입 처리 중...' : '가입하기' }}
         </button>
       </form>
       

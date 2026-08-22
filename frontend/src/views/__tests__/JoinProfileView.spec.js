@@ -12,6 +12,7 @@ const { postMemberJoinMock, replaceMock } = vi.hoisted(() => ({
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({ replace: replaceMock }),
+  isNavigationFailure: (failure) => Boolean(failure),
 }))
 
 vi.mock('@/api/users', () => ({
@@ -119,6 +120,47 @@ describe('JoinProfileView', () => {
     await flushPromises()
 
     expect(wrapper.get('[role="alert"]').text()).toBe('이미 사용 중인 이메일입니다.')
+    wrapper.unmount()
+  })
+
+  it('가입 성공 후 화면 이동이 실패해도 가입 요청을 재전송하지 않는다', async () => {
+    replaceMock.mockRejectedValueOnce(new Error('navigation failed'))
+    const { store, wrapper } = mountViewWithStep1Data()
+    const inputs = wrapper.findAll('input[type="text"]')
+    await inputs[0].setValue('홍길동')
+    await inputs[1].setValue('20000101')
+    await inputs[2].setValue('010-1234-5678')
+    await wrapper.get('input[type="checkbox"]').setValue(true)
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(store.hasCredentials).toBe(false)
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      '회원가입은 완료되었지만 완료 화면으로 이동하지 못했습니다.',
+    )
+    expect(wrapper.get('button[type="submit"]').text()).toBe('가입 완료')
+    expect(wrapper.get('button[type="submit"]').attributes()).toHaveProperty('disabled')
+
+    await wrapper.get('form').trigger('submit')
+    expect(postMemberJoinMock).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it('가입 성공 후 router가 NavigationFailure를 resolve해도 완료 상태를 유지한다', async () => {
+    replaceMock.mockResolvedValueOnce({ type: 'aborted' })
+    const { wrapper } = mountViewWithStep1Data()
+    const inputs = wrapper.findAll('input[type="text"]')
+    await inputs[0].setValue('홍길동')
+    await inputs[1].setValue('20000101')
+    await inputs[2].setValue('010-1234-5678')
+    await wrapper.get('input[type="checkbox"]').setValue(true)
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('회원가입은 완료되었지만')
+    expect(wrapper.get('button[type="submit"]').text()).toBe('가입 완료')
     wrapper.unmount()
   })
 })

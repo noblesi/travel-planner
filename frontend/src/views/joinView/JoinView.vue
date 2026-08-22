@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { isNavigationFailure, useRouter } from 'vue-router'
 
 import { getMemberEmailCheck } from '@/api/users'
 import { useJoinDraftStore } from '@/stores/joinDraft'
@@ -23,6 +23,21 @@ function goBack() {
   router.back()
 }
 
+async function navigateToProfile() {
+  try {
+    const failure = await router.push({ name: 'joinProfile' })
+    if (!isNavigationFailure(failure)) return true
+  } catch {
+    errorMessage.value =
+      '이메일 확인은 완료됐지만 다음 화면으로 이동하지 못했습니다. 다시 시도해 주세요.'
+    return false
+  }
+
+  errorMessage.value =
+    '이메일 확인은 완료됐지만 다음 화면으로 이동하지 못했습니다. 다시 시도해 주세요.'
+  return false
+}
+
 async function handleContinue() {
   if (isCheckingEmail.value) return
 
@@ -36,7 +51,16 @@ async function handleContinue() {
   const normalizedEmail = normalizeJoinEmail(email.value)
   isCheckingEmail.value = true
   try {
-    const isRegistered = await getMemberEmailCheck(normalizedEmail)
+    let isRegistered
+    try {
+      isRegistered = await getMemberEmailCheck(normalizedEmail)
+    } catch (error) {
+      errorMessage.value =
+        error?.response?.data?.message ||
+        '이메일 사용 가능 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+      return
+    }
+
     if (isRegistered) {
       errorMessage.value = '이미 사용 중인 이메일입니다. 다른 이메일을 입력해 주세요.'
       return
@@ -46,11 +70,7 @@ async function handleContinue() {
       email: normalizedEmail,
       password: password.value,
     })
-    await router.push({ name: 'joinProfile' })
-  } catch (error) {
-    errorMessage.value =
-      error?.response?.data?.message ||
-      '이메일 사용 가능 여부를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+    await navigateToProfile()
   } finally {
     isCheckingEmail.value = false
   }
