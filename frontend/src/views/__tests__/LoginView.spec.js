@@ -41,6 +41,21 @@ async function submitLogin(wrapper) {
 }
 
 describe('LoginView', () => {
+  it('인증 form의 field 관계와 준비 중인 Provider 상태를 명확히 제공한다', () => {
+    const wrapper = mount(LoginView)
+    const emailInput = wrapper.get('#login-email')
+    const passwordInput = wrapper.get('#login-password')
+
+    expect(wrapper.get('label[for="login-email"]').text()).toBe('이메일')
+    expect(wrapper.get('label[for="login-password"]').text()).toBe('비밀번호')
+    expect(emailInput.attributes('autocomplete')).toBe('email')
+    expect(passwordInput.attributes('autocomplete')).toBe('current-password')
+
+    const providerButton = wrapper.get('.google-auth-placeholder')
+    expect(providerButton.attributes()).toHaveProperty('disabled')
+    expect(providerButton.text()).toBe('Google 로그인 준비 중')
+  })
+
   it('로그인 성공 후 이동이 reject되어도 인증 상태를 유지하고 재로그인을 막는다', async () => {
     replaceMock.mockRejectedValueOnce(new Error('navigation failed'))
     const wrapper = mount(LoginView)
@@ -78,9 +93,7 @@ describe('LoginView', () => {
 
     await submitLogin(wrapper)
 
-    expect(wrapper.get('[role="alert"]').text()).toBe(
-      '이메일 또는 비밀번호가 올바르지 않습니다.',
-    )
+    expect(wrapper.get('[role="alert"]').text()).toBe('이메일 또는 비밀번호가 올바르지 않습니다.')
     expect(wrapper.get('input[type="password"]').element.value).toBe('')
     expect(wrapper.get('button[type="submit"]').attributes()).not.toHaveProperty('disabled')
     expect(replaceMock).not.toHaveBeenCalled()

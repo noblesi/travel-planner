@@ -4,22 +4,28 @@
       <div class="app-container search-page__inner">
         <div class="pg-head">
           <div class="eyebrow">DISCOVER ITINERARIES</div>
-          <div class="pg-title">다른 사람들은 어떻게 떠날까요?</div>
-          <div class="pg-subtitle">
+          <h1 class="pg-title">다른 사람들은 어떻게 떠날까요?</h1>
+          <p class="pg-subtitle">
             먼저 다녀온 여행자들의 일정을 그대로 가져와 나만의 여행을 시작해보세요.
-          </div>
+          </p>
         </div>
 
-        <div class="search-wrap">
-          <i class="ti ti-search" aria-hidden="true" @click="handleSearch"></i>
+        <form class="search-wrap" role="search" @submit.prevent="handleSearch">
+          <label class="sr-only" for="public-plan-keyword">공개 여행 일정 검색어</label>
+          <button class="search-submit" type="submit" aria-label="공개 일정 검색">
+            <i class="ti ti-search" aria-hidden="true"></i>
+          </button>
           <input
-            class="search-input"
-            type="text"
+            id="public-plan-keyword"
             v-model="keyword"
+            class="search-input"
+            name="keyword"
+            type="search"
+            enterkeyhint="search"
+            aria-controls="plan-search-results"
             placeholder="목적지 검색 (예: 서울, 부산, 제주)"
-            @keyup.enter="handleSearch"
           />
-        </div>
+        </form>
 
         <div v-if="!hasSearched" class="suggested-tags">
           <span class="suggested-label">이런 여행지는 어때요?</span>
@@ -28,6 +34,7 @@
               v-for="city in suggestedCities"
               :key="city"
               class="suggested-tag"
+              type="button"
               @click="searchSuggested(city)"
             >
               {{ city }}
@@ -35,126 +42,150 @@
           </div>
         </div>
 
-        <div v-if="loading" class="status-wrap" role="status">공개 일정을 불러오는 중이에요.</div>
-        <div v-else-if="errorMessage" class="status-wrap status-wrap--error" role="alert">
-          <span>{{ errorMessage }}</span>
-          <button type="button" @click="retryLoad">다시 시도</button>
-        </div>
-
-        <div v-if="hasSearched && !loading" class="result-meta">
-          <div class="result-count">
-            "{{ searchedKeyword }}" 검색 결과
-            <em v-if="plans.length > 0">{{ totalCount }}개</em>
-            <span v-else class="zero">0개</span>
-          </div>
-        </div>
-
-        <div v-if="!hasSearched || plans.length > 0" class="divider"></div>
-
-        <div v-if="!hasSearched || plans.length > 0" class="grid">
-          <PublicPlanCard
-            v-for="plan in plans"
-            :key="plan.id"
-            :plan="plan"
-            @select="goToDetail"
-          />
-        </div>
-
-        <div v-if="hasMore" class="more">
-          <button class="more-btn" :disabled="loadingMore" @click="loadMore">
-            {{ loadingMore ? '일정을 불러오는 중...' : '일정 더 보기' }}
-          </button>
-        </div>
-
-        <div
-          v-if="!loading && !errorMessage && hasSearched && plans.length === 0"
-          class="empty-wrap"
+        <section
+          id="plan-search-results"
+          aria-labelledby="plan-search-results-heading"
+          :aria-busy="loading || loadingMore"
         >
-          <div class="divider"></div>
-          <div class="empty-illus" aria-hidden="true">
-            <svg width="200" height="200" viewBox="0 0 148 148" xmlns="http://www.w3.org/2000/svg">
-              <circle
-                cx="74"
-                cy="74"
-                r="62"
-                fill="var(--color-brand-soft)"
-                stroke="var(--color-brand-border)"
-                stroke-width="1"
-              />
-              <circle cx="74" cy="74" r="40" fill="none" stroke="#e8d5d2" stroke-width="1.5" />
-              <line
-                x1="74"
-                y1="34"
-                x2="74"
-                y2="114"
-                stroke="#e0d0ce"
-                stroke-width="1"
-                stroke-dasharray="3 3"
-              />
-              <line
-                x1="34"
-                y1="74"
-                x2="114"
-                y2="74"
-                stroke="#e0d0ce"
-                stroke-width="1"
-                stroke-dasharray="3 3"
-              />
-              <text x="74" y="28" text-anchor="middle" font-size="9" fill="#bbb">N</text>
-              <text x="74" y="124" text-anchor="middle" font-size="9" fill="#bbb">S</text>
-              <text x="122" y="78" text-anchor="middle" font-size="9" fill="#bbb">E</text>
-              <text x="26" y="78" text-anchor="middle" font-size="9" fill="#bbb">W</text>
-              <polygon points="74,48 78,74 74,70 70,74" fill="var(--color-brand-accent)" />
-              <polygon points="74,100 78,74 74,78 70,74" fill="#ccc" />
-              <circle cx="74" cy="74" r="4" fill="#fff" stroke="#ddd" stroke-width="1.5" />
-              <circle cx="104" cy="44" r="13" fill="#fff" stroke="#f0e0de" stroke-width="1" />
-              <line
-                x1="98.5"
-                y1="38.5"
-                x2="109.5"
-                y2="49.5"
-                stroke="var(--color-brand-accent)"
-                stroke-width="2.2"
-                stroke-linecap="round"
-              />
-              <line
-                x1="109.5"
-                y1="38.5"
-                x2="98.5"
-                y2="49.5"
-                stroke="var(--color-brand-accent)"
-                stroke-width="2.2"
-                stroke-linecap="round"
-              />
-            </svg>
+          <p class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+            {{ resultAnnouncement }}
+          </p>
+
+          <div v-if="loading" class="status-wrap" role="status">공개 일정을 불러오는 중이에요.</div>
+          <div v-else-if="errorMessage" class="status-wrap status-wrap--error" role="alert">
+            <span>{{ errorMessage }}</span>
+            <button type="button" @click="retryLoad">다시 시도</button>
           </div>
 
-          <div class="empty-head">일정을 찾을 수 없어요</div>
-          <div class="empty-sub">
-            <em>"{{ searchedKeyword }}"</em>에 대한 여행 일정이 아직 없어요.<br />
-            다른 국내 도시로 검색하거나 아래 추천 여행지를 둘러보세요.
+          <div v-if="hasSearched && !loading" class="result-meta">
+            <h2 id="plan-search-results-heading" class="result-count">
+              "{{ searchedKeyword }}" 검색 결과
+              <em v-if="plans.length > 0">{{ totalCount }}개</em>
+              <span v-else class="zero">0개</span>
+            </h2>
           </div>
+          <h2 v-else id="plan-search-results-heading" class="sr-only">
+            {{ hasSearched ? `“${searchedKeyword}” 검색 결과` : '공개 여행 일정' }}
+          </h2>
 
-          <div class="suggest-label">이런 일정은 어떠세요?</div>
-          <div class="suggest-chips">
+          <div v-if="!hasSearched || plans.length > 0" class="divider"></div>
+
+          <ul v-if="!hasSearched || plans.length > 0" class="grid">
+            <li v-for="plan in plans" :key="plan.id">
+              <PublicPlanCard :plan="plan" @select="goToDetail" />
+            </li>
+          </ul>
+
+          <div v-if="hasMore" class="more">
             <button
-              v-for="city in suggestedCities"
-              :key="city"
-              class="suggest-chip"
-              @click="searchSuggested(city)"
+              class="more-btn"
+              type="button"
+              :disabled="loadingMore"
+              :aria-busy="loadingMore"
+              @click="loadMore"
             >
-              {{ city }}
+              {{ loadingMore ? '일정을 불러오는 중...' : '일정 더 보기' }}
             </button>
           </div>
 
-          <button class="browse-btn" @click="resetSearch">모든 일정 보기</button>
-        </div>
+          <div
+            v-if="!loading && !errorMessage && hasSearched && plans.length === 0"
+            class="empty-wrap"
+          >
+            <div class="divider"></div>
+            <div class="empty-illus" aria-hidden="true">
+              <svg
+                width="200"
+                height="200"
+                viewBox="0 0 148 148"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  cx="74"
+                  cy="74"
+                  r="62"
+                  fill="var(--color-brand-soft)"
+                  stroke="var(--color-brand-border)"
+                  stroke-width="1"
+                />
+                <circle cx="74" cy="74" r="40" fill="none" stroke="#e8d5d2" stroke-width="1.5" />
+                <line
+                  x1="74"
+                  y1="34"
+                  x2="74"
+                  y2="114"
+                  stroke="#e0d0ce"
+                  stroke-width="1"
+                  stroke-dasharray="3 3"
+                />
+                <line
+                  x1="34"
+                  y1="74"
+                  x2="114"
+                  y2="74"
+                  stroke="#e0d0ce"
+                  stroke-width="1"
+                  stroke-dasharray="3 3"
+                />
+                <text x="74" y="28" text-anchor="middle" font-size="9" fill="#bbb">N</text>
+                <text x="74" y="124" text-anchor="middle" font-size="9" fill="#bbb">S</text>
+                <text x="122" y="78" text-anchor="middle" font-size="9" fill="#bbb">E</text>
+                <text x="26" y="78" text-anchor="middle" font-size="9" fill="#bbb">W</text>
+                <polygon points="74,48 78,74 74,70 70,74" fill="var(--color-brand-accent)" />
+                <polygon points="74,100 78,74 74,78 70,74" fill="#ccc" />
+                <circle cx="74" cy="74" r="4" fill="#fff" stroke="#ddd" stroke-width="1.5" />
+                <circle cx="104" cy="44" r="13" fill="#fff" stroke="#f0e0de" stroke-width="1" />
+                <line
+                  x1="98.5"
+                  y1="38.5"
+                  x2="109.5"
+                  y2="49.5"
+                  stroke="var(--color-brand-accent)"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                />
+                <line
+                  x1="109.5"
+                  y1="38.5"
+                  x2="98.5"
+                  y2="49.5"
+                  stroke="var(--color-brand-accent)"
+                  stroke-width="2.2"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </div>
+
+            <div class="empty-head">일정을 찾을 수 없어요</div>
+            <div class="empty-sub">
+              <em>"{{ searchedKeyword }}"</em>에 대한 여행 일정이 아직 없어요.<br />
+              다른 국내 도시로 검색하거나 아래 추천 여행지를 둘러보세요.
+            </div>
+
+            <div class="suggest-label">이런 일정은 어떠세요?</div>
+            <div class="suggest-chips">
+              <button
+                v-for="city in suggestedCities"
+                :key="city"
+                class="suggest-chip"
+                type="button"
+                @click="searchSuggested(city)"
+              >
+                {{ city }}
+              </button>
+            </div>
+
+            <button class="browse-btn" type="button" @click="resetSearch">모든 일정 보기</button>
+          </div>
+        </section>
       </div>
     </div>
   </DefaultLayout>
 </template>
 
 <script setup>
+import { computed } from 'vue'
+
 import PublicPlanCard from '@/components/plan/PublicPlanCard.vue'
 import { usePlanSearch } from '@/composables/usePlanSearch'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
@@ -178,6 +209,12 @@ const {
   loadMore,
 } = usePlanSearch()
 
+const resultAnnouncement = computed(() => {
+  if (loading.value || errorMessage.value) return ''
+  if (loadingMore.value) return '추가 공개 일정을 불러오는 중이에요.'
+  if (hasSearched.value) return `“${searchedKeyword.value}” 검색 결과 ${totalCount.value}개`
+  return `공개 여행 일정 ${totalCount.value}개`
+})
 </script>
 
 <style scoped>
@@ -223,13 +260,14 @@ const {
 }
 
 .pg-title {
+  margin: 0 0 0.75rem;
   font-size: 34px;
   font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: 0.75rem;
 }
 
 .pg-subtitle {
+  margin: 0;
   font-size: 15px;
   color: #999;
 }
@@ -240,14 +278,32 @@ const {
   margin: 0 auto 2.25rem;
 }
 
-.search-wrap i {
+.search-submit {
   position: absolute;
-  left: 20px;
+  z-index: 1;
+  left: 8px;
   top: 50%;
-  transform: translateY(-50%);
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
   color: #aaa;
-  font-size: 20px;
   cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.search-submit i {
+  font-size: 20px;
+}
+
+.search-submit:focus-visible {
+  outline: 3px solid var(--color-brand-focus);
+  outline-offset: 1px;
 }
 
 .search-input {
@@ -336,6 +392,7 @@ const {
 }
 
 .result-count {
+  margin: 0;
   font-size: 15px;
   color: #666;
 }
@@ -352,9 +409,16 @@ const {
 }
 
 .grid {
+  padding: 0;
+  margin: 0;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
+  list-style: none;
+}
+
+.grid > li {
+  min-width: 0;
 }
 
 .more {
@@ -457,5 +521,16 @@ const {
 
 .browse-btn:hover {
   background: var(--color-brand-hover);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 </style>

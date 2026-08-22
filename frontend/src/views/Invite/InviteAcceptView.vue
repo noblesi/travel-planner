@@ -7,11 +7,11 @@
     <div class="accept-body">
       <div class="accept-card">
 
-        <!-- 로딩: 토큰 검증 중 -->
-        <template v-if="status === 'loading'">
-          <div class="loading-spinner" aria-hidden="true"></div>
-          <div class="loading-text">초대 정보를 확인하고 있어요...</div>
-        </template>
+        <AsyncState
+          v-if="status === 'loading'"
+          variant="loading"
+          title="초대 정보를 확인하고 있어요..."
+        />
 
         <template v-else-if="status === 'valid'">
           <div class="inviter-row">
@@ -54,20 +54,23 @@
           <div v-if="errorMessage" class="error-text" role="alert">{{ errorMessage }}</div>
         </template>
 
-        <!-- 만료: 링크 만료 -->
-        <template v-else-if="status === 'expired'">
-          <div class="expired-icon"><i class="ti ti-clock-exclamation" aria-hidden="true"></i></div>
-          <div class="expired-title">링크가 만료됐어요</div>
-          <div class="expired-sub">초대 링크는 24시간만 유효해요</div>
-          <button class="home-btn" @click="goHome">홈으로 가기</button>
-        </template>
+        <AsyncState
+          v-else-if="status === 'expired'"
+          variant="empty"
+          title="링크가 만료됐어요"
+          message="초대 링크는 24시간만 유효해요"
+          action-label="홈으로 가기"
+          @action="goHome"
+        />
 
-        <template v-else-if="status === 'error'">
-          <div class="expired-icon"><i class="ti ti-alert-triangle" aria-hidden="true"></i></div>
-          <div class="expired-title">{{ errorMessage || '초대를 확인할 수 없어요' }}</div>
-          <div class="expired-sub">링크를 다시 확인해주시거나, 초대한 분께 문의해주세요</div>
-          <button class="home-btn" @click="goHome">홈으로 가기</button>
-        </template>
+        <AsyncState
+          v-else-if="status === 'error'"
+          variant="error"
+          :title="errorMessage || '초대를 확인할 수 없어요'"
+          message="링크를 다시 확인해주시거나, 초대한 분께 문의해주세요"
+          action-label="홈으로 가기"
+          @action="goHome"
+        />
 
       </div>
     </div>
@@ -79,6 +82,7 @@ import { onMounted, ref } from 'vue'
 import { isNavigationFailure, useRoute, useRouter } from 'vue-router'
 
 import { acceptPlanInvitation, getPlanInvitation } from '@/api/invitations'
+import AsyncState from '@/components/ui/AsyncState.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -221,24 +225,6 @@ onMounted(verifyToken)
   text-align: center;
 }
 
-/* 로딩 상태 */
-.loading-spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid #f0e0de;
-  border-top-color: var(--color-brand-accent);
-  border-radius: 50%;
-  margin: 0 auto 1.25rem;
-  animation: spin .8s linear infinite;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-.loading-text {
-  font-size: 14px;
-  color: #999;
-}
-
 /* 정상 상태 */
 .inviter-row {
   display: flex;
@@ -328,35 +314,4 @@ onMounted(verifyToken)
   margin-top: 10px;
 }
 
-/* 만료/오류 상태 */
-.expired-icon {
-  font-size: 40px;
-  color: var(--color-brand-accent);
-  margin-bottom: 1.25rem;
-}
-.expired-title {
-  font-size: 19px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 8px;
-}
-.expired-sub {
-  font-size: 13.5px;
-  color: #999;
-  margin-bottom: 1.75rem;
-}
-.home-btn {
-  width: 100%;
-  padding: 14px;
-  background: var(--color-brand);
-  color: #fff;
-  border: none;
-  border-radius: 26px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.home-btn:hover {
-  background: var(--color-brand-hover);
-}
 </style>

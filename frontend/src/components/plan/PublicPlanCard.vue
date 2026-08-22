@@ -50,10 +50,12 @@ function useDefaultThumbnail(event) {
         </div>
         <div class="stats">
           <span class="stat stat-like">
-            <i class="ti ti-heart" aria-hidden="true"></i>{{ plan.likeCount }}
+            <i class="ti ti-heart" aria-hidden="true"></i>
+            <span class="sr-only">좋아요 </span>{{ plan.likeCount }}
           </span>
           <span class="stat">
-            <i class="ti ti-eye" aria-hidden="true"></i>{{ formatCompactCount(plan.viewCount) }}
+            <i class="ti ti-eye" aria-hidden="true"></i>
+            <span class="sr-only">조회수 </span>{{ formatCompactCount(plan.viewCount) }}
           </span>
         </div>
       </div>
@@ -63,6 +65,8 @@ function useDefaultThumbnail(event) {
 
 <style scoped>
 .card {
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   padding: 0;
   border: 0;
@@ -229,5 +233,16 @@ function useDefaultThumbnail(event) {
   gap: 4px;
   color: #bbb;
   font-size: 13px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 </style>

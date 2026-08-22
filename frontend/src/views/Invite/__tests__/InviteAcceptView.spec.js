@@ -3,12 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import InviteAcceptView from '@/views/Invite/InviteAcceptView.vue'
 
-const {
-  acceptPlanInvitationMock,
-  getPlanInvitationMock,
-  pushMock,
-  route,
-} = vi.hoisted(() => ({
+const { acceptPlanInvitationMock, getPlanInvitationMock, pushMock, route } = vi.hoisted(() => ({
   acceptPlanInvitationMock: vi.fn(),
   getPlanInvitationMock: vi.fn(),
   pushMock: vi.fn(),
@@ -46,6 +41,18 @@ beforeEach(() => {
 })
 
 describe('InviteAcceptView', () => {
+  it('초대 확인 중에는 공통 loading 상태를 접근 가능한 status로 표시한다', () => {
+    getPlanInvitationMock.mockReturnValue(new Promise(() => {}))
+    const wrapper = mount(InviteAcceptView)
+
+    const state = wrapper.get('[role="status"]')
+    expect(state.attributes()).toMatchObject({
+      'aria-busy': 'true',
+      'aria-live': 'polite',
+    })
+    expect(state.text()).toContain('초대 정보를 확인하고 있어요')
+  })
+
   it('초대 정보를 조회하고 수락 후 편집 화면으로 이동한다', async () => {
     acceptPlanInvitationMock.mockResolvedValue({ planId: '101', status: 'ACCEPTED' })
     const wrapper = mount(InviteAcceptView)
@@ -70,7 +77,10 @@ describe('InviteAcceptView', () => {
     const wrapper = mount(InviteAcceptView)
     await flushPromises()
 
-    expect(wrapper.text()).toContain('링크가 만료됐어요')
+    expect(wrapper.get('[role="status"]').text()).toContain('링크가 만료됐어요')
+
+    await wrapper.get('[role="status"] button').trigger('click')
+    expect(pushMock).toHaveBeenCalledWith({ name: 'home' })
   })
 
   it('로그인이 필요하면 현재 초대 URL을 유지해 로그인 화면으로 보낸다', async () => {
