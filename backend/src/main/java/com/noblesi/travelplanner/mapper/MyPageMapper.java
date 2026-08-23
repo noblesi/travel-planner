@@ -4,7 +4,9 @@ import org.apache.ibatis.annotations.Mapper;
 
 import com.noblesi.travelplanner.domain.member.MemberInfoDomain;
 import com.noblesi.travelplanner.dto.member.MemberInfoRequest;
+import com.noblesi.travelplanner.dto.member.MemberRewordPassword;
 import com.noblesi.travelplanner.dto.member.NickNameRequest;
+import com.noblesi.travelplanner.dto.member.SearchMemberPassword;
 
 @Mapper
 public interface MyPageMapper {
@@ -17,6 +19,10 @@ public interface MyPageMapper {
 
     public int updateProfileImage(String profileImage);
 
-    public int updateMemberStatus(int memberId);
+    public int updatePassword(MemberRewordPassword memberRewordPassword);
+
+    public String selectCurrentPassword(long memberId);
+
+    public int updateMemberStatus(long memberId);
 
 }

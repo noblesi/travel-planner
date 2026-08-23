@@ -44,7 +44,7 @@
 			EMAIL				=	#{email},
 			GENDER_CODE			=	#{genderCode},
 			PHONE_NUMBER		=	#{phoneNumber},
-			UPDATED_AT		    =	SYSDATE,
+			UPDATED_AT		    =	SYSTIMESTAMP,
 			BIRTH_DATE			=	#{birthDate}
 		where MEMBER_ID = #{memberId}
 	</update>
@@ -60,6 +60,19 @@
 		SET	PROFILE_IMAGE_URL = #{profileImageUrl}
 		where MEMBER_ID = #{memberId}
 	</update>
+
+	<update id="updatePassword" parameterType="memberRewordPassword">
+		update MEMBER
+		SET	PASSWORD_HASH = #{rewordPassword},
+		UPDATED_AT		  =	SYSTIMESTAMP
+		where MEMBER_ID = #{memberId}
+	</update>
+
+	<select id="selectCurrentPassword" parameterType="searchMemberPassword" resultType="string">
+		SELECT PASSWORD_HASH
+		FROM MEMBER
+		WHERE MEMBER_ID = #{memberId}
+	</select>
 
 	<update id="updateMemberStatus" parameterType="int">
 		update MEMBER

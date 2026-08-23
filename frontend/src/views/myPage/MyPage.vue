@@ -83,6 +83,33 @@
             </div>
         </div>
     </div>
+    <!-- 비밀번호 재설정 모달 창 -->
+    <div v-if="isPasswordModalOpen" class="modal-overlay" @click="closePasswordModal">
+        <div class="modal-content" @click.stop>
+            <h3 class="modal-title">비밀번호 재설정</h3>
+            
+            <div class="modal-form-group">
+                <label>현재 비밀번호</label>
+                <input type="password" v-model="passwordForm.currentPassword" class="modal-input" placeholder="현재 비밀번호 입력" />
+            </div>
+            
+            <div class="modal-form-group">
+                <label>새 비밀번호</label>
+                <input type="password" v-model="passwordForm.newPassword" class="modal-input" placeholder="새 비밀번호 입력" />
+            </div>
+            
+            <div class="modal-form-group">
+                <label>새 비밀번호 확인</label>
+                <input type="password" v-model="passwordForm.confirmPassword" class="modal-input" placeholder="새 비밀번호 다시 입력" @keyup.enter="submitPasswordChange" />
+            </div>
+
+            <div class="modal-button-group">
+                <button class="modal-cancel-btn" @click="closePasswordModal">취소</button>
+                <button class="modal-submit-btn" @click="submitPasswordChange">변경하기</button>
+            </div>
+        </div>
+    </div>
+
     </DefaultLayout>
 </template>
 
@@ -97,6 +124,7 @@ import { postModifyMemberInfo } from '@/api/member'
 import { getModifyNickname } from '@/api/member'
 import { postModifyProfileImage } from '@/api/member'
 import { getDeleteAccount } from '@/api/member'
+import { postModifyPassword } from '@/api/member'
 import router from '@/router'
 
 
@@ -201,10 +229,6 @@ const changeProfileImage = () => {
     fileInput.value.click()
 }
 
-const passwordReword = () => {
-    alert("비밀번호 재설정")
-}
-
 ////////////////////////////////////////////////////////////////
 const handleFileChange = (event) => {
   const file = event.target.files[0]
@@ -250,6 +274,60 @@ const saveInfo = () => {
 
 }
 
+
+const isPasswordModalOpen = ref(false)
+const passwordForm = ref({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+})
+
+
+const passwordReword = () => {
+    isPasswordModalOpen.value = true 
+}
+
+
+const closePasswordModal = () => {
+    isPasswordModalOpen.value = false
+    passwordForm.value = {
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+    }
+}
+
+
+const submitPasswordChange = () => {
+    if (!passwordForm.value.currentPassword) {
+        alert("현재 비밀번호를 입력해주세요.");
+        return;
+    }
+    if (!passwordForm.value.newPassword) {
+        alert("새 비밀번호를 입력해주세요.");
+        return;
+    }
+    if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+        alert("새 비밀번호가 일치하지 않습니다. 다시 확인해주세요.");
+        return;
+    }
+
+    const rewordPass = {
+        currentPassword: passwordForm.value.currentPassword,
+        rewordPassword: passwordForm.value.newPassword
+    }
+
+    console.log("서버로 전송할 비밀번호 데이터:", rewordPass)
+
+    postModifyPassword(rewordPass).then((response) => {
+        console.log(response.data + "성공?")
+        alert("비밀번호가 성공적으로 변경되었습니다.")
+    }).catch((error) => {
+        console.log(error + "실패")
+    })
+
+    closePasswordModal();
+}
 
 
 </script>
@@ -556,6 +634,106 @@ const saveInfo = () => {
     border-bottom: 1px solid;
 }
 
+// 모달 스타일
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+}
 
+/* 모달 본체 */
+.modal-content {
+    background-color: #ffffff;
+    padding: 2.5rem;
+    border-radius: 16px;
+    width: 420px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    color: #333;
+}
+
+.modal-title {
+    margin-top: 0;
+    margin-bottom: 2rem;
+    font-size: 1.4rem;
+    color: #2b2b2b;
+    text-align: center;
+    font-weight: 700;
+}
+
+.modal-form-group {
+    margin-bottom: 1.2rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-form-group label {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: #666;
+    font-weight: 600;
+}
+
+.modal-input {
+    padding: 0.85rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+    background-color: #f9f9f9;
+}
+
+.modal-input:focus {
+    border-color: #f47a42; /* 기존 UI 주황색 계열 대비 */
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(244, 122, 66, 0.15);
+}
+
+.modal-button-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 2.5rem;
+    gap: 1rem;
+}
+
+.modal-cancel-btn {
+    flex: 1;
+    padding: 0.85rem;
+    background-color: #f1f1f1;
+    color: #555;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+.modal-cancel-btn:hover {
+    background-color: #e4e4e4;
+}
+
+.modal-submit-btn {
+    flex: 1;
+    padding: 0.85rem;
+    background-color: rgba(247, 145, 62, 0.945); /* 기존 프로젝트 컬러 */
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+.modal-submit-btn:hover {
+    background-color: #cd7652;
+}
 
 </style>

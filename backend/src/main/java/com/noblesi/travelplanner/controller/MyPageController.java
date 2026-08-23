@@ -16,6 +16,8 @@ import com.noblesi.travelplanner.domain.member.MemberInfoDomain;
 import com.noblesi.travelplanner.dto.auth.AuthenticatedMemberResponse;
 import com.noblesi.travelplanner.dto.auth.AuthenticationSessionResponse;
 import com.noblesi.travelplanner.dto.member.MemberInfoRequest;
+import com.noblesi.travelplanner.dto.member.MemberRewordPassword;
+import com.noblesi.travelplanner.dto.member.MemberRewordPasswordRequest;
 import com.noblesi.travelplanner.security.MemberPrincipal;
 import com.noblesi.travelplanner.service.MyPageService;
 
@@ -53,17 +55,16 @@ public class MyPageController {
     @PostMapping("/modifyMemberInfo")
     public ApiResponse<Boolean> postModifyMemberInfo(Authentication authentication, @RequestBody MemberInfoRequest memberInfoRequest) {
        try{
-           MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
-           System.out.println("controller in!!!!" + memberInfoRequest);
+            MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
             MemberInfoRequest changeMemberInfoRequest = new MemberInfoRequest(
-                principal.memberId(),            
-                memberInfoRequest.memberName(),
-                memberInfoRequest.email(),
-                memberInfoRequest.genderCode(),
-                memberInfoRequest.phoneNumber(),
-                memberInfoRequest.birthDate()
+                    principal.memberId(),            
+                    memberInfoRequest.memberName(),
+                    memberInfoRequest.email(),
+                    memberInfoRequest.genderCode(),
+                    memberInfoRequest.phoneNumber(),
+                    memberInfoRequest.birthDate()
             );
-            return ApiResponse.success(myPageService.modifyUserInfo(changeMemberInfoRequest));
+           return ApiResponse.success(myPageService.modifyUserInfo(changeMemberInfoRequest));
         } catch (BadCredentialsException exception) {
 			throw new BusinessException(
 					HttpStatus.UNAUTHORIZED,
@@ -91,6 +92,22 @@ public class MyPageController {
     public ApiResponse<Boolean> postModifyProfileImage(@RequestBody String profileImage) {
         return ApiResponse.success(myPageService.modifyProfileImage(profileImage));
     }
+
+    @PostMapping("/modifyPassword")
+    public ApiResponse<Boolean> postModifyPassword(Authentication authentication, @RequestBody MemberRewordPasswordRequest memberRewordPasswordRequest) {
+        System.out.println("passwordReword!!!!!");
+        try {
+            MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
+			return ApiResponse.success(myPageService.modifyPassword(principal, memberRewordPasswordRequest));
+		} catch (BadCredentialsException exception) {
+			throw new BusinessException(
+					HttpStatus.UNAUTHORIZED,
+					"PASSWORD_REWORD_FAIL",
+					"비밀번호 변경을 실패하였습니다."
+			);
+		}
+    }
+    
 
     @GetMapping("/deleteAccount")
     public ApiResponse<Boolean> getDeleteAccount(@RequestBody int memberId) {
