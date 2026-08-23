@@ -56,15 +56,17 @@ class PlanInvitationAcceptanceService {
 		if (planInvitationMapper.acceptInvitation(invitation.invitationId(), memberId, tokenService.now()) != 1) {
 			throw invitationUnavailable();
 		}
-		if (planInvitationMapper.countPlanMember(invitation.planId(), memberId) == 0) {
-			int affectedRows = planMemberMapper.insertPlanMember(
-					invitation.planId(),
-					memberId,
-					ParticipantType.INVITEE
-			);
-			if (affectedRows != 1) {
-				throw new IllegalStateException("Expected one affected row but got " + affectedRows);
-			}
+		Long lockedPlanId = planMemberMapper.lockPlanForMembershipUpdate(invitation.planId());
+		if (lockedPlanId == null) {
+			throw invitationUnavailable();
+		}
+		int affectedRows = planMemberMapper.insertPlanMemberIfAbsent(
+				invitation.planId(),
+				memberId,
+				ParticipantType.INVITEE
+		);
+		if (affectedRows < 0 || affectedRows > 1) {
+			throw new IllegalStateException("Expected zero or one affected row but got " + affectedRows);
 		}
 
 		return acceptedResponse(invitation, memberId);

@@ -34,15 +34,25 @@
 		                SELECT P.PLAN_ID AS PLAN_ID,
 		                       P.TITLE AS TITLE,
 		                       R.REGION_NAME AS REGION,
-		                       (SELECT COUNT(*) FROM PLAN_DAY D WHERE D.PLAN_ID = P.PLAN_ID) AS DAYS,
-		                       (SELECT COUNT(*) FROM PLAN_LIKE L WHERE L.PLAN_ID = P.PLAN_ID) AS LIKE_COUNT,
+			                       COALESCE(DAY_SUMMARY.DAYS, 0) AS DAYS,
+			                       COALESCE(LIKE_SUMMARY.LIKE_COUNT, 0) AS LIKE_COUNT,
 		                       P.VIEW_COUNT AS VIEW_COUNT,
 		                       M.NICKNAME AS AUTHOR_NAME,
 		                       M.PROFILE_IMAGE_URL AS AUTHOR_IMAGE,
 		                       P.THUMBNAIL_IMG AS THUMBNAIL_IMAGE
-		                  FROM TRAVEL_PLAN P
-		                  JOIN REGION_MASTER R ON R.REGION_CODE = P.REGION_CODE
-		                  JOIN MEMBER M ON M.MEMBER_ID = P.OWNER_MEMBER_ID
+			                  FROM TRAVEL_PLAN P
+			                  JOIN REGION_MASTER R ON R.REGION_CODE = P.REGION_CODE
+			                  JOIN MEMBER M ON M.MEMBER_ID = P.OWNER_MEMBER_ID
+			                  LEFT JOIN (
+			                        SELECT PLAN_ID, COUNT(*) AS DAYS
+			                          FROM PLAN_DAY
+			                         GROUP BY PLAN_ID
+			                  ) DAY_SUMMARY ON DAY_SUMMARY.PLAN_ID = P.PLAN_ID
+			                  LEFT JOIN (
+			                        SELECT PLAN_ID, COUNT(*) AS LIKE_COUNT
+			                          FROM PLAN_LIKE
+			                         GROUP BY PLAN_ID
+			                  ) LIKE_SUMMARY ON LIKE_SUMMARY.PLAN_ID = P.PLAN_ID
 		                <include refid="publicPlanCondition" />
 		                 ORDER BY P.VIEW_COUNT DESC, P.UPDATED_AT DESC, P.PLAN_ID DESC
 		               ) a
@@ -57,10 +67,15 @@
 		       M.NICKNAME AS AUTHOR_NAME,
 		       P.START_DATE AS START_DATE,
 		       P.END_DATE AS END_DATE,
-		       (SELECT COUNT(*) FROM PLAN_LIKE L WHERE L.PLAN_ID = P.PLAN_ID) AS LIKE_COUNT,
+		       COALESCE(LIKE_SUMMARY.LIKE_COUNT, 0) AS LIKE_COUNT,
 		       P.VIEW_COUNT AS VIEW_COUNT
 		  FROM TRAVEL_PLAN P
 		  JOIN MEMBER M ON M.MEMBER_ID = P.OWNER_MEMBER_ID
+		  LEFT JOIN (
+		        SELECT PLAN_ID, COUNT(*) AS LIKE_COUNT
+		          FROM PLAN_LIKE
+		         GROUP BY PLAN_ID
+		  ) LIKE_SUMMARY ON LIKE_SUMMARY.PLAN_ID = P.PLAN_ID
 		 WHERE P.PLAN_ID = #{planId}
 		   <!-- 목록과 상세의 공개 기준을 동일하게 유지해 URL 직접 접근으로 DRAFT가 노출되는 것을 막는다. -->
 		   AND P.VISIBILITY = 'PUBLIC'
@@ -68,22 +83,6 @@
 		   AND P.PLAN_STATUS = 'ACTIVE'
 		   AND M.MEMBER_STATUS = 'ACTIVE'
 	</select>
-
-	<update id="updatePlanViewCount">
-		UPDATE TRAVEL_PLAN
-		   SET VIEW_COUNT = VIEW_COUNT + 1
-		 WHERE PLAN_ID = #{planId}
-		   <!-- 공개 완료된 플랜만 조회수 집계 대상으로 인정해 DRAFT 접근 흔적이 남지 않도록 한다. -->
-		   AND VISIBILITY = 'PUBLIC'
-		   AND PUBLISH_STATUS = 'PUBLISHED'
-		   AND PLAN_STATUS = 'ACTIVE'
-		   AND EXISTS (
-		       SELECT 1
-		         FROM MEMBER M
-		        WHERE M.MEMBER_ID = TRAVEL_PLAN.OWNER_MEMBER_ID
-		          AND M.MEMBER_STATUS = 'ACTIVE'
-		   )
-	</update>
 
 	<select id="selectPlanDays" resultType="PlanDetailDayDTO">
 		SELECT DAY_NO AS DAY_NUMBER,

@@ -15,6 +15,11 @@ import java.time.OffsetDateTime;
 import java.time.Clock;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +40,7 @@ class PlanInvitationControllerIntegrationTest {
 	private static final long PLAN_ID = 8_001L;
 	private static final long INVITATION_ID = 8_101L;
 	private static final String TOKEN = "abcdefghijklmnopqrstuvwxyzABCDEFGH123456789";
+	private static final String SECOND_TOKEN = "zyxwvutsrqponmlkjihgfedcbaHGFEDC987654321";
 
 	@Autowired
 	private MockMvc mockMvc;
@@ -178,6 +184,46 @@ class PlanInvitationControllerIntegrationTest {
 				PLAN_ID
 		);
 		org.assertj.core.api.Assertions.assertThat(memberCount).isEqualTo(1);
+	}
+
+	@Test
+	void acceptsConcurrentInvitationsForSamePlanMemberIdempotently() throws Exception {
+		insertPlan(PLAN_ID, 2L);
+		insertInvitation(INVITATION_ID, PLAN_ID, 2L, TOKEN, "PENDING", null, futureExpiry());
+		insertInvitation(INVITATION_ID + 1, PLAN_ID, 2L, SECOND_TOKEN, "PENDING", null, futureExpiry());
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+
+		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+			java.util.function.Function<String, java.util.concurrent.Callable<Integer>> acceptance = token -> () -> {
+				ready.countDown();
+				start.await();
+				return mockMvc.perform(post("/api/plan-invitations/{token}/accept", token))
+						.andReturn()
+						.getResponse()
+						.getStatus();
+			};
+			Future<Integer> first = executor.submit(acceptance.apply(TOKEN));
+			Future<Integer> second = executor.submit(acceptance.apply(SECOND_TOKEN));
+			ready.await();
+			start.countDown();
+
+			org.assertj.core.api.Assertions.assertThat(List.of(first.get(), second.get()))
+					.containsOnly(200);
+		}
+
+		Integer memberCount = jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM PLAN_MEMBER WHERE PLAN_ID = ? AND MEMBER_ID = 1",
+				Integer.class,
+				PLAN_ID
+		);
+		Integer acceptedInvitationCount = jdbcTemplate.queryForObject(
+				"SELECT COUNT(*) FROM PLAN_INVITATION WHERE PLAN_ID = ? AND INVITATION_STATUS = 'ACCEPTED'",
+				Integer.class,
+				PLAN_ID
+		);
+		org.assertj.core.api.Assertions.assertThat(memberCount).isEqualTo(1);
+		org.assertj.core.api.Assertions.assertThat(acceptedInvitationCount).isEqualTo(2);
 	}
 
 	@Test

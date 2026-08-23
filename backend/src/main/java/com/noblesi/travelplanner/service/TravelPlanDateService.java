@@ -1,11 +1,16 @@
 package com.noblesi.travelplanner.service;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.domain.plan.PlanEditorPlan;
+import com.noblesi.travelplanner.domain.plan.PlanDay;
 import com.noblesi.travelplanner.dto.plan.PlanEditorResponse;
 import com.noblesi.travelplanner.dto.plan.UpdateTravelPlanDatesRequest;
 import com.noblesi.travelplanner.mapper.TravelPlanDateMapper;
@@ -20,6 +25,7 @@ class TravelPlanDateService {
 	private final PlanDayRangeSynchronizer dayRangeSynchronizer;
 	private final PlanEditorQueryService editorQueryService;
 	private final PlanThumbnailDerivationService thumbnailDerivationService;
+	private final Clock clock;
 
 	TravelPlanDateService(
 			PositiveIdParser idParser,
@@ -28,7 +34,8 @@ class TravelPlanDateService {
 			TravelPlanDateMapper travelPlanDateMapper,
 			PlanDayRangeSynchronizer dayRangeSynchronizer,
 			PlanEditorQueryService editorQueryService,
-			PlanThumbnailDerivationService thumbnailDerivationService
+			PlanThumbnailDerivationService thumbnailDerivationService,
+			Clock clock
 	) {
 		this.idParser = idParser;
 		this.planAccessService = planAccessService;
@@ -37,6 +44,7 @@ class TravelPlanDateService {
 		this.dayRangeSynchronizer = dayRangeSynchronizer;
 		this.editorQueryService = editorQueryService;
 		this.thumbnailDerivationService = thumbnailDerivationService;
+		this.clock = clock;
 	}
 
 	@Transactional
@@ -53,13 +61,15 @@ class TravelPlanDateService {
 			return editorQueryService.buildResponse(planId, plan);
 		}
 		requestValidator.validateDateChangePolicy(plan, request.startDate(), request.endDate());
+		List<PlanDay> lockedDays = dayRangeSynchronizer.lockPlanDays(planId);
 
 		int updatedRows = travelPlanDateMapper.updateTravelDates(
 				planId,
 				memberId,
 				request.startDate(),
 				request.endDate(),
-				request.versionNo()
+				request.versionNo(),
+				OffsetDateTime.now(clock)
 		);
 		if (updatedRows != 1) {
 			throw planVersionConflict();
@@ -67,6 +77,7 @@ class TravelPlanDateService {
 
 		dayRangeSynchronizer.synchronize(
 				planId,
+				lockedDays,
 				plan.startDate(),
 				plan.endDate(),
 				request.startDate(),

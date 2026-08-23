@@ -10,6 +10,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -168,6 +174,39 @@ class PlanScheduleControllerIntegrationTest {
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.data.scheduleItemId").isString())
 				.andExpect(jsonPath("$.data.resultScheduleVersion").value(1));
+
+		assertValue("SELECT COUNT(*) FROM PLAN_SCHEDULE_ITEM", 1);
+		assertValue("SELECT SCHEDULE_VERSION FROM PLAN_DAY WHERE PLAN_DAY_ID = " + DAY_ID, 1);
+		assertValue("SELECT COUNT(*) FROM PLAN_EDIT_OPERATION", 1);
+	}
+
+	@Test
+	void serializesConcurrentRetriesOfSameOperation() throws Exception {
+		insertPlan(1L);
+		insertPlanDay(0);
+		String request = addRequest(ADD_OPERATION_ID, 0, "100", "경복궁");
+		CountDownLatch ready = new CountDownLatch(2);
+		CountDownLatch start = new CountDownLatch(1);
+
+		try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+			java.util.concurrent.Callable<String> mutation = () -> {
+				ready.countDown();
+				start.await();
+				var response = mockMvc.perform(post(itemsPath())
+							.contentType(MediaType.APPLICATION_JSON)
+							.content(request))
+						.andReturn()
+						.getResponse();
+				return response.getStatus() + ":" + response.getContentAsString();
+			};
+			Future<String> first = executor.submit(mutation);
+			Future<String> second = executor.submit(mutation);
+			ready.await();
+			start.countDown();
+
+			org.assertj.core.api.Assertions.assertThat(List.of(first.get(), second.get()))
+					.allMatch(response -> response.startsWith("201:"));
+		}
 
 		assertValue("SELECT COUNT(*) FROM PLAN_SCHEDULE_ITEM", 1);
 		assertValue("SELECT SCHEDULE_VERSION FROM PLAN_DAY WHERE PLAN_DAY_ID = " + DAY_ID, 1);

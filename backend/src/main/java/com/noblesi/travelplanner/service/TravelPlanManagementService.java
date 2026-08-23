@@ -1,5 +1,8 @@
 package com.noblesi.travelplanner.service;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +31,7 @@ class TravelPlanManagementService {
 	private final PlanScheduleItemMapper scheduleItemMapper;
 	private final TravelPlanRepository travelPlanRepository;
 	private final PlanThumbnailDerivationService thumbnailDerivationService;
+	private final Clock clock;
 
 	TravelPlanManagementService(
 			PositiveIdParser idParser,
@@ -36,7 +40,8 @@ class TravelPlanManagementService {
 			MyPlanMapper myPlanMapper,
 			PlanScheduleItemMapper scheduleItemMapper,
 			TravelPlanRepository travelPlanRepository,
-			PlanThumbnailDerivationService thumbnailDerivationService
+			PlanThumbnailDerivationService thumbnailDerivationService,
+			Clock clock
 	) {
 		this.idParser = idParser;
 		this.planAccessService = planAccessService;
@@ -45,6 +50,7 @@ class TravelPlanManagementService {
 		this.scheduleItemMapper = scheduleItemMapper;
 		this.travelPlanRepository = travelPlanRepository;
 		this.thumbnailDerivationService = thumbnailDerivationService;
+		this.clock = clock;
 	}
 
 	@Transactional(readOnly = true)
@@ -83,7 +89,11 @@ class TravelPlanManagementService {
 				? thumbnailDerivationService.derive(planId)
 				: null;
 
-		plan.updatePublication(request.publishStatus(), fallbackThumbnailImageUrl);
+		plan.updatePublication(
+				request.publishStatus(),
+				fallbackThumbnailImageUrl,
+				OffsetDateTime.now(clock)
+		);
 		travelPlanRepository.flush();
 		PlanEditorPlan updatedPlan = planAccessService.requireOwnedPlan(planId, memberId);
 		return editorQueryService.buildResponse(planId, updatedPlan);
@@ -95,7 +105,7 @@ class TravelPlanManagementService {
 		long memberId = planAccessService.currentMemberId();
 		TravelPlanEntity plan = requireActiveOwnedPlan(planId, memberId);
 		requireVersion(versionNo, plan.getVersionNo());
-		plan.softDelete(memberId);
+		plan.softDelete(memberId, OffsetDateTime.now(clock));
 		travelPlanRepository.flush();
 		return new PlanLifecycleResponse(
 				Long.toString(planId),
@@ -115,7 +125,7 @@ class TravelPlanManagementService {
 		if (plan.isActive()) {
 			return new PlanLifecycleResponse(Long.toString(planId), "ACTIVE", plan.getVersionNo());
 		}
-		plan.restore();
+		plan.restore(OffsetDateTime.now(clock));
 		travelPlanRepository.flush();
 		return new PlanLifecycleResponse(
 				Long.toString(planId),

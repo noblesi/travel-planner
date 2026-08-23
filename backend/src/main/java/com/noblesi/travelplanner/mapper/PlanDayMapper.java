@@ -16,8 +16,15 @@ public interface PlanDayMapper {
 
 	List<PlanDay> findByPlanIdOrderByDayNo(@Param("planId") long planId);
 
+	List<PlanDay> findByPlanIdOrderByDayNoForUpdate(@Param("planId") long planId);
+
 	PlanDay findByIdAndPlanId(
 			@Param("planDayId") long planDayId,
+			@Param("planId") long planId
+	);
+
+	List<PlanDay> findByIdsAndPlanIdForUpdate(
+			@Param("planDayIds") List<Long> planDayIds,
 			@Param("planId") long planId
 	);
 

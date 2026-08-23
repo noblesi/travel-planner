@@ -21,7 +21,9 @@ import com.noblesi.travelplanner.plansearch.dto.PlanDetailResponseDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanListResponseDTO;
 import com.noblesi.travelplanner.plansearch.dto.PlanSearchRequestDTO;
 import com.noblesi.travelplanner.plansearch.dto.ReportRequestDTO;
-import com.noblesi.travelplanner.plansearch.service.PlanSearchService;
+import com.noblesi.travelplanner.plansearch.service.PlanCopyService;
+import com.noblesi.travelplanner.plansearch.service.PlanEngagementService;
+import com.noblesi.travelplanner.plansearch.service.PublicPlanQueryService;
 import com.noblesi.travelplanner.security.CurrentMemberProvider;
 import com.noblesi.travelplanner.security.SecurityMemberResolver;
 import com.noblesi.travelplanner.service.PositiveIdParser;
@@ -35,18 +37,24 @@ public class PlanSearchController {
 	private static final String VIEW_COOKIE_PREFIX = "plan_viewed_";
 	private static final int VIEW_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60;
 
-	private final PlanSearchService planSearchService;
+	private final PublicPlanQueryService publicPlanQueryService;
+	private final PlanEngagementService planEngagementService;
+	private final PlanCopyService planCopyService;
 	private final CurrentMemberProvider currentMemberProvider;
 	private final SecurityMemberResolver securityMemberResolver;
 	private final PositiveIdParser idParser;
 
 	public PlanSearchController(
-			PlanSearchService planSearchService,
+			PublicPlanQueryService publicPlanQueryService,
+			PlanEngagementService planEngagementService,
+			PlanCopyService planCopyService,
 			CurrentMemberProvider currentMemberProvider,
 			SecurityMemberResolver securityMemberResolver,
 			PositiveIdParser idParser
 	) {
-		this.planSearchService = planSearchService;
+		this.publicPlanQueryService = publicPlanQueryService;
+		this.planEngagementService = planEngagementService;
+		this.planCopyService = planCopyService;
 		this.currentMemberProvider = currentMemberProvider;
 		this.securityMemberResolver = securityMemberResolver;
 		this.idParser = idParser;
@@ -64,7 +72,7 @@ public class PlanSearchController {
 		request.setKeyword(keyword);
 		request.setPage(page);
 		request.setSize(limit == null ? size : limit);
-		return ApiResponse.success(planSearchService.searchPlanList(request));
+		return ApiResponse.success(publicPlanQueryService.search(request));
 	}
 
 	// 공개 플랜 상세 조회 (같은 브라우저에서 24시간 안에 다시 보면 조회수 증가 안 함)
@@ -75,13 +83,17 @@ public class PlanSearchController {
 			HttpServletResponse httpResponse
 	) {
 		long parsedPlanId = idParser.parse(planId, "planId");
-		if (!hasViewedRecently(httpRequest, parsedPlanId)) {
-			planSearchService.increasePlanViewCount(parsedPlanId);
-			markViewed(httpResponse, parsedPlanId);
-		}
+		boolean increaseViewCount = !hasViewedRecently(httpRequest, parsedPlanId);
 		OptionalLong memberId = securityMemberResolver.getAuthenticatedMemberId();
 		Long memberIdOrNull = memberId.isPresent() ? memberId.getAsLong() : null;
-		PlanDetailResponseDTO detail = planSearchService.searchPlanDetail(parsedPlanId, memberIdOrNull);
+		PlanDetailResponseDTO detail = publicPlanQueryService.getDetail(
+				parsedPlanId,
+				memberIdOrNull,
+				increaseViewCount
+		);
+		if (increaseViewCount) {
+			markViewed(httpResponse, parsedPlanId);
+		}
 		return ApiResponse.success(detail);
 	}
 
@@ -112,7 +124,7 @@ public class PlanSearchController {
 	public ApiResponse<Boolean> toggleLike(@PathVariable String planId) {
 		long parsedPlanId = idParser.parse(planId, "planId");
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		return ApiResponse.success(planSearchService.toggleLike(memberId, parsedPlanId));
+		return ApiResponse.success(planEngagementService.toggleLike(memberId, parsedPlanId));
 	}
 
 	// 플랜 신고
@@ -121,7 +133,7 @@ public class PlanSearchController {
 		long parsedPlanId = idParser.parse(planId, "planId");
 		long memberId = currentMemberProvider.getCurrentMemberId();
 		// 식별자는 request body가 아닌 path variable만 신뢰해 서로 다른 planId가 전달될 여지를 제거한다.
-		planSearchService.reportPlan(memberId, parsedPlanId, request);
+		planEngagementService.report(memberId, parsedPlanId, request);
 		return ApiResponse.successWithoutData();
 	}
 
@@ -133,6 +145,6 @@ public class PlanSearchController {
 	) {
 		long parsedSourcePlanId = idParser.parse(sourcePlanId, "sourcePlanId");
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		return ApiResponse.success(Long.toString(planSearchService.copyPlan(memberId, parsedSourcePlanId, request)));
+		return ApiResponse.success(Long.toString(planCopyService.copy(memberId, parsedSourcePlanId, request)));
 	}
 }

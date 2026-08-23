@@ -17,7 +17,7 @@
 		</constructor>
 	</resultMap>
 
-	<select id="findByOperationId" resultMap="planEditOperationResultMap">
+	<select id="findByOperationId" resultMap="planEditOperationResultMap" useCache="false" flushCache="true">
 		SELECT OPERATION_ID,
 		       PLAN_ID,
 		       MEMBER_ID,

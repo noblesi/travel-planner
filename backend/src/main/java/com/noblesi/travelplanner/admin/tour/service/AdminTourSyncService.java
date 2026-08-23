@@ -1,17 +1,19 @@
 package com.noblesi.travelplanner.admin.tour.service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import com.noblesi.travelplanner.admin.tour.domain.TourSyncHistoryRecord;
 import com.noblesi.travelplanner.admin.tour.dto.TourSyncHistoryDTO;
 import com.noblesi.travelplanner.admin.tour.dto.TourSyncSummaryDTO;
 import com.noblesi.travelplanner.domain.place.PlaceType;
@@ -25,8 +27,10 @@ import com.noblesi.travelplanner.service.PlaceCatalogService;
 @Service
 public class AdminTourSyncService {
 
+	private static final Logger log = LoggerFactory.getLogger(AdminTourSyncService.class);
 	private static final int PAGE_SIZE = 100;
 	private static final int HISTORY_SIZE = 10;
+	private static final Duration SYNC_LEASE_DURATION = Duration.ofMinutes(5);
 	private static final ZoneId KOREA_ZONE = ZoneId.of("Asia/Seoul");
 	private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd HH:mm");
 
@@ -34,38 +38,39 @@ public class AdminTourSyncService {
 	private final PlaceCatalogService placeCatalogService;
 	private final PlaceMasterMapper placeMasterMapper;
 	private final RegionMapper regionMapper;
+	private final TourSyncExecutionStore executionStore;
 	private final Clock clock;
-	private final AtomicBoolean syncing = new AtomicBoolean(false);
-	private final Deque<TourSyncHistoryDTO> history = new ArrayDeque<>();
 
 	public AdminTourSyncService(
 			TourApiClient tourApiClient,
 			PlaceCatalogService placeCatalogService,
 			PlaceMasterMapper placeMasterMapper,
 			RegionMapper regionMapper,
+			TourSyncExecutionStore executionStore,
 			Clock clock
 	) {
 		this.tourApiClient = tourApiClient;
 		this.placeCatalogService = placeCatalogService;
 		this.placeMasterMapper = placeMasterMapper;
 		this.regionMapper = regionMapper;
+		this.executionStore = executionStore;
 		this.clock = clock;
 	}
 
 	public TourSyncHistoryDTO synchronize(String manager) {
-		if (!syncing.compareAndSet(false, true)) {
+		OffsetDateTime startedAt = OffsetDateTime.now(clock);
+		String syncId = "S-" + UUID.randomUUID();
+		if (!executionStore.tryStart(syncId, manager, startedAt, leaseExpiresAt())) {
 			throw new IllegalStateException("이미 TOUR API 동기화가 진행 중입니다.");
 		}
 
-		OffsetDateTime startedAt = OffsetDateTime.now(clock);
 		int changedCount = 0;
 		int failedCount = 0;
 
 		try {
-			// 시도별로 마지막 페이지까지 조회
 			for (var region : regionMapper.findActiveSidoRegions()) {
 				try {
-					changedCount += synchronizeRegion(region.regionCode());
+					changedCount += synchronizeRegion(region.regionCode(), syncId);
 				} catch (TourApiException exception) {
 					failedCount++;
 					if (exception.getReason() == TourApiException.Reason.NOT_CONFIGURED
@@ -76,15 +81,26 @@ public class AdminTourSyncService {
 			}
 
 			String status = failedCount == 0 ? "성공" : "부분 성공";
-			TourSyncHistoryDTO result = createHistory(startedAt, changedCount, failedCount, status, manager);
-			addHistory(result);
+			TourSyncHistoryDTO result = createHistory(syncId, startedAt, changedCount, failedCount, status, manager);
+			executionStore.complete(toRecord(result, startedAt));
 			return result;
 		} catch (RuntimeException exception) {
-			TourSyncHistoryDTO result = createHistory(startedAt, changedCount, Math.max(1, failedCount), "실패", manager);
-			addHistory(result);
+			TourSyncHistoryDTO result = createHistory(
+					syncId,
+					startedAt,
+					changedCount,
+					Math.max(1, failedCount),
+					"실패",
+					manager
+			);
+			try {
+				executionStore.complete(toRecord(result, startedAt));
+			} catch (RuntimeException historyException) {
+				exception.addSuppressed(historyException);
+				executionStore.release(syncId);
+				log.error("TOUR API 동기화 실패 이력을 저장하지 못했습니다. syncId={}", syncId, historyException);
+			}
 			throw exception;
-		} finally {
-			syncing.set(false);
 		}
 	}
 
@@ -97,8 +113,10 @@ public class AdminTourSyncService {
 		return summary;
 	}
 
-	public synchronized List<TourSyncHistoryDTO> getHistory() {
-		return List.copyOf(history);
+	public List<TourSyncHistoryDTO> getHistory() {
+		return executionStore.getRecentHistory(HISTORY_SIZE).stream()
+				.map(this::toDto)
+				.toList();
 	}
 
 	public OffsetDateTime getLastSyncedAt() {
@@ -106,10 +124,10 @@ public class AdminTourSyncService {
 	}
 
 	public boolean isSyncing() {
-		return syncing.get();
+		return executionStore.isRunning(OffsetDateTime.now(clock));
 	}
 
-	private int synchronizeRegion(String regionCode) {
+	private int synchronizeRegion(String regionCode, String syncId) {
 		int page = 1;
 		int changedCount = 0;
 
@@ -117,6 +135,7 @@ public class AdminTourSyncService {
 			TourApiSearchResult result = tourApiClient.searchArea(regionCode, page, PAGE_SIZE);
 			placeCatalogService.rememberTourApiPlaces(result.places());
 			changedCount += result.places().size();
+			executionStore.heartbeat(syncId, leaseExpiresAt());
 
 			if ((long) page * result.size() >= result.totalCount() || result.places().isEmpty()) {
 				break;
@@ -135,21 +154,40 @@ public class AdminTourSyncService {
 	}
 
 	private TourSyncHistoryDTO createHistory(
+			String syncId,
 			OffsetDateTime startedAt,
 			int changedCount,
 			int failedCount,
 			String status,
 			String manager
 	) {
-		String id = "S-" + startedAt.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
 		String startedAtText = startedAt.atZoneSameInstant(KOREA_ZONE).format(DATE_FORMAT);
-		return new TourSyncHistoryDTO(id, startedAtText, changedCount, failedCount, status, manager);
+		return new TourSyncHistoryDTO(syncId, startedAtText, changedCount, failedCount, status, manager);
 	}
 
-	private synchronized void addHistory(TourSyncHistoryDTO result) {
-		history.addFirst(result);
-		while (history.size() > HISTORY_SIZE) {
-			history.removeLast();
-		}
+	private OffsetDateTime leaseExpiresAt() {
+		return OffsetDateTime.now(clock).plus(SYNC_LEASE_DURATION);
+	}
+
+	private TourSyncHistoryRecord toRecord(TourSyncHistoryDTO result, OffsetDateTime startedAt) {
+		return new TourSyncHistoryRecord(
+				result.id(),
+				startedAt,
+				result.changedCount(),
+				result.failedCount(),
+				result.status(),
+				result.manager()
+		);
+	}
+
+	private TourSyncHistoryDTO toDto(TourSyncHistoryRecord history) {
+		return createHistory(
+				history.syncId(),
+				history.startedAt(),
+				history.changedCount(),
+				history.failedCount(),
+				history.status(),
+				history.manager()
+		);
 	}
 }

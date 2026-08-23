@@ -1,6 +1,7 @@
 package com.noblesi.travelplanner.mapper;
 
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -13,6 +14,7 @@ public interface TravelPlanDateMapper {
 			@Param("memberId") long memberId,
 			@Param("startDate") LocalDate startDate,
 			@Param("endDate") LocalDate endDate,
-			@Param("versionNo") int versionNo
+			@Param("versionNo") int versionNo,
+			@Param("updatedAt") OffsetDateTime updatedAt
 	);
 }

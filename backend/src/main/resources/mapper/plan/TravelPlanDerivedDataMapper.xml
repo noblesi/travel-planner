@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.TravelPlanDerivedDataMapper">
+
+	<!-- 조회수와 thumbnail은 파생 데이터이므로 사용자 편집용 VERSION_NO를 증가시키지 않는다. -->
+	<update id="incrementPublishedPlanViewCount">
+		UPDATE TRAVEL_PLAN
+		   SET VIEW_COUNT = VIEW_COUNT + 1
+		 WHERE PLAN_ID = #{planId}
+		   AND VISIBILITY = 'PUBLIC'
+		   AND PUBLISH_STATUS = 'PUBLISHED'
+		   AND PLAN_STATUS = 'ACTIVE'
+		   AND EXISTS (
+		       SELECT 1
+		         FROM MEMBER M
+		        WHERE M.MEMBER_ID = TRAVEL_PLAN.OWNER_MEMBER_ID
+		          AND M.MEMBER_STATUS = 'ACTIVE'
+		   )
+	</update>
+
+	<update id="updateThumbnailWithoutVersion">
+		UPDATE TRAVEL_PLAN
+		   SET THUMBNAIL_IMG = #{thumbnailImageUrl,jdbcType=VARCHAR}
+		 WHERE PLAN_ID = #{planId}
+	</update>
+
+</mapper>
