@@ -175,7 +175,10 @@ public class AdminTourSyncService {
 		return switch (status) {
 			case "SUCCESS" -> "성공";
 			case "PARTIAL_SUCCESS" -> "부분 성공";
-			default -> "실패";
+			// 기존 운영 데이터의 COMPLETED도 실패가 아닌 정상 완료 상태로 호환한다.
+			case "COMPLETED" -> "완료";
+			case "FAILED" -> "실패";
+			default -> "알 수 없음";
 		};
 	}
 }

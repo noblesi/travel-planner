@@ -43,6 +43,7 @@ class AdminTourSyncHistoryIntegrationTest {
 		insert(baseTime, 30, 0, "SUCCESS", null);
 		insert(baseTime.plusMinutes(1), 20, 1, "PARTIAL_SUCCESS", "1개 지역 동기화 실패");
 		insert(baseTime.plusMinutes(2), 0, 1, "FAILED", "인증키 오류");
+		insert(baseTime.plusMinutes(3), 40, 0, "COMPLETED", null);
 
 		assertThat(adminTourSyncService.getHistory())
 				.extracting(
@@ -52,6 +53,7 @@ class AdminTourSyncHistoryIntegrationTest {
 						TourSyncHistoryDTO::manager
 				)
 				.containsExactly(
+						org.assertj.core.groups.Tuple.tuple(40, 0, "완료", "admin1"),
 						org.assertj.core.groups.Tuple.tuple(0, 1, "실패", "admin1"),
 						org.assertj.core.groups.Tuple.tuple(20, 1, "부분 성공", "admin1"),
 						org.assertj.core.groups.Tuple.tuple(30, 0, "성공", "admin1")

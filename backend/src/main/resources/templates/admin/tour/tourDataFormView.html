@@ -68,7 +68,7 @@
 									<td th:text="${sync.changedCount}">0</td>
 									<td th:text="${sync.failedCount}">0</td>
 									<td><span class="badge"
-											th:classappend="${sync.status == '성공'} ? ' success' : ' warning'"
+											th:classappend="${sync.status == '성공' or sync.status == '완료'} ? ' success' : ' warning'"
 											th:text="${sync.status}">성공</span></td>
 									<td class="text-column" th:text="${sync.manager}">관리자</td>
 								</tr>
