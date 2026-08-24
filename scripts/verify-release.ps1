@@ -2,6 +2,8 @@
 param(
     [string]$EnvironmentFile,
     [string]$FrontendEnvironmentFile,
+    [ValidateSet('HttpsRelease', 'HttpDemo')]
+    [string]$DeploymentMode = 'HttpsRelease',
     [switch]$SkipBuild
 )
 
@@ -78,10 +80,11 @@ function Assert-ConfiguredValues {
     }
 }
 
-function Assert-ReleaseHttpsUrl {
+function Assert-DeploymentFrontendUrl {
     param(
         [hashtable]$Values,
-        [string]$Name
+        [string]$Name,
+        [string]$ExpectedScheme
     )
 
     $uri = $null
@@ -92,10 +95,10 @@ function Assert-ReleaseHttpsUrl {
     )
     # example/localhost 주소로 생성된 초대 링크가 사용자에게 발송되는 배포 사고를 차단한다.
     if (-not $isAbsolute -or
-        $uri.Scheme -ne 'https' -or
+        $uri.Scheme -ne $ExpectedScheme -or
         $uri.IsLoopback -or
         $uri.Host.EndsWith('.example')) {
-        throw "$Name must be an absolute, non-loopback HTTPS URL for a release."
+        throw "$Name must be an absolute, non-loopback $ExpectedScheme URL for $DeploymentMode."
     }
 }
 
@@ -142,17 +145,20 @@ Assert-ConfiguredValues $frontendValues @(
     'VITE_KAKAO_MAP_KEY'
 ) 'Frontend environment'
 
-Assert-ReleaseHttpsUrl $backendValues 'FRONTEND_BASE_URL'
+$expectedScheme = if ($DeploymentMode -eq 'HttpDemo') { 'http' } else { 'https' }
+$expectedSecureCookie = if ($DeploymentMode -eq 'HttpDemo') { 'false' } else { 'true' }
+
+Assert-DeploymentFrontendUrl $backendValues 'FRONTEND_BASE_URL' $expectedScheme
 Assert-PositiveIntegerValue $backendValues 'MAIL_PORT' 65535
 Assert-PositiveIntegerValue $backendValues 'MAIL_CONNECTION_TIMEOUT_MS'
 Assert-PositiveIntegerValue $backendValues 'MAIL_READ_TIMEOUT_MS'
 Assert-PositiveIntegerValue $backendValues 'MAIL_WRITE_TIMEOUT_MS'
 
 if ($backendValues.AUTH_ENFORCE_SECURITY -ne 'true') {
-    throw 'AUTH_ENFORCE_SECURITY must be true for a release.'
+    throw 'AUTH_ENFORCE_SECURITY must be true for a deployment.'
 }
-if ($backendValues.SESSION_COOKIE_SECURE -ne 'true') {
-    throw 'SESSION_COOKIE_SECURE must be true for an HTTPS release.'
+if ($backendValues.SESSION_COOKIE_SECURE -ne $expectedSecureCookie) {
+    throw "SESSION_COOKIE_SECURE must be $expectedSecureCookie for $DeploymentMode."
 }
 if ($backendValues.SERVER_FORWARD_HEADERS_STRATEGY -ne 'framework') {
     throw 'SERVER_FORWARD_HEADERS_STRATEGY must be framework behind the documented Nginx reverse proxy.'
@@ -161,7 +167,7 @@ if ($frontendValues.VITE_API_BASE_URL -ne '/api') {
     Write-Warning 'VITE_API_BASE_URL is not /api. Confirm CORS and Cookie settings for a cross-origin API.'
 }
 
-Write-Host 'Release environment validation passed without printing secret values.'
+Write-Host "$DeploymentMode environment validation passed without printing secret values."
 
 if (-not $SkipBuild) {
     Push-Location $backendDirectory

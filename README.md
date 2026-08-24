@@ -410,7 +410,7 @@ chore: 프론트엔드 의존성 설정 수정
 | OS | Ubuntu Server 24.04 LTS | EC2 운영체제 |
 | 원격 접속 | PuTTY + SSH | 서버 명령 실행과 상태 확인 |
 | 파일 전송 | WinSCP 또는 PSCP | JAR와 Frontend 산출물 업로드 |
-| Web Server | Nginx | HTTPS, Vue 정적 파일 제공, Reverse Proxy |
+| Web Server | Nginx | 현재 시연 HTTP, Vue 정적 파일 제공, Reverse Proxy |
 | Container | Docker Engine + Docker Compose plugin | Spring Boot Application 실행과 관리 |
 | 배포 방식 | 수동 배포 | 자동 배포 및 운영 서버의 `git pull`을 사용하지 않음 |
 
@@ -459,11 +459,18 @@ backend/build/libs/travel-planner.jar
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1
 ```
 
+현재 EC2 HTTP 시연 산출물을 검증할 때는 `-DeploymentMode HttpDemo`를 추가합니다. 기본값은 운영 HTTPS 검증입니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 `
+  -DeploymentMode HttpDemo
+```
+
 ### EC2 접속과 파일 전송
 
 - PuTTY 접속 대상은 EC2의 Public IPv4 또는 연결된 Domain이며 Ubuntu AMI의 기본 사용자는 `ubuntu`입니다.
 - SSH Port `22`는 EC2 Security Group에서 운영 담당자의 공인 IP만 허용합니다.
-- HTTP `80`과 HTTPS `443`만 외부에 공개하고 Backend `8080`과 Database Port는 외부에 공개하지 않습니다.
+- 현재 HTTP 시연에서는 `80`만 외부에 공개합니다. HTTPS 전환 시 `443`을 추가하고 Backend `8080`과 Database Port는 외부에 공개하지 않습니다.
 - PuTTY는 Terminal 접속에 사용하고, 산출물 업로드는 같은 SSH Key를 등록한 WinSCP 또는 PSCP를 사용합니다.
 - `.env`와 인증정보는 EC2에만 저장하며 JAR, Frontend 정적 파일 또는 Git 저장소에 포함하지 않습니다.
 
@@ -471,11 +478,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1
 
 ```text
 /opt/withtrip/
+├── .dockerignore
 ├── backend/
-│   └── travel-planner.jar
+│   └── build/libs/travel-planner.jar
 ├── frontend/                       # frontend/dist의 배포본
-├── compose.yaml
-├── Dockerfile
+├── deploy/
+│   ├── compose.yaml
+│   ├── Dockerfile
+│   └── nginx/withtrip-http.conf
 └── .env                            # Git 및 배포 산출물에 포함하지 않음
 ```
 
@@ -486,10 +496,10 @@ JAR와 Frontend 산출물을 업로드한 뒤 PuTTY로 EC2에 접속하여 Appli
 ```bash
 cd /opt/withtrip
 
-docker compose config --quiet
-docker compose up -d --build backend
-docker compose ps
-docker compose logs --tail=100 backend
+docker compose -f deploy/compose.yaml config --quiet
+docker compose -f deploy/compose.yaml up -d --build backend
+docker compose -f deploy/compose.yaml ps
+docker compose -f deploy/compose.yaml logs --tail=100 backend
 ```
 
 Nginx 설정과 Backend 상태를 확인합니다.
@@ -500,17 +510,17 @@ sudo systemctl reload nginx
 curl --fail http://127.0.0.1:8080/api/health
 ```
 
-배포 후 Browser에서 HTTPS 사용자 화면, `/api/health`, `/admin/login`, Vue Route 직접 접근과 새로고침을 확인합니다. 상세 환경변수, Nginx 설정과 운영 점검 항목은 [`docs/deployment/release-checklist.md`](docs/deployment/release-checklist.md)를 따릅니다.
+배포 후 Browser에서 HTTP 사용자 화면, `/api/health`, `/admin/login`, Vue Route 직접 접근과 새로고침을 확인합니다. 실행 순서는 [`deploy/README.md`](deploy/README.md), HTTPS 전환과 운영 점검 항목은 [`docs/deployment/release-checklist.md`](docs/deployment/release-checklist.md)를 따릅니다.
 
 ### 운영 및 rollback 원칙
 
 - 운영 서버에서 Source Code나 JAR를 직접 수정하지 않습니다.
 - 새 JAR를 교체하기 전에 현재 JAR와 Frontend 배포본을 Release 단위로 백업합니다.
 - Database 변경이 포함된 경우 배포 전에 Oracle Backup과 Migration 순서를 확인합니다.
-- 장애 발생 시 이전 JAR와 Frontend 배포본을 복원한 후 같은 `docker compose up -d --build backend` 명령으로 재배포합니다.
+- 장애 발생 시 이전 JAR와 Frontend 배포본을 복원한 후 같은 `docker compose -f deploy/compose.yaml up -d --build backend` 명령으로 재배포합니다.
 - `docker compose ps`, Application Log와 `/api/health`를 확인하기 전에는 배포가 완료된 것으로 판단하지 않습니다.
 - Docker 및 Nginx Log Rotation과 EC2 Disk 사용량을 주기적으로 확인합니다.
-- 현재 저장소에는 운영용 `Dockerfile`과 `compose.yaml`이 포함되어 있지 않으므로 실제 배포 전 별도로 작성하고 검증해야 합니다.
+- HTTP 시연용 Docker·Compose·Nginx 설정은 `deploy/`에서 관리합니다. 운영 HTTPS 전환 시 인증서와 `SESSION_COOKIE_SECURE=true`를 별도로 적용합니다.
 
 ## 13. 최초 실행 체크리스트
 

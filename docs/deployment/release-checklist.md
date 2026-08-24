@@ -3,6 +3,23 @@
 - 기준일: `2026-08-18`
 - 대상: Linux, Nginx 정적 Frontend, Spring Boot 실행 JAR, Oracle `WITHTRIP_DEV`
 
+## EC2 HTTP 시연
+
+현재 시연 서버처럼 HTTP만 사용하는 경우 [`deploy/README.md`](../../deploy/README.md)의 Docker Compose와 Nginx 설정을 적용합니다. 이 모드는 운영 HTTPS 배포와 명확히 분리합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 `
+  -DeploymentMode HttpDemo
+```
+
+- `FRONTEND_BASE_URL=http://EC2_PUBLIC_IP`
+- `SESSION_COOKIE_SECURE=false`
+- EC2 Security Group은 `22 → 관리자 IP`, `80 → 시연 접근 범위`만 허용
+- Backend `8080`과 Oracle Port는 외부에 공개하지 않음
+- Kakao Developers 허용 도메인에 `http://EC2_PUBLIC_IP` 등록
+
+아래의 HTTPS 설정과 완료 조건은 운영 전환 시 적용합니다.
+
 ## 빌드 전 검증
 
 실제 값을 출력하지 않고 필수 환경변수와 Release 산출물을 검증합니다.

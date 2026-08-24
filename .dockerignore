@@ -1,0 +1,11 @@
+*
+!backend/
+backend/*
+!backend/build/
+backend/build/*
+!backend/build/libs/
+backend/build/libs/*
+!backend/build/libs/travel-planner.jar
+!deploy/
+deploy/*
+!deploy/Dockerfile
