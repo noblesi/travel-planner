@@ -6,7 +6,7 @@
 - [ERD 설계](database/travelplanner_v2.exerd): eXERD 원본 파일
 - [여행 플랜 Oracle DDL](database/ddl/README.md): 핵심 Schema, 지역 초기 데이터, 검증 Script
 - [API 계약](api/README.md): 공통 규칙, 인증, 여행 플랜·일정 자동 저장 API, 오류 코드
-- [인증 방식 결정](auth/authentication-decision.md): 로컬·Google 로그인과 회원 계정 연결 원칙
+- [인증 방식 결정](auth/authentication-decision.md): 이메일 로그인과 서버 세션 인증 원칙
 - [공통 레이아웃·UI Component](frontend/common-layout-ui.md): Vue 사용자 layout, orange design token, 공통 Component API와 적용 규칙
 - [배포·시연 체크리스트](deployment/release-checklist.md): Release 검증, HTTPS Reverse Proxy, Kakao 허용 도메인, Oracle 데모 점검
 

@@ -144,11 +144,6 @@ BEGIN
                SELECT MEMBER_ID FROM MEMBER WHERE EMAIL LIKE 'e2e.%@withtrip.test'
            );
 
-    DELETE FROM GOOGLE_ACCOUNT_LINK
-     WHERE MEMBER_ID IN (
-               SELECT MEMBER_ID FROM MEMBER WHERE EMAIL LIKE 'e2e.%@withtrip.test'
-           );
-
     DELETE FROM MEMBER_WARNING_SUPPRESSION
      WHERE MEMBER_ID IN (
                SELECT MEMBER_ID FROM MEMBER WHERE EMAIL LIKE 'e2e.%@withtrip.test'

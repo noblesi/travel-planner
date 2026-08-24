@@ -162,40 +162,6 @@ const handleContinue = () => {
   }
 }
 
-// 또는 다음으로 계속하기 구분선
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 32px 0 20px 0;
-
-  &::before, &::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid #e8e8e8;
-  }
-
-  .divider-text {
-    padding: 0 16px;
-    font-size: 12px;
-    color: #9b9b9b;
-  }
-}
-
-// 소셜 카드 그리드 시스템 (핵심 뼈대 구조)
-.social-grid-triple {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr); // 3열 배치
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.social-grid-double {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); // 2열 배치
-  gap: 10px;
-  padding: 0 24px; // 양옆 마진을 주어 중간 크기로 조절
-}
-
 // 공통 사각형 박스 버튼 스타일
 .card-btn {
   display: flex;

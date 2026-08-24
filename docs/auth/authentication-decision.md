@@ -1,14 +1,13 @@
 # 회원 인증 방식 결정
 
 - 결정일: `2026-08-03`
-- 상태: Oracle `MEMBER` 기반 이메일 로그인 구현 완료, Google OIDC 연동 대기
+- 상태: Oracle `MEMBER` 기반 이메일 로그인 구현 완료
 - 기준 스키마: `WITHTRIP_DEV`
 
 ## 결정 요약
 
 - 서비스 회원의 기준 식별자는 `MEMBER.MEMBER_ID`입니다.
 - 이메일 로그인은 기존 `MEMBER.EMAIL`과 `MEMBER.PASSWORD_HASH`를 사용합니다.
-- Google 로그인은 기존 `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT`를 사용합니다.
 - 별도 `LOCAL_CREDENTIAL`, `SOCIAL_IDENTITY` 테이블은 추가하지 않습니다.
 - 업무 서비스는 로그인 방식을 직접 확인하지 않고 `CurrentMemberProvider`로 현재 회원 ID만 조회합니다.
 - 인증 성공 후에는 Spring Security 서버 세션을 사용하며 상태 변경 요청은 CSRF 토큰을 요구합니다.
@@ -22,11 +21,6 @@ MEMBER
 ├── PASSWORD_HASH          nullable, BCrypt
 ├── NICKNAME
 ├── MEMBER_STATUS          ACTIVE | WITHDRAWN
-└── ...
-
-GOOGLE_ACCOUNT_LINK
-├── MEMBER_ID              FK -> MEMBER.MEMBER_ID
-├── GOOGLE_SUBJECT         Google OIDC sub
 └── ...
 ```
 
@@ -42,18 +36,6 @@ GOOGLE_ACCOUNT_LINK
 6. 성공 시 `MemberPrincipal`을 만들고 세션 ID와 CSRF 토큰을 회전합니다.
 
 비밀번호 원문은 DB, 로그, 응답에 저장하지 않습니다. 신규 비밀번호 저장 시에도 BCrypt만 사용합니다.
-
-## Google 로그인 규칙
-
-Google OIDC 연동 시 이메일이 아닌 ID Token의 `sub`를 `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT`와 비교합니다.
-
-- 이미 연결된 `sub`이면 해당 `MEMBER_ID`로 `MemberPrincipal`을 생성합니다.
-- 이메일이 같다는 이유만으로 기존 회원과 자동 연결하지 않습니다.
-- 계정 연결은 기존 계정 재인증을 거친 명시적 흐름에서 수행합니다.
-- 로그인만 제공하는 단계에서는 Google Access Token과 Refresh Token을 애플리케이션 DB에 저장하지 않습니다.
-- Google 전용 회원은 `PASSWORD_HASH = NULL`을 유지할 수 있습니다.
-
-Google Client ID·Secret과 Redirect URI는 환경변수로 관리하고 Git에 커밋하지 않습니다.
 
 ## 세션과 CSRF
 
@@ -71,7 +53,5 @@ Google Client ID·Secret과 Redirect URI는 환경변수로 관리하고 Git에 
 
 ## 남은 작업
 
-1. Google OAuth Client 설정과 `oauth2Login()` 연결
-2. `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT` 조회 Mapper 및 계정 연결 정책 구현
-3. 이메일 회원가입·비밀번호 재설정 시 BCrypt 저장 흐름 구현
-4. 배포 환경 HTTPS·Secure Cookie·세션 저장소 설정 검증
+1. 이메일 회원가입·비밀번호 재설정 시 BCrypt 저장 흐름 구현
+2. 배포 환경 HTTPS·Secure Cookie·세션 저장소 설정 검증

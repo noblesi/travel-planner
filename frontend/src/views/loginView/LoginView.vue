@@ -2,7 +2,6 @@
 import { ref } from 'vue'
 import { isNavigationFailure, RouterLink, useRoute, useRouter } from 'vue-router'
 
-import GoogleAuthPlaceholder from '@/components/auth/GoogleAuthPlaceholder.vue'
 import { useAuthStore } from '@/stores/auth'
 import { getSafeAuthenticationRedirect } from '@/utils/authRedirect'
 
@@ -105,16 +104,6 @@ const handleContinue = async () => {
           {{ loginCompleted ? '로그인 완료' : authStore.pending ? '로그인 중...' : '로그인' }}
         </button>
       </form>
-
-      <!-- 중앙 구분선 -->
-      <div class="divider">
-        <span class="divider-text">또는 다음으로 계속하기</span>
-      </div>
-
-      <!-- 소셜 및 인증 버튼 그리드 (상단 3열) -->
-      <div class="social-grid-triple">
-        <GoogleAuthPlaceholder />
-      </div>
 
       <!-- 하단 네비게이션 가이드 -->
       <div class="footer-links">
@@ -240,33 +229,6 @@ const handleContinue = async () => {
     cursor: wait;
     opacity: 0.7;
   }
-}
-
-// 또는 다음으로 계속하기 구분선
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 32px 0 20px 0;
-
-  &::before, &::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid #e8e8e8;
-  }
-
-  .divider-text {
-    padding: 0 16px;
-    font-size: 12px;
-    color: #9b9b9b;
-  }
-}
-
-// 소셜 카드 그리드 시스템 (핵심 뼈대 구조)
-.social-grid-triple {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr); // 3열 배치
-  gap: 10px;
-  margin-bottom: 10px;
 }
 
 // 하단 가이드 문구 스타일 영역

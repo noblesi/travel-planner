@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import { isNavigationFailure, useRouter } from 'vue-router'
 
 import { getMemberEmailCheck } from '@/api/users'
-import GoogleAuthPlaceholder from '@/components/auth/GoogleAuthPlaceholder.vue'
 import { useJoinDraftStore } from '@/stores/joinDraft'
 import { normalizeJoinEmail, validateJoinCredentials } from '@/utils/joinValidation'
 
@@ -162,13 +161,6 @@ async function handleContinue() {
           {{ isCheckingEmail ? '확인 중...' : '다음으로' }}
         </button>
       </form>
-      <div class="divider">
-        <span class="divider-text">또는 다음으로 계속하기</span>
-      </div>
-      <div class="social-grid-triple">
-        <GoogleAuthPlaceholder />
-      </div>
-
     </div>
   </div>
 </template>
@@ -315,33 +307,6 @@ async function handleContinue() {
   font-size: 13px;
   line-height: 1.5;
   text-align: center;
-}
-
-// 또는 다음으로 계속하기 구분선
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 15px 0 20px 0;
-
-  &::before, &::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid #e8e8e8;
-  }
-
-  .divider-text {
-    padding: 0 10px;
-    font-size: 12px;
-    color: #9b9b9b;
-  }
-}
-
-// 소셜 카드 그리드 시스템 (핵심 뼈대 구조)
-.social-grid-triple {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr); // 3열 배치
-  gap: 10px;
-  margin-bottom: 10px;
 }
 
 </style>
