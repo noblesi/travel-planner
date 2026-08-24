@@ -15,8 +15,12 @@ export async function getModifyNickname(nickname) {
   return response.data.data
 }
 
-export async function postModifyProfileImage() { 
-  const response = await http.post('/member/modifyProfileImage')
+export async function postModifyProfileImage(formData) { 
+  const response = await http.post('/member/modifyProfileImage', formData, {
+      headers: {
+          'Content-Type': 'multipart/form-data'
+      }
+  })
   return response.data.data
 }
 

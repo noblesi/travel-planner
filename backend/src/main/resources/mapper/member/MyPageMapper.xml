@@ -55,7 +55,7 @@
 		where MEMBER_ID = #{memberId}
 	</update>
 
-	<update id="updateProfileImage" parameterType="memberInfoRequest">
+	<update id="updateProfileImage" parameterType="memberProfileChangeRequest">
 		update MEMBER
 		SET	PROFILE_IMAGE_URL = #{profileImageUrl}
 		where MEMBER_ID = #{memberId}

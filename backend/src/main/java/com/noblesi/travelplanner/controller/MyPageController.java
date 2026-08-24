@@ -3,33 +3,25 @@ package com.noblesi.travelplanner.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.domain.member.MemberInfoDomain;
-import com.noblesi.travelplanner.dto.auth.AuthenticatedMemberResponse;
-import com.noblesi.travelplanner.dto.auth.AuthenticationSessionResponse;
 import com.noblesi.travelplanner.dto.member.MemberInfoRequest;
-import com.noblesi.travelplanner.dto.member.MemberRewordPassword;
+
 import com.noblesi.travelplanner.dto.member.MemberRewordPasswordRequest;
 import com.noblesi.travelplanner.security.MemberPrincipal;
 import com.noblesi.travelplanner.service.MyPageService;
 
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-
 @RestController
 @RequestMapping("/api/member")
 public class MyPageController {
@@ -38,6 +30,7 @@ public class MyPageController {
     private MyPageService myPageService;
 
     @GetMapping("/myPage")
+    
     public ApiResponse<MemberInfoDomain> getSearchMemberInfo(Authentication authentication){
         try {
             MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
@@ -87,10 +80,10 @@ public class MyPageController {
 			);
 		}
     }
-    
     @PostMapping("/modifyProfileImage")
-    public ApiResponse<Boolean> postModifyProfileImage(@RequestBody String profileImage) {
-        return ApiResponse.success(myPageService.modifyProfileImage(profileImage));
+    public ApiResponse<Boolean> postModifyProfileImage(Authentication authentication, @RequestParam("file") MultipartFile file) {
+        System.out.println("controller in");
+        return ApiResponse.success(myPageService.modifyProfileImage(authentication, file));
     }
 
     @PostMapping("/modifyPassword")

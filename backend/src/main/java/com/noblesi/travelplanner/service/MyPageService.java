@@ -1,15 +1,27 @@
 package com.noblesi.travelplanner.service;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.noblesi.travelplanner.domain.member.MemberInfoDomain;
 import com.noblesi.travelplanner.dto.member.MemberInfoRequest;
+import com.noblesi.travelplanner.dto.member.MemberProfileChangeRequest;
 import com.noblesi.travelplanner.dto.member.MemberRewordPassword;
 import com.noblesi.travelplanner.dto.member.MemberRewordPasswordRequest;
 import com.noblesi.travelplanner.dto.member.NickNameRequest;
-import com.noblesi.travelplanner.dto.member.SearchMemberPassword;
 import com.noblesi.travelplanner.mapper.MyPageMapper;
 import com.noblesi.travelplanner.security.MemberPrincipal;
 
@@ -20,13 +32,31 @@ public class MyPageService {
 
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.profile.upload-path}")
+    private String uploadDir;
+
+    @Value("${app.backend.base-url}")
+    private String backendUrl;
+
     public MyPageService(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
     }
     
     public MemberInfoDomain searchUserInfo(long memberId){
         MemberInfoDomain memberInfoDomain = null;
-        memberInfoDomain = myPageMapper.selectMemberInfo(memberId);
+        memberInfoDomain = new MemberInfoDomain(
+            myPageMapper.selectMemberInfo(memberId).memberId(),
+            myPageMapper.selectMemberInfo(memberId).memberName(),
+            myPageMapper.selectMemberInfo(memberId).email(),
+            myPageMapper.selectMemberInfo(memberId).nickname(),
+            backendUrl + myPageMapper.selectMemberInfo(memberId).genderCode(),
+            myPageMapper.selectMemberInfo(memberId).phoneNumber(),
+            myPageMapper.selectMemberInfo(memberId).profileImageUrl(),
+            myPageMapper.selectMemberInfo(memberId).memberStatus(),
+            myPageMapper.selectMemberInfo(memberId).createdAt(),
+            myPageMapper.selectMemberInfo(memberId).withdrawnAt(),
+            myPageMapper.selectMemberInfo(memberId).birthDate()
+        );
         return memberInfoDomain;
     }
 
@@ -41,9 +71,43 @@ public class MyPageService {
         return flag;
     }
 
-    public boolean modifyProfileImage(String profileImage){
-        //이미지 업로드 경로와 이미지의 이름을 재설정 하여 업데이트 해야한다.
-        return myPageMapper.updateProfileImage(profileImage) > 0;
+    public boolean modifyProfileImage(Authentication authentication, MultipartFile file){
+       System.out.println("service IN");
+        try {
+            MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
+            long memberId = principal.memberId();
+
+            if (file.isEmpty()) {
+                throw new IllegalArgumentException("업로드된 파일이 없습니다.");
+            }
+
+            String originalFilename = file.getOriginalFilename();
+            String extension = "";
+            if (originalFilename != null && originalFilename.contains(".")) {
+                extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            }
+
+            String uuid = UUID.randomUUID().toString().replaceAll("-", "");
+            String saveFileName = uuid + extension;
+
+            File dir = new File(uploadDir);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+
+            File destinationFile = new File(uploadDir,saveFileName);
+            System.out.println("주입된 설정 경로: " + uploadDir);
+            System.out.println("최종 저장될 파일 경로: " + destinationFile.getAbsolutePath());
+            file.transferTo(destinationFile.getAbsoluteFile());
+           
+            String profileImageUrl = "/uploads/profile/"+ saveFileName;
+            MemberProfileChangeRequest memberProfileChangeRequest = new MemberProfileChangeRequest(memberId, profileImageUrl);
+
+            return myPageMapper.updateProfileImage(memberProfileChangeRequest) > 0;
+
+        } catch (IOException e) {
+            throw new RuntimeException("파일 저장 중 오류가 발생했습니다.", e);
+        }
     }
 
     public boolean modifyPassword(MemberPrincipal principal, MemberRewordPasswordRequest memberRewordPasswordRequest){

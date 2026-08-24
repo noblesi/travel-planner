@@ -110,6 +110,13 @@
         </div>
     </div>
 
+    <div v-if="customAlert.isOpen" class="modal-overlay" @click="closeAlert">
+        <div class="alert-content" @click.stop>
+            <p class="alert-message">{{ customAlert.message }}</p>
+            <button class="alert-confirm-btn" @click="closeAlert">확인</button>
+        </div>
+    </div>
+
     </DefaultLayout>
 </template>
 
@@ -119,6 +126,7 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import PansleImg from '@/assets/myPageImage/pansle.webp'
 import DefaultImg from '@/assets/myPageImage/default_profile.webp'
 
+import { getImageUrl } from '@/utils/image'
 import { getMemberInfo } from '@/api/member'
 import { postModifyMemberInfo } from '@/api/member'
 import { getModifyNickname } from '@/api/member'
@@ -127,6 +135,21 @@ import { getDeleteAccount } from '@/api/member'
 import { postModifyPassword } from '@/api/member'
 import router from '@/router'
 
+
+const customAlert = ref({
+    isOpen: false,
+    message: ''
+})
+
+const showAlert = (msg) => {
+    customAlert.value.message = msg
+    customAlert.value.isOpen = true
+}
+
+const closeAlert = () => {
+    customAlert.value.isOpen = false
+    customAlert.value.message = ''
+}
 
 const isReadOnly = ref(true)
 const nickNameInput = ref('')
@@ -140,20 +163,16 @@ async function setMember(){
 }
 
 const userInfo = ref({
-    // name: '홍길동',
-    // gender: '남성',
-    // birthdate: '1998-04-02',
-    // email: 'hong@example.com'
     name: '',
     nickName: '',
     gender: '',
     birthDate: '',
     email: '',
-    phoneNumber: ''
+    phoneNumber: '',
+    imageURL: ''
 })
 
 setMember().then((response)=>{
-    // 사용자 정보 데이터 상태 관리
     const member = response.data ? response.data : response
     let memberGender = "N";
 
@@ -171,14 +190,23 @@ setMember().then((response)=>{
     }
     
     originalNickName.value = member.nickname
-    console.log(member.birthDate + "date")
+    console.log(member.profileImageUrl + "/ date")
+    if(member.profileImageUrl == '' || member.profileImageUrl == null){
+        imageURL.value = DefaultImg
+    } else {
+        console.log(member.profileImageUrl)
+        imageURL.value = getImageUrl(member.profileImageUrl)
+        console.log(imageURL.value)
+    }
+
     userInfo.value = {
         name: member.memberName,
         nickName: member.nickname,
         birthDate: member.birthDate.split('T')[0],
         gender: memberGender,
         email: member.email,
-        phoneNumber: member.phoneNumber
+        phoneNumber: member.phoneNumber,
+        
     }
     
 }).catch((error) => {
@@ -186,36 +214,30 @@ setMember().then((response)=>{
     router.push({name: 'home'})
 })
 
-if(imageURL.value == ''){
-    imageURL.value = DefaultImg
-}
+
 
 const handleNicknameSubmit = () => {
     console.log(originalNickName.value + " / " + userInfo.value.nickName)
-    // 1. 입력창을 다시 읽기 전용(readonly) 상태로 변경
     isReadOnly.value = true;
     
-    // 2. 입력값이 비어있지 않고, 기존 닉네임과 값이 다를 때만 서버로 전송
+    
     if (userInfo.value.nickName !== originalNickName.value) {
         changeNicnameApply();
-        
-        // 전송 성공 후 기준 닉네임 업데이트 (실제로는 API 통신 성공(.then) 내부에서 갱신하는 것이 더 안전합니다)
         originalNickName.value = userInfo.value.nickName; 
     } else {
-        // 값이 비어있거나 변경사항이 없으면 원래 닉네임으로 원복
+        
         userInfo.value.nickName = originalNickName.value;
     }
 }
 
-// 기존에 작성하신 API 호출 로직
 const changeNicnameApply = () => {
     console.log("보내기 전 변경할 내 닉네임 : " + userInfo.value.nickName + " / " + originalNickName.value)
     getModifyNickname(userInfo.value.nickName).then((response)=>{
         console.log("보낸 후 변경할 내 닉네임 : " + userInfo.value.nickName)
-        alert(response + " 성공했습니다.");
+        showAlert("닉네임 변경에 성공했습니다."); 
         originalNickName.value = userInfo.value.nickName; // 성공 시 기준값 업데이트
     }).catch((error) => {
-        alert(error + "닉네임 변경에 실패했습니다.");
+        showAlert("닉네임 변경에 실패했습니다."); 
         userInfo.value.nickName = originalNickName.value; // 실패 시 원래 값으로 복구
     });
 }
@@ -234,11 +256,17 @@ const handleFileChange = (event) => {
   const file = event.target.files[0]
   
   if (file) {
-    // 선택한 이미지 파일을 화면에 미리보기 위해 URL을 생성
     imageURL.value = URL.createObjectURL(file)
     
-    // 백엔드 서버로 전송할 때는 이 'file' 객체를 FormData에 담아 보낸다.
-    console.log('선택된 파일 객체:', file)
+    const formData = new FormData()
+    formData.append('file', file)
+
+    postModifyProfileImage(formData).then((response) => {
+        showAlert("프로필 이미지가 성공적으로 변경되었습니다.");
+    }).catch((error) => {
+        showAlert("이미지 변경에 실패했습니다.");
+        console.error(error);
+    })
   }
 }
 
@@ -265,10 +293,10 @@ const saveInfo = () => {
     }
 
     postModifyMemberInfo(requestData).then((response) => {
-        alert('정보가 성공적으로 수정되었습니다.');
+        showAlert('정보가 성공적으로 수정되었습니다.'); 
         isEditMode.value = false;
     }).catch((error) => {
-        alert('정보 수정에 실패했습니다.');
+        showAlert('정보 수정에 실패했습니다.'); 
         console.error(error);
     });
 
@@ -300,15 +328,15 @@ const closePasswordModal = () => {
 
 const submitPasswordChange = () => {
     if (!passwordForm.value.currentPassword) {
-        alert("현재 비밀번호를 입력해주세요.");
+        showAlert("현재 비밀번호를 입력해주세요."); 
         return;
     }
     if (!passwordForm.value.newPassword) {
-        alert("새 비밀번호를 입력해주세요.");
+        showAlert("새 비밀번호를 입력해주세요."); 
         return;
     }
     if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-        alert("새 비밀번호가 일치하지 않습니다. 다시 확인해주세요.");
+        showAlert("새 비밀번호가 일치하지 않습니다. 다시 확인해주세요.");
         return;
     }
 
@@ -321,12 +349,12 @@ const submitPasswordChange = () => {
 
     postModifyPassword(rewordPass).then((response) => {
         console.log(response.data + "성공?")
-        alert("비밀번호가 성공적으로 변경되었습니다.")
+        showAlert("비밀번호가 성공적으로 변경되었습니다.");
+        closePasswordModal();
     }).catch((error) => {
         console.log(error + "실패")
+        showAlert("현재 비밀번호가 일치하지 않거나 오류가 발생했습니다."); 
     })
-
-    closePasswordModal();
 }
 
 
@@ -734,6 +762,59 @@ const submitPasswordChange = () => {
 }
 .modal-submit-btn:hover {
     background-color: #cd7652;
+}
+
+/* =========================================
+   커스텀 Alert 모달 스타일 추가
+   ========================================= */
+
+.alert-content {
+    background-color: #ffffff;
+    padding: 2.5rem 2rem;
+    border-radius: 16px;
+    width: 320px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    color: #333;
+    animation: fadeIn 0.2s ease-out; /* 부드럽게 나타나는 애니메이션 */
+}
+
+.alert-message {
+    font-size: 1.1rem;
+    margin-top: 0;
+    margin-bottom: 2rem;
+    line-height: 1.5;
+    word-break: keep-all; /* 단어 단위로 줄바꿈 되도록 설정 */
+    font-weight: 500;
+}
+
+.alert-confirm-btn {
+    padding: 0.8rem 2.5rem;
+    background-color: rgba(247, 145, 62, 0.945); /* 기존 테마 컬러 */
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: background-color 0.2s;
+    width: 100%; /* 버튼을 꽉 차게 */
+}
+
+.alert-confirm-btn:hover {
+    background-color: #cd7652;
+}
+
+/* 팝업 애니메이션 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 </style>
