@@ -14,7 +14,7 @@
                     @keyup.enter="$event.target.blur()"
                     class="nickName-text"/>
                 <img :src="PansleImg" @click="changeNickName" class="nickName-change-btn"/>
-                <a href="#void" class="member-draw-btn">회원 탈퇴</a>
+                <a class="member-draw-btn" @click="drawMember">회원 탈퇴</a>
             </div>
             <div name="myInfoWrap" class="myInfo-wrap">
                 <div class="my-info-container">
@@ -117,6 +117,16 @@
         </div>
     </div>
 
+    <div v-if="customConfirm.isOpen" class="modal-overlay" @click="closeConfirm">
+        <div class="alert-content" @click.stop>
+            <p class="alert-message">{{ customConfirm.message }}</p>
+            <div class="confirm-button-group">
+                <button class="modal-cancel-btn" @click="closeConfirm">취소</button>
+                <button class="alert-confirm-btn" @click="handleConfirm">확인</button>
+            </div>
+        </div>
+    </div>
+
     </DefaultLayout>
 </template>
 
@@ -133,8 +143,10 @@ import { getModifyNickname } from '@/api/member'
 import { postModifyProfileImage } from '@/api/member'
 import { getDeleteAccount } from '@/api/member'
 import { postModifyPassword } from '@/api/member'
+import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
+const authStore = useAuthStore()
 
 const customAlert = ref({
     isOpen: false,
@@ -357,6 +369,43 @@ const submitPasswordChange = () => {
     })
 }
 
+
+const drawMember = () => {
+    showConfirm("회원 탈퇴를 진행합니다. 정말 탈퇴 하시겠습니까?", () => {
+        getDeleteAccount().then((response) => {
+            showAlert("성공적으로 회원탈퇴가 완료 되었습니다.")
+            authStore.logout()
+            router.push({ name: 'home' })
+        }).catch((error) => {
+            showAlert("회원 탈퇴 중 문제가 발생하였습니다. 조금 뒤 다시 시도 해주세요.")
+        })
+    })
+}
+
+const customConfirm = ref({
+    isOpen: false,
+    message: '',
+    onConfirm: null
+})
+
+const showConfirm = (msg, onConfirmCallback) => {
+    customConfirm.value.message = msg
+    customConfirm.value.onConfirm = onConfirmCallback
+    customConfirm.value.isOpen = true
+}
+
+const closeConfirm = () => {
+    customConfirm.value.isOpen = false
+    customConfirm.value.message = ''
+    customConfirm.value.onConfirm = null
+}
+
+const handleConfirm = () => {
+    if (typeof customConfirm.value.onConfirm === 'function') {
+        customConfirm.value.onConfirm()
+    }
+    closeConfirm()
+}
 
 </script>
 
@@ -591,7 +640,10 @@ const submitPasswordChange = () => {
     font-size: 12px;
     top: 255px;
     left: 100px;
-   
+}
+
+.member-draw-btn:hover{
+    cursor: pointer;
 }
 
 .myPage-container{
@@ -815,6 +867,19 @@ const submitPasswordChange = () => {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.confirm-button-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.8rem;
+    margin-top: 1.5rem;
+}
+
+.confirm-button-group .modal-cancel-btn,
+.confirm-button-group .alert-confirm-btn {
+    flex: 1;
+    margin: 0;
 }
 
 </style>

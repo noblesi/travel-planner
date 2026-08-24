@@ -74,7 +74,7 @@
 		WHERE MEMBER_ID = #{memberId}
 	</select>
 
-	<update id="updateMemberStatus" parameterType="int">
+	<update id="updateMemberStatus" parameterType="long">
 		update MEMBER
 		SET	MEMBER_STATUS = 'WITHDRAWN'
 		where MEMBER_ID = #{memberId}

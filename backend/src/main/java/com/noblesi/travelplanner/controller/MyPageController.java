@@ -82,7 +82,6 @@ public class MyPageController {
     }
     @PostMapping("/modifyProfileImage")
     public ApiResponse<Boolean> postModifyProfileImage(Authentication authentication, @RequestParam("file") MultipartFile file) {
-        System.out.println("controller in");
         return ApiResponse.success(myPageService.modifyProfileImage(authentication, file));
     }
 
@@ -103,8 +102,8 @@ public class MyPageController {
     
 
     @GetMapping("/deleteAccount")
-    public ApiResponse<Boolean> getDeleteAccount(@RequestBody int memberId) {
-        return ApiResponse.success(myPageService.deleteAccount(memberId));
+    public ApiResponse<Boolean> getDeleteAccount(Authentication authentication) {
+        return ApiResponse.success(myPageService.deleteAccount(authentication));
     }
     
 }

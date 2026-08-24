@@ -15,11 +15,6 @@ app:
     enforce-security: ${AUTH_ENFORCE_SECURITY:false}
     local-member-id: ${LOCAL_MEMBER_ID:1}
 
-  #파일 업로드 경로
-  profile:
-    upload-path: ${PROFILE_UPLOAD_PATH:C:/uploads/profile/}
-    #upload-path: ${PROFILE_UPLOAD_PATH:C:/Users/user/uploads}
-  
 server:
   servlet:
     session:

@@ -136,8 +136,9 @@ public class MyPageService {
         return flag;
     }
 
-    public boolean deleteAccount(int memberId){
-        return myPageMapper.updateMemberStatus(memberId) > 0;
+    public boolean deleteAccount(Authentication authentication){
+        MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
+        return myPageMapper.updateMemberStatus(principal.memberId()) > 0;
     }
 
 }
