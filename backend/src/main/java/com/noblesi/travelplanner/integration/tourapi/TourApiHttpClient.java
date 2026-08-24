@@ -61,11 +61,11 @@ class TourApiHttpClient {
 			throw mapHttpError(exception);
 		} catch (ResourceAccessException exception) {
 			if (hasTimeoutCause(exception)) {
-				throw new TourApiException(Reason.TIMEOUT, "TourAPI request timed out", exception);
+				throw new TourApiException(Reason.TIMEOUT, "TourAPI request timed out");
 			}
-			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed", exception);
+			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed");
 		} catch (RestClientException exception) {
-			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed", exception);
+			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed");
 		}
 	}
 
@@ -93,11 +93,11 @@ class TourApiHttpClient {
 			throw mapHttpError(exception);
 		} catch (ResourceAccessException exception) {
 			if (hasTimeoutCause(exception)) {
-				throw new TourApiException(Reason.TIMEOUT, "TourAPI request timed out", exception);
+				throw new TourApiException(Reason.TIMEOUT, "TourAPI request timed out");
 			}
-			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed", exception);
+			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed");
 		} catch (RestClientException exception) {
-			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed", exception);
+			throw new TourApiException(Reason.UNAVAILABLE, "TourAPI request failed");
 		}
 	}
 
@@ -106,7 +106,7 @@ class TourApiHttpClient {
 		Reason reason = status.value() == 401 || status.value() == 403
 				? Reason.AUTHENTICATION_FAILED
 				: Reason.UNAVAILABLE;
-		return new TourApiException(reason, "TourAPI returned HTTP " + status.value(), exception);
+		return new TourApiException(reason, "TourAPI returned HTTP " + status.value());
 	}
 
 	private boolean hasTimeoutCause(Throwable throwable) {

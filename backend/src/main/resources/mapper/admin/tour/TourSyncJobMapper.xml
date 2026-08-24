@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.TourSyncJobMapper">
+
+	<resultMap id="tourSyncHistoryResultMap" type="com.noblesi.travelplanner.admin.tour.domain.TourSyncHistoryRecord">
+		<constructor>
+			<idArg column="SYNC_ID" javaType="string" />
+			<arg column="STARTED_AT" javaType="java.time.OffsetDateTime" />
+			<arg column="CHANGED_COUNT" javaType="_int" />
+			<arg column="FAILED_COUNT" javaType="_int" />
+			<arg column="SYNC_STATUS" javaType="string" />
+			<arg column="MANAGER" javaType="string" />
+		</constructor>
+	</resultMap>
+
+	<update id="tryAcquire">
+		UPDATE TOUR_SYNC_STATE
+		   SET RUNNING_YN = 'Y',
+		       SYNC_ID = #{syncId},
+		       STARTED_AT = #{startedAt},
+		       LEASE_EXPIRES_AT = #{leaseExpiresAt},
+		       STARTED_BY = #{manager}
+		 WHERE LOCK_ID = 1
+		   AND (
+		       RUNNING_YN = 'N'
+		       OR LEASE_EXPIRES_AT &lt;= #{startedAt}
+		   )
+	</update>
+
+	<update id="heartbeat">
+		UPDATE TOUR_SYNC_STATE
+		   SET LEASE_EXPIRES_AT = #{leaseExpiresAt}
+		 WHERE LOCK_ID = 1
+		   AND RUNNING_YN = 'Y'
+		   AND SYNC_ID = #{syncId}
+	</update>
+
+	<update id="release">
+		UPDATE TOUR_SYNC_STATE
+		   SET RUNNING_YN = 'N',
+		       SYNC_ID = NULL,
+		       STARTED_AT = NULL,
+		       LEASE_EXPIRES_AT = NULL,
+		       STARTED_BY = NULL
+		 WHERE LOCK_ID = 1
+		   AND SYNC_ID = #{syncId}
+	</update>
+
+	<insert id="insertHistory" parameterType="com.noblesi.travelplanner.admin.tour.domain.TourSyncHistoryRecord">
+		INSERT INTO TOUR_SYNC_HISTORY (
+			SYNC_ID,
+			STARTED_AT,
+			CHANGED_COUNT,
+			FAILED_COUNT,
+			SYNC_STATUS,
+			MANAGER
+		) VALUES (
+			#{syncId},
+			#{startedAt},
+			#{changedCount},
+			#{failedCount},
+			#{status},
+			#{manager}
+		)
+	</insert>
+
+	<select id="findRecentHistory" resultMap="tourSyncHistoryResultMap">
+		SELECT SYNC_ID,
+		       STARTED_AT,
+		       CHANGED_COUNT,
+		       FAILED_COUNT,
+		       SYNC_STATUS,
+		       MANAGER
+		  FROM (
+		        SELECT SYNC_ID,
+		               STARTED_AT,
+		               CHANGED_COUNT,
+		               FAILED_COUNT,
+		               SYNC_STATUS,
+		               MANAGER
+		          FROM TOUR_SYNC_HISTORY
+		         ORDER BY STARTED_AT DESC, SYNC_ID DESC
+		  )
+		 WHERE ROWNUM &lt;= #{limit}
+	</select>
+
+	<select id="countRunning" resultType="int">
+		SELECT COUNT(*)
+		  FROM TOUR_SYNC_STATE
+		 WHERE LOCK_ID = 1
+		   AND RUNNING_YN = 'Y'
+		   AND LEASE_EXPIRES_AT &gt; #{now}
+	</select>
+
+</mapper>

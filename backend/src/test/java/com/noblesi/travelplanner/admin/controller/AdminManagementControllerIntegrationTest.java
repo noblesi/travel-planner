@@ -69,9 +69,9 @@ class AdminManagementControllerIntegrationTest {
 
     @Test
     void searchesMemberRendersDetailAndChangesStatus() throws Exception {
-        int memberId = jdbcTemplate.queryForObject(
+        Long memberId = jdbcTemplate.queryForObject(
                 "SELECT MEMBER_ID FROM MEMBER WHERE EMAIL = ?",
-                Integer.class,
+                Long.class,
                 "e2e.owner@withtrip.test"
         );
         MockHttpSession session = login();
@@ -118,12 +118,17 @@ class AdminManagementControllerIntegrationTest {
                 String.class,
                 memberId
         )).isEqualTo("WITHDRAWN");
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT WITHDRAWN_AT FROM MEMBER WHERE MEMBER_ID = ?",
+                java.time.OffsetDateTime.class,
+                memberId
+        )).isNotNull();
     }
 
     @Test
     void filtersTripListAndRendersTripDetail() throws Exception {
-        int planId = createPlan("관리자 여행 통합 테스트", "PUBLIC");
-        int planDayId = createPlanDay(planId);
+        Long planId = createPlan("관리자 여행 통합 테스트", "PUBLIC");
+        Long planDayId = createPlanDay(planId);
         jdbcTemplate.update("""
                 INSERT INTO PLAN_SCHEDULE_ITEM (
                     SCHEDULE_ITEM_ID, PLAN_DAY_ID, TIME_SLOT, POSITION_NO,
@@ -167,8 +172,12 @@ class AdminManagementControllerIntegrationTest {
 
     @Test
     void rendersAndCompletesReportWhileHidingPlan() throws Exception {
-        int planId = createPlan("신고 처리 통합 테스트", "PUBLIC");
-        int reportId = createReport(planId);
+        Long planId = createPlan("신고 처리 통합 테스트", "PUBLIC");
+        Long reportId = createReport(planId);
+        jdbcTemplate.update(
+                "UPDATE TRAVEL_PLAN SET UPDATED_AT = TIMESTAMP WITH TIME ZONE '2000-01-01 00:00:00+00:00' WHERE PLAN_ID = ?",
+                planId
+        );
         MockHttpSession session = login();
 
         MvcResult detailResult = mockMvc.perform(get("/admin/reports/{reportId}", reportId).session(session))
@@ -202,13 +211,23 @@ class AdminManagementControllerIntegrationTest {
                 planId
         )).isEqualTo("PRIVATE");
         assertThat(jdbcTemplate.queryForObject(
+                "SELECT VERSION_NO FROM TRAVEL_PLAN WHERE PLAN_ID = ?",
+                Integer.class,
+                planId
+        )).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject(
+                "SELECT UPDATED_AT FROM TRAVEL_PLAN WHERE PLAN_ID = ?",
+                java.time.OffsetDateTime.class,
+                planId
+        )).isAfter(java.time.OffsetDateTime.parse("2000-01-01T00:00:00Z"));
+        assertThat(jdbcTemplate.queryForObject(
                 "SELECT PROCESS_RESULT_CODE FROM REPORT_PROCESS WHERE REPORT_ID = ?",
                 String.class,
                 reportId
         )).isEqualTo("HIDDEN");
     }
 
-    private int createPlan(String title, String visibility) {
+    private Long createPlan(String title, String visibility) {
         LocalDate startDate = LocalDate.now().plusDays(1);
         jdbcTemplate.update("""
                 INSERT INTO TRAVEL_PLAN (
@@ -223,9 +242,9 @@ class AdminManagementControllerIntegrationTest {
                 Date.valueOf(startDate.plusDays(1)),
                 visibility
         );
-        int planId = jdbcTemplate.queryForObject(
+        Long planId = jdbcTemplate.queryForObject(
                 "SELECT PLAN_ID FROM TRAVEL_PLAN WHERE TITLE = ?",
-                Integer.class,
+                Long.class,
                 title
         );
         jdbcTemplate.update(
@@ -235,7 +254,7 @@ class AdminManagementControllerIntegrationTest {
         return planId;
     }
 
-    private int createPlanDay(int planId) {
+    private Long createPlanDay(Long planId) {
         jdbcTemplate.update("""
                 INSERT INTO PLAN_DAY (PLAN_DAY_ID, PLAN_ID, DAY_NO, TRAVEL_DATE)
                 SELECT SEQ_PLAN_DAY.NEXTVAL, PLAN_ID, 1, START_DATE
@@ -244,12 +263,12 @@ class AdminManagementControllerIntegrationTest {
                 """, planId);
         return jdbcTemplate.queryForObject(
                 "SELECT PLAN_DAY_ID FROM PLAN_DAY WHERE PLAN_ID = ? AND DAY_NO = 1",
-                Integer.class,
+                Long.class,
                 planId
         );
     }
 
-    private int createReport(int planId) {
+    private Long createReport(Long planId) {
         jdbcTemplate.update("""
                 INSERT INTO REPORT (
                     REPORT_ID, PLAN_ID, REPORTER_MEMBER_ID,
@@ -260,7 +279,7 @@ class AdminManagementControllerIntegrationTest {
                 """, planId);
         return jdbcTemplate.queryForObject(
                 "SELECT REPORT_ID FROM REPORT WHERE PLAN_ID = ? AND REPORTER_MEMBER_ID = 2",
-                Integer.class,
+                Long.class,
                 planId
         );
     }

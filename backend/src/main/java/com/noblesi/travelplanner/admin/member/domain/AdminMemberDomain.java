@@ -11,7 +11,7 @@ import lombok.ToString;
 @ToString
 public class AdminMemberDomain {
 
-	private int memberId;
+	private Long memberId;
 	private String memberName;
 	private String email;
 	private String nickName;

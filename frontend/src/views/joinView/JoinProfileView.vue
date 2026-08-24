@@ -1,63 +1,86 @@
 <script setup>
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/useUserStore'
+import { isNavigationFailure, useRouter } from 'vue-router'
+
 import { postMemberJoin } from '@/api/users'
+import { useJoinDraftStore } from '@/stores/joinDraft'
+import { validateJoinProfile } from '@/utils/joinValidation'
 
 const router = useRouter()
-const userStore = useUserStore()
+const joinDraftStore = useJoinDraftStore()
 
 const birth = ref('')
 const name = ref('')
-const gender = ref('N') // 기본값 설정 (N: 선택안함)
+const gender = ref('N')
 const phone = ref('')
 const privacy = ref(false)
+const errorMessage = ref('')
+const isSubmitting = ref(false)
+const isRegistrationCompleted = ref(false)
 
-const handleContinue = () => {
-  if (!name.value.trim()) {
-    alert('이름을 입력하여 주세요.')
-    return
+async function replaceRoute(location, failureMessage) {
+  try {
+    const failure = await router.replace(location)
+    if (!isNavigationFailure(failure)) return true
+  } catch {
+    errorMessage.value = failureMessage
+    return false
   }
 
-  if (birth.value.length !== 8) {
-    alert('생년월일을 8자리로 정확하게 입력하여 주세요. (예: 20001031)')
-    return
-  }
+  errorMessage.value = failureMessage
+  return false
+}
 
-  if (!phone.value.trim()) {
-    alert('전화번호를 입력하여 주세요.')
-    return
-  }
-  
-  if (privacy.value !== true) {
-    alert('개인정보 저장에 동의하여 주세요.')
-    return
-  }
+async function handleContinue() {
+  if (isSubmitting.value || isRegistrationCompleted.value) return
 
-  const userInfo = {
-    email: userStore.userInfo.email,
-    password: userStore.userInfo.password,
+  errorMessage.value = validateJoinProfile({
     name: name.value,
-    nickname: name.value, // 닉네임은 이름과 동일하게 설정
-    gender: gender.value,
     birth: birth.value,
-    privacy: privacy.value == true ? 'Y' : 'N',
-    phone: phone.value
+    phone: phone.value,
+    gender: gender.value,
+    privacy: privacy.value,
+  })
+  if (errorMessage.value) return
+
+  let payload
+  try {
+    const normalizedName = name.value.trim()
+    payload = joinDraftStore.buildRegistrationPayload({
+      name: normalizedName,
+      nickname: normalizedName,
+      gender: gender.value,
+      birth: birth.value,
+      privacy: 'Y',
+      phone: phone.value.trim(),
+    })
+  } catch {
+    await replaceRoute(
+      { name: 'join', query: { reset: true } },
+      '회원가입 정보를 다시 입력할 화면으로 이동하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    )
+    return
   }
-  if(userInfo.privacy === "Y"){
-    postMemberJoin(userInfo)
-      .then((response) => {
-        alert('정상 가입되었습니다.')
-        console.log('서버 응답:', response.data) // 서버에서 반환된 데이터 처리 가능
-        userStore.clearData() // 회원가입 성공 후 스토어 비우기
-        router.push('/joinComplete')
-      })
-      .catch((error) => {
-        console.log('가입 에러 발생:', error)
-        alert('가입이 정상적으로 이루어지지 않았습니다.')
-      })
-  } else {
-    alert('개인정보 저장에 동의하지 않으면 가입이 불가합니다.')
+
+  isSubmitting.value = true
+  try {
+    try {
+      await postMemberJoin(payload)
+    } catch (error) {
+      errorMessage.value =
+        error?.response?.data?.message ||
+        '회원가입을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+      return
+    }
+
+    isRegistrationCompleted.value = true
+    joinDraftStore.clearRegistration()
+    await replaceRoute(
+      { name: 'complete' },
+      '회원가입은 완료되었지만 완료 화면으로 이동하지 못했습니다. 로그인 화면에서 로그인해 주세요.',
+    )
+  } finally {
+    isSubmitting.value = false
   }
 }
 </script>
@@ -76,42 +99,62 @@ const handleContinue = () => {
       <!-- 이메일 입력 및 계속하기 폼 -->
       <form @submit.prevent="handleContinue" class="login-form">
         <div class="input-container">
-          <label class="input-label">이름</label>
+          <label class="input-label" for="join-name">이름</label>
           <input 
+            id="join-name"
             type="text" 
             v-model="name" 
             placeholder="이름을 입력해주세요." 
+            autocomplete="name"
+            maxlength="10"
             required
           />
         </div>
         <div class="input-container">
-          <label class="input-label">생년월일</label>
+          <label class="input-label" for="join-birth">생년월일</label>
           <input 
+            id="join-birth"
             type="text" 
             v-model="birth" 
             placeholder="생년월일을 입력해주세요. 예) 20001031" 
+            autocomplete="bday"
+            inputmode="numeric"
+            maxlength="8"
+            pattern="[0-9]{8}"
             required
           />
         </div>
         <div class="input-container">
-          <label class="input-label">전화번호</label>
+          <label class="input-label" for="join-phone">전화번호</label>
           <input 
+            id="join-phone"
             type="text" 
             v-model="phone" 
             placeholder="전화번호를 입력해주세요 예) 010-1234-5678" 
+            autocomplete="tel"
+            inputmode="tel"
+            maxlength="20"
             required
           />
         </div>
-        <div class="input-container">
-          <label class="input-label">성별 : </label>
-          <input type="radio" :name="gender" v-model="gender" value="M" checked="checked"/>남성
-          <input type="radio" :name="gender" v-model="gender" value="F"/>여성
-          <input type="radio" :name="gender" v-model="gender" value="N"/>선택안함
+        <fieldset class="input-container gender-options">
+          <legend class="input-label">성별</legend>
+          <label><input type="radio" name="gender" v-model="gender" value="M" /> 남성</label>
+          <label><input type="radio" name="gender" v-model="gender" value="F" /> 여성</label>
+          <label><input type="radio" name="gender" v-model="gender" value="N" /> 선택안함</label>
+        </fieldset>
+        <div class="input-container privacy-consent">
+          <input id="join-privacy" type="checkbox" class="input-checkbox" v-model="privacy" />
+          <label for="join-privacy">개인정보 저장에 동의합니다.</label>
         </div>
-        <div class="input-container">
-          <input type="checkbox" class="input-checkbox" v-model="privacy"/>개인정보 저장에 대해 동의합니다.
-        </div>
-        <button type="submit" class="btn-submit">가입하기</button>
+        <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+        <button
+          type="submit"
+          class="btn-submit"
+          :disabled="isSubmitting || isRegistrationCompleted"
+        >
+          {{ isRegistrationCompleted ? '가입 완료' : isSubmitting ? '가입 처리 중...' : '가입하기' }}
+        </button>
       </form>
       
     </div>
@@ -136,6 +179,30 @@ const handleContinue = () => {
   margin-right: 10px;
   transform: scale(1.2);
   cursor: pointer;
+}
+
+.gender-options {
+  display: flex;
+  margin-inline: 20px;
+  padding: 0;
+  border: 0;
+  gap: 24px;
+}
+
+.gender-options .input-label {
+  width: 100%;
+}
+
+.gender-options label,
+.privacy-consent label {
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.privacy-consent {
+  display: flex;
+  align-items: center;
+  margin-inline: 20px;
 }
 
 // 노션 특유의 슬림하고 중앙 집중된 박스 레이아웃
@@ -179,10 +246,6 @@ const handleContinue = () => {
       color: #6b6b6b;
       margin-bottom: 6px;
       margin-left: 20px;
-    }
-
-    input[type='radio'] {
-        margin-left: 60px;
     }
 
     input[type='text'],
@@ -229,40 +292,26 @@ const handleContinue = () => {
   &:hover {
     background-color: #1a6cb9;
   }
-}
 
-// 또는 다음으로 계속하기 구분선
-.divider {
-  display: flex;
-  align-items: center;
-  margin: 32px 0 20px 0;
-
-  &::before, &::after {
-    content: '';
-    flex: 1;
-    border-bottom: 1px solid #e8e8e8;
-  }
-
-  .divider-text {
-    padding: 0 16px;
-    font-size: 12px;
-    color: #9b9b9b;
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
   }
 }
 
-// 소셜 카드 그리드 시스템 (핵심 뼈대 구조)
-.social-grid-triple {
-  display: grid;
-  grid-template-columns: repeat(1, 1fr); // 3열 배치
-  gap: 10px;
-  margin-bottom: 10px;
+.btn-submit:focus-visible,
+input:focus-visible {
+  outline: 3px solid rgb(35 131 226 / 35%);
+  outline-offset: 3px;
 }
 
-.social-grid-double {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr); // 2열 배치
-  gap: 10px;
-  padding: 0 24px; // 양옆 마진을 주어 중간 크기로 조절
+.form-error {
+  min-height: 20px;
+  margin: 0 20px 8px;
+  color: #991b1b;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
 }
 
 // 공통 사각형 박스 버튼 스타일

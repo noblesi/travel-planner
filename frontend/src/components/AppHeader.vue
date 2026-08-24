@@ -86,6 +86,13 @@ const handleLogout = async () => {
           </template>
           <template v-else>
             <span class="member-name">{{ authStore.currentUser.displayName }}</span>
+            <RouterLink
+              class="navigation__account-link"
+              :to="{ name: 'myPage' }"
+              @click="closeMenu"
+            >
+              마이페이지
+            </RouterLink>
             <button type="button" :disabled="authStore.pending" @click="handleLogout">로그아웃</button>
           </template>
         </div>
@@ -98,6 +105,7 @@ const handleLogout = async () => {
         </div>
         <div v-else class="desktop-actions authenticated-actions">
           <span class="member-name">{{ authStore.currentUser.displayName }}</span>
+          <RouterLink class="text-button" :to="{ name: 'myPage' }">마이페이지</RouterLink>
           <button
             class="text-button"
             type="button"

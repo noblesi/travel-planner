@@ -1,6 +1,6 @@
 # 인증 API 계약
 
-Vue SPA와 Spring Boot API 사이의 서버 세션 인증 계약입니다. 현재 Oracle `MEMBER.EMAIL + MEMBER.PASSWORD_HASH` 기반 이메일 로그인이 구현되어 있으며 Google OIDC는 후속 범위입니다.
+Vue SPA와 Spring Boot API 사이의 서버 세션 인증 계약입니다. 현재 Oracle `MEMBER.EMAIL + MEMBER.PASSWORD_HASH` 기반 이메일 로그인이 구현되어 있습니다.
 
 ## 공통 규칙
 
@@ -97,9 +97,3 @@ X-CSRF-TOKEN: server-generated-token
 - 인증 필요: `GET /api/places/search`, 플랜 생성·편집·초대 수락을 포함한 나머지 상태 변경과 편집 조회
 - 인증이 없으면 `401 CURRENT_MEMBER_NOT_AVAILABLE`을 반환합니다.
 - 인증은 있지만 권한 또는 CSRF 검증에 실패하면 `403 ACCESS_DENIED`를 반환합니다.
-
-## Google 로그인 후속 계약
-
-- Google OIDC `sub`를 `GOOGLE_ACCOUNT_LINK.GOOGLE_SUBJECT`와 매칭합니다.
-- 이메일 일치만으로 기존 회원과 자동 연결하지 않습니다.
-- 인증 성공 후 이메일 로그인과 같은 `MemberPrincipal` 및 서버 세션을 생성합니다.

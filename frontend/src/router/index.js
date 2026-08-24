@@ -1,7 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
+
 import HomeView from '@/views/HomeView.vue'
 import { useAuthStore } from '@/stores/auth'
-import { useUserStore } from '@/stores/useUserStore'
+import { useJoinDraftStore } from '@/stores/joinDraft'
+
+const JOIN_FLOW_ROUTE_NAMES = new Set(['join', 'joinProfile'])
 
 // 사용자 라우트와 기능별로 분리한 관리자 라우트를 하나의 Router에 등록합니다.
 const router = createRouter({
@@ -70,36 +73,27 @@ const router = createRouter({
       name: 'login',
       component: () => import('@/views/loginView/LoginView.vue'),
     },
-    {
-      path: '/emailFind',
-      name: 'emailFind',
-      component: () => import('@/views/loginView/EmailFindView.vue'),
-    },
-    {
-      path: '/passwordFind',
-      name: 'passwordFind',
-      component: () => import('@/views/loginView/PasswordFindView.vue'),
-    },
     //회원 가입
     {
       path: '/joinView',
       name: 'join',
       component: () => import('@/views/joinView/JoinView.vue'),
+      beforeEnter: () => {
+        useJoinDraftStore().clearRegistration()
+        return true
+      },
     },
     {
       path: '/joinProfileView',
       name: 'joinProfile',
       component: () => import('@/views/joinView/JoinProfileView.vue'),
-      beforeEnter: (from, to, next) => {
-        const store = useUserStore()
-        // Step 1에서 반드시 넘겨야 하는 데이터(예: userId)가 있는지 확인
-        if (!store.userInfo.email || !store.userInfo.password) {
-          // 데이터가 없으면 1단계로 돌려보냅니다.
-          next({ name: 'join', query: { reset: true } })
-        } else {
-          next()
+      beforeEnter: () => {
+        const store = useJoinDraftStore()
+        if (!store.hasCredentials) {
+          return { name: 'join', query: { reset: true } }
         }
-      }
+        return true
+      },
     },
     {
       path: '/joinComplete',
@@ -111,6 +105,7 @@ const router = createRouter({
       path: '/myPage',
       name: 'myPage',
       component: () => import('@/views/myPage/MyPage.vue'),
+      meta: { requiresAuth: true },
     },
     {
       path: '/:pathMatch(.*)*',
@@ -130,7 +125,11 @@ const router = createRouter({
   },
 })
 
-router.beforeEach(async (to) => {
+router.beforeEach(async (to, from) => {
+  if (JOIN_FLOW_ROUTE_NAMES.has(from.name) && !JOIN_FLOW_ROUTE_NAMES.has(to.name)) {
+    useJoinDraftStore().clearRegistration()
+  }
+
   if (!to.meta.requiresAuth) return true
 
   const authStore = useAuthStore()

@@ -4,8 +4,12 @@ import axios from 'axios'
 const { httpMock } = vi.hoisted(() => ({
   httpMock: {
     get: vi.fn(),
+    request: vi.fn(),
     interceptors: {
       request: {
+        use: vi.fn(),
+      },
+      response: {
         use: vi.fn(),
       },
     },
@@ -18,10 +22,15 @@ vi.mock('axios', () => ({
   },
 }))
 
-import { attachCsrfToken, clearCsrfTokenCache } from '@/api/http'
+import {
+  attachCsrfToken,
+  clearCsrfTokenCache,
+  recoverExpiredCsrfToken,
+} from '@/api/http'
 
 beforeEach(() => {
   httpMock.get.mockReset()
+  httpMock.request.mockReset()
   // module scope cache가 테스트 간 요청 횟수 검증에 영향을 주지 않도록 각 case를 독립시킨다.
   clearCsrfTokenCache()
 })
@@ -37,6 +46,13 @@ describe('HTTP CSRF interceptor', () => {
 
   it('CSRF 처리기를 request interceptor로 등록한다', () => {
     expect(httpMock.interceptors.request.use).toHaveBeenCalledWith(attachCsrfToken)
+  })
+
+  it('CSRF 복구 처리기를 response interceptor로 등록한다', () => {
+    expect(httpMock.interceptors.response.use).toHaveBeenCalledWith(
+      undefined,
+      recoverExpiredCsrfToken,
+    )
   })
 
   it.each(['post', 'put', 'patch', 'delete'])('%s 요청에 CSRF header를 추가한다', async (method) => {
@@ -122,5 +138,42 @@ describe('HTTP CSRF interceptor', () => {
     await expect(attachCsrfToken({ method: 'post' })).rejects.toThrow(
       'CSRF token response is invalid',
     )
+  })
+
+  it('만료된 CSRF token이면 cache를 비우고 원 요청을 한 번 재시도한다', async () => {
+    const retriedResponse = { data: { success: true } }
+    httpMock.request.mockResolvedValue(retriedResponse)
+    const error = {
+      config: { method: 'post', url: '/plans', data: { title: '여행' } },
+      response: { status: 403, data: { code: 'CSRF_TOKEN_INVALID' } },
+    }
+
+    await expect(recoverExpiredCsrfToken(error)).resolves.toBe(retriedResponse)
+    expect(httpMock.request).toHaveBeenCalledWith({
+      method: 'post',
+      url: '/plans',
+      data: { title: '여행' },
+      _csrfRetried: true,
+    })
+  })
+
+  it('이미 재시도한 CSRF 실패는 다시 요청하지 않는다', async () => {
+    const error = {
+      config: { method: 'post', url: '/plans', _csrfRetried: true },
+      response: { status: 403, data: { code: 'CSRF_TOKEN_INVALID' } },
+    }
+
+    await expect(recoverExpiredCsrfToken(error)).rejects.toBe(error)
+    expect(httpMock.request).not.toHaveBeenCalled()
+  })
+
+  it('일반 권한 오류는 CSRF 재시도 대상으로 처리하지 않는다', async () => {
+    const error = {
+      config: { method: 'post', url: '/plans' },
+      response: { status: 403, data: { code: 'ACCESS_DENIED' } },
+    }
+
+    await expect(recoverExpiredCsrfToken(error)).rejects.toBe(error)
+    expect(httpMock.request).not.toHaveBeenCalled()
   })
 })

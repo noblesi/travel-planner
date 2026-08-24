@@ -16,15 +16,11 @@ public interface AdminMemberMapper {
 
 	List<AdminMemberListDTO> selectMemberList(@Param("search") AdminMemberSearchDTO search);
 
-	AdminMemberDetailDTO selectMemberDetail(
-			
-			@Param("memberId") String MemberID
-			
-	);
+	AdminMemberDetailDTO selectMemberDetail(@Param("memberId") Long memberId);
 	
 	int updateStatus(
 		
-			@Param("memberId") String memberId,
+			@Param("memberId") Long memberId,
 			@Param("memberStatus") String memberStatus
 	);
 

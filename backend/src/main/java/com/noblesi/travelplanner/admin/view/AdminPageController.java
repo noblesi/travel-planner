@@ -11,6 +11,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import com.noblesi.travelplanner.admin.auth.security.AdminPrincipal;
 import com.noblesi.travelplanner.admin.tour.dto.TourSyncHistoryDTO;
 import com.noblesi.travelplanner.admin.tour.service.AdminTourSyncService;
+import com.noblesi.travelplanner.integration.tourapi.TourApiException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,8 +47,14 @@ public class AdminPageController {
 			);
 		} catch (IllegalStateException exception) {
 			redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+		} catch (TourApiException exception) {
+			log.error("TOUR API 동기화 실패. reason={}", exception.getReason());
+			redirectAttributes.addFlashAttribute(
+					"errorMessage",
+					"TOUR API 동기화에 실패했습니다. API 키와 서버 로그를 확인해 주세요."
+			);
 		} catch (RuntimeException exception) {
-			log.error("TOUR API 동기화 실패", exception);
+			log.error("TOUR API 동기화 실패. type={}", exception.getClass().getSimpleName());
 			redirectAttributes.addFlashAttribute(
 					"errorMessage",
 					"TOUR API 동기화에 실패했습니다. API 키와 서버 로그를 확인해 주세요."

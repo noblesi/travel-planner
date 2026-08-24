@@ -9,7 +9,7 @@
 		   SET START_DATE = #{startDate},
 		       END_DATE = #{endDate},
 		       VERSION_NO = VERSION_NO + 1,
-		       UPDATED_AT = CURRENT_TIMESTAMP
+		       UPDATED_AT = #{updatedAt}
 		 WHERE PLAN_ID = #{planId}
 		   AND OWNER_MEMBER_ID = #{memberId}
 		   AND PLAN_STATUS = 'ACTIVE'

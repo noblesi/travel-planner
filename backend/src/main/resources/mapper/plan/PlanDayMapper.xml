@@ -44,6 +44,18 @@
 		 ORDER BY DAY_NO ASC
 	</select>
 
+	<select id="findByPlanIdOrderByDayNoForUpdate" resultMap="planDayResultMap">
+		SELECT PLAN_DAY_ID,
+		       PLAN_ID,
+		       DAY_NO,
+		       TRAVEL_DATE,
+		       SCHEDULE_VERSION
+		  FROM PLAN_DAY
+		 WHERE PLAN_ID = #{planId}
+		 ORDER BY PLAN_DAY_ID ASC
+		 FOR UPDATE
+	</select>
+
 	<select id="findByIdAndPlanId" resultMap="planDayResultMap">
 		SELECT PLAN_DAY_ID,
 		       PLAN_ID,
@@ -53,6 +65,22 @@
 		  FROM PLAN_DAY
 		 WHERE PLAN_DAY_ID = #{planDayId}
 		   AND PLAN_ID = #{planId}
+	</select>
+
+	<select id="findByIdsAndPlanIdForUpdate" resultMap="planDayResultMap">
+		SELECT PLAN_DAY_ID,
+		       PLAN_ID,
+		       DAY_NO,
+		       TRAVEL_DATE,
+		       SCHEDULE_VERSION
+		  FROM PLAN_DAY
+		 WHERE PLAN_ID = #{planId}
+		   AND PLAN_DAY_ID IN
+		<foreach collection="planDayIds" item="planDayId" open="(" separator="," close=")">
+			#{planDayId}
+		</foreach>
+		 ORDER BY PLAN_DAY_ID ASC
+		 FOR UPDATE
 	</select>
 
 	<update id="incrementScheduleVersion">

@@ -92,6 +92,10 @@
 	<update id="updateStatus">
 		UPDATE MEMBER
 		SET MEMBER_STATUS = #{memberStatus},
+			WITHDRAWN_AT = CASE
+				WHEN #{memberStatus} = 'WITHDRAWN' THEN CURRENT_TIMESTAMP
+				ELSE NULL
+			END,
 			UPDATED_AT = CURRENT_TIMESTAMP
 		WHERE MEMBER_ID = #{memberId}
 	</update>

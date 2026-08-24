@@ -50,7 +50,7 @@ class SmtpInvitationMailSender implements InvitationMailSender {
 		try {
 			javaMailSender.send(message);
 		} catch (MailException exception) {
-			log.warn("초대 메일 발송에 실패했습니다. to={}", toEmail, exception);
+			log.warn("초대 메일 발송에 실패했습니다. failureType={}", exception.getClass().getSimpleName());
 		}
 	}
 }

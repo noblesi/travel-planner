@@ -14,9 +14,9 @@ import lombok.ToString;
 @ToString
 public class AdminReportDTO {
 
-	private int reportId;
-	private int planId;
-	private int reporterMemberId;
+	private Long reportId;
+	private Long planId;
+	private Long reporterMemberId;
 	
 	private String reporterName;
 	private String planTitle;

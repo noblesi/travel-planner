@@ -1,13 +1,14 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { onBeforeRouteLeave } from 'vue-router'
 
 import PlanEditorMapWorkspace from '@/components/plan/PlanEditorMapWorkspace.vue'
 import PlanEditorSchedulePanel from '@/components/plan/PlanEditorSchedulePanel.vue'
 import PlanEditorToolbar from '@/components/plan/PlanEditorToolbar.vue'
+import { usePlanEditorLeaveGuard } from '@/composables/usePlanEditorLeaveGuard'
+import { usePlanEditorPanelResize } from '@/composables/usePlanEditorPanelResize'
+import { usePlanEditorScheduleInteractions } from '@/composables/usePlanEditorScheduleInteractions'
 import { usePlanEditorStore } from '@/stores/planEditor'
-import { readLocalStorage, writeLocalStorage } from '@/utils/browserStorage'
 import { useToastStore } from '@/stores/toast'
 
 const props = defineProps({
@@ -41,158 +42,35 @@ const {
 
 const settingsBusy = ref(false)
 const publicationBusy = ref(false)
-const selectedScheduleItemId = ref(null)
-const draggedSchedule = ref(null)
-const schedulePanelWidth = ref(Number(readLocalStorage('planEditorPanelWidth')) || 430)
-const resizingPanel = ref(false)
+
+const {
+  selectedScheduleItemId,
+  addSearchPlace,
+  moveScheduleItem,
+  selectScheduleItem,
+  startScheduleDrag,
+  endScheduleDrag,
+  dropSchedule,
+  dropScheduleBefore,
+  moveScheduleItemPosition,
+  removeScheduleItem,
+  retryScheduleSave,
+} = usePlanEditorScheduleInteractions({
+  editorStore,
+  toastStore,
+  selectedDay,
+  selectedDayId,
+})
+const { schedulePanelWidth, startPanelResize, adjustPanelWidth } = usePlanEditorPanelResize()
+
+usePlanEditorLeaveGuard({
+  isSaving,
+  hasUnsavedChanges,
+  waitForPendingSaves: () => editorStore.waitForPendingSaves(),
+})
 
 function retryLoad() {
   return editorStore.loadPlanEditor(props.planId)
-}
-
-async function runScheduleOperation(operation) {
-  try {
-    return await operation
-  } catch {
-    return null
-  }
-}
-
-function addSearchPlace({ place, timeSlot }) {
-  if (!selectedDay.value) return null
-  return runScheduleOperation(editorStore.addPlaceToSchedule(place, timeSlot))
-}
-
-function moveScheduleItem(item, targetTimeSlot) {
-  return runScheduleOperation(
-    editorStore.moveScheduleItemTimeSlot(item.scheduleItemId, targetTimeSlot),
-  )
-}
-
-function selectScheduleItem(item) {
-  selectedScheduleItemId.value = item?.scheduleItemId ?? null
-}
-
-function startScheduleDrag(item) {
-  draggedSchedule.value = {
-    item,
-    sourcePlanDayId: selectedDayId.value,
-    sourceTimeSlot: item.timeSlot,
-  }
-}
-
-function endScheduleDrag() {
-  draggedSchedule.value = null
-}
-
-function dropSchedule({ targetPlanDayId, targetTimeSlot }) {
-  const dragged = draggedSchedule.value
-  if (!dragged || !targetPlanDayId) return
-  const nextTimeSlot = targetTimeSlot || dragged.sourceTimeSlot
-  const sameDay = String(targetPlanDayId) === String(dragged.sourcePlanDayId)
-  const sameSlot = nextTimeSlot === dragged.sourceTimeSlot
-
-  if (sameDay && sameSlot) {
-    runScheduleOperation(
-      editorStore.moveScheduleItemToEnd(
-        dragged.item.scheduleItemId,
-        dragged.sourcePlanDayId,
-      ),
-    )
-  } else {
-    runScheduleOperation(
-      editorStore.moveScheduleItemTimeSlot(
-        dragged.item.scheduleItemId,
-        nextTimeSlot,
-        dragged.sourcePlanDayId,
-        targetPlanDayId,
-      ),
-    )
-  }
-  selectedScheduleItemId.value = dragged.item.scheduleItemId
-  draggedSchedule.value = null
-}
-
-function dropScheduleBefore({ targetItem, targetPlanDayId, targetTimeSlot }) {
-  const dragged = draggedSchedule.value
-  if (!dragged || !targetItem) return
-  const sameDay = String(targetPlanDayId) === String(dragged.sourcePlanDayId)
-  const sameSlot = targetTimeSlot === dragged.sourceTimeSlot
-  if (sameDay && sameSlot) {
-    runScheduleOperation(
-      editorStore.moveScheduleItemBefore(
-        dragged.item.scheduleItemId,
-        targetItem.scheduleItemId,
-        targetPlanDayId,
-      ),
-    )
-    draggedSchedule.value = null
-    return
-  }
-  dropSchedule({ targetPlanDayId, targetTimeSlot })
-}
-
-function moveScheduleItemPosition(item, direction) {
-  return runScheduleOperation(editorStore.moveScheduleItemPosition(item.scheduleItemId, direction))
-}
-
-async function removeScheduleItem(item) {
-  const sourcePlanDayId = selectedDayId.value
-  try {
-    await editorStore.removeScheduleItem(item.scheduleItemId)
-    if (String(selectedScheduleItemId.value) === String(item.scheduleItemId)) {
-      selectedScheduleItemId.value = null
-    }
-    toastStore.show({
-      message: `${item.placeName} 일정을 삭제했습니다.`,
-      type: 'info',
-      duration: 8000,
-      actionLabel: '실행 취소',
-      action: async () => {
-        await editorStore.addPlaceToSchedule(item, item.timeSlot, sourcePlanDayId)
-        toastStore.success(`${item.placeName} 일정을 복구했습니다.`)
-      },
-    })
-  } catch {
-    return null
-  }
-  return true
-}
-
-function resizePanelTo(clientX) {
-  const nextWidth = Math.min(560, Math.max(340, clientX))
-  schedulePanelWidth.value = nextWidth
-}
-
-function startPanelResize(event) {
-  resizingPanel.value = true
-  resizePanelTo(event.clientX)
-  document.addEventListener('pointermove', handlePanelResize)
-  document.addEventListener('pointerup', stopPanelResize, { once: true })
-}
-
-function handlePanelResize(event) {
-  if (resizingPanel.value) resizePanelTo(event.clientX)
-}
-
-function stopPanelResize() {
-  resizingPanel.value = false
-  writeLocalStorage('planEditorPanelWidth', String(schedulePanelWidth.value))
-  document.removeEventListener('pointermove', handlePanelResize)
-}
-
-function adjustPanelWidth(event) {
-  if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return
-  event.preventDefault()
-  schedulePanelWidth.value = Math.min(
-    560,
-    Math.max(340, schedulePanelWidth.value + (event.key === 'ArrowRight' ? 20 : -20)),
-  )
-  writeLocalStorage('planEditorPanelWidth', String(schedulePanelWidth.value))
-}
-
-function retryScheduleSave() {
-  return runScheduleOperation(editorStore.retryLastSave())
 }
 
 async function togglePublication() {
@@ -200,7 +78,8 @@ async function togglePublication() {
   publicationBusy.value = true
   const targetStatus = plan.value.publishStatus === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED'
   try {
-    await editorStore.savePlanPublication(targetStatus)
+    const data = await editorStore.savePlanPublication(targetStatus)
+    if (!data) return
     toastStore.success(
       targetStatus === 'PUBLISHED'
         ? '플랜 제작을 완료했습니다.'
@@ -218,27 +97,9 @@ async function togglePublication() {
   }
 }
 
-function handleBeforeUnload(event) {
-  if (!isSaving.value && !hasUnsavedChanges.value) return
-  event.preventDefault()
-  event.returnValue = ''
-}
-
 watch(() => props.planId, retryLoad, { immediate: true })
-onBeforeRouteLeave(async () => {
-  if (isSaving.value) await editorStore.waitForPendingSaves()
-  if (hasUnsavedChanges.value) {
-    return window.confirm(
-      '저장되지 않은 변경사항이 있습니다. 이 화면을 나가면 입력한 내용이 사라질 수 있습니다. 그래도 나갈까요?',
-    )
-  }
-  return true
-})
-onMounted(() => window.addEventListener('beforeunload', handleBeforeUnload))
 onBeforeUnmount(() => {
-  window.removeEventListener('beforeunload', handleBeforeUnload)
   editorStore.resetEditor()
-  document.removeEventListener('pointermove', handlePanelResize)
 })
 </script>
 

@@ -47,7 +47,7 @@ public class AdminMemberController {
 	}//getMemberList
 	
 	@GetMapping("/{memberId}")
-	public String getMemberDetail(@PathVariable("memberId") String memberId , Model model) {
+	public String getMemberDetail(@PathVariable("memberId") Long memberId , Model model) {
 		AdminMemberDetailDTO adDTO = adminMemberService.getMemberDetail(memberId);
 		// 화면 상단에 표시될 제목
 		model.addAttribute("pageTitle","회원 상세");
@@ -57,7 +57,7 @@ public class AdminMemberController {
 	}//getMemberDetail
 	
 	@PostMapping("/{memberId}/status")
-	public String removeMemberStatus(@PathVariable("memberId") String memberId, 
+	public String removeMemberStatus(@PathVariable("memberId") Long memberId,
 			@RequestParam("memberStatus") String memberStatus, RedirectAttributes redirectAttributes) {
 		adminMemberService.removeMemberStatus(memberId, memberStatus);
 		

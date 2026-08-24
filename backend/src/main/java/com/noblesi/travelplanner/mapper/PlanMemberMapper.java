@@ -13,4 +13,12 @@ public interface PlanMemberMapper {
 			@Param("memberId") long memberId,
 			@Param("participantType") ParticipantType participantType
 	);
+
+	Long lockPlanForMembershipUpdate(@Param("planId") long planId);
+
+	int insertPlanMemberIfAbsent(
+			@Param("planId") long planId,
+			@Param("memberId") long memberId,
+			@Param("participantType") ParticipantType participantType
+	);
 }

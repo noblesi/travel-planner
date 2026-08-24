@@ -68,9 +68,20 @@ class PlanScheduleAddService {
 		if (replay != null) {
 			return responseFactory.fromReplay(replay, planIdValue);
 		}
+		PlanDay day = support.lockOwnedDays(planId, planDayId).get(planDayId);
+		replay = operationLedger.findReplay(
+				operationId,
+				planId,
+				memberId,
+				ScheduleOperationType.ADD,
+				request.scheduleVersion(),
+				requestHash
+		);
+		if (replay != null) {
+			return responseFactory.fromReplay(replay, planIdValue);
+		}
 		PlaceCatalogEntry place = placeCatalogService.requireActivePlace(placeProvider, externalPlaceId);
 
-		PlanDay day = support.requireOwnedDay(planDayId, planId);
 		support.requireScheduleVersion(day, request.scheduleVersion());
 		int itemCount = planScheduleItemMapper.countByDayAndTimeSlot(planDayId, request.timeSlot());
 		if (itemCount >= PlanScheduleMutationSupport.MAX_ITEMS_PER_TIME_SLOT) {

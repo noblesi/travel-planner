@@ -4,6 +4,10 @@ defineProps({
     type: Object,
     required: true,
   },
+  likePending: {
+    type: Boolean,
+    default: false,
+  },
 })
 
 defineEmits(['back', 'report', 'toggle-like', 'import'])
@@ -32,7 +36,15 @@ function formatCount(value) {
       <span class="view-stat">
         <i class="ti ti-eye" aria-hidden="true" /> {{ formatCount(plan.viewCount) }}
       </span>
-      <button class="like-stat" :class="{ liked: plan.liked }" @click="$emit('toggle-like')">
+      <button
+        class="like-stat"
+        :class="{ liked: plan.liked }"
+        :disabled="likePending"
+        :aria-busy="likePending"
+        :aria-pressed="plan.liked"
+        :aria-label="plan.liked ? '좋아요 취소' : '좋아요'"
+        @click="$emit('toggle-like')"
+      >
         <i class="ti ti-heart" aria-hidden="true" /> {{ plan.likeCount }}
       </button>
       <button class="import-btn" @click="$emit('import')">전체 일정 가져오기</button>
@@ -113,6 +125,10 @@ function formatCount(value) {
   color: var(--color-brand);
   border-color: var(--color-brand-border);
   background: var(--color-brand-soft);
+}
+.like-stat:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
 .view-stat {
   display: flex;

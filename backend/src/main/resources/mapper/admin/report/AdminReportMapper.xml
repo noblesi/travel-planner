@@ -56,6 +56,10 @@
 	</update>
 
 	<update id="updatePlanVisibility">
-		update travel_plan set visibility = #{visibility} where plan_id = #{planId}
+		update travel_plan
+		   set visibility = #{visibility},
+		       version_no = version_no + 1,
+		       updated_at = CURRENT_TIMESTAMP
+		 where plan_id = #{planId}
 	</update>
 </mapper>

@@ -9,7 +9,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AdminMemberDetailDTO {
 
-	private int memberId;
+	private Long memberId;
 	private String memberName;
 	private String nickName;
 	private String email;

@@ -61,6 +61,23 @@ export async function attachCsrfToken(config) {
   return config
 }
 
+export function recoverExpiredCsrfToken(error) {
+  const config = error?.config
+  const isExpiredCsrf =
+    error?.response?.status === 403 && error?.response?.data?.code === 'CSRF_TOKEN_INVALID'
+
+  if (!isExpiredCsrf || !config || config._csrfRetried) {
+    return Promise.reject(error)
+  }
+
+  clearCsrfTokenCache()
+  return http.request({
+    ...config,
+    _csrfRetried: true,
+  })
+}
+
 http.interceptors.request.use(attachCsrfToken)
+http.interceptors.response.use(undefined, recoverExpiredCsrfToken)
 
 export default http

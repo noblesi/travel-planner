@@ -1,5 +1,8 @@
 package com.noblesi.travelplanner.service;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,17 +22,20 @@ class TravelPlanMetadataService {
 	private final PlanAccessService planAccessService;
 	private final TravelPlanRepository travelPlanRepository;
 	private final PlanEditorQueryService editorQueryService;
+	private final Clock clock;
 
 	TravelPlanMetadataService(
 			PositiveIdParser idParser,
 			PlanAccessService planAccessService,
 			TravelPlanRepository travelPlanRepository,
-			PlanEditorQueryService editorQueryService
+			PlanEditorQueryService editorQueryService,
+			Clock clock
 	) {
 		this.idParser = idParser;
 		this.planAccessService = planAccessService;
 		this.travelPlanRepository = travelPlanRepository;
 		this.editorQueryService = editorQueryService;
+		this.clock = clock;
 	}
 
 	@Transactional
@@ -48,7 +54,7 @@ class TravelPlanMetadataService {
 			return editorQueryService.buildResponse(planId, currentPlan);
 		}
 
-		plan.updateMetadata(request.title(), request.visibility());
+		plan.updateMetadata(request.title(), request.visibility(), OffsetDateTime.now(clock));
 		travelPlanRepository.flush();
 
 		PlanEditorPlan updatedPlan = planAccessService.requireOwnedPlan(planId, memberId);

@@ -16,4 +16,30 @@
 		)
 	</insert>
 
+	<select id="lockPlanForMembershipUpdate" resultType="long">
+		SELECT PLAN_ID
+		  FROM TRAVEL_PLAN
+		 WHERE PLAN_ID = #{planId}
+		   AND PLAN_STATUS = 'ACTIVE'
+		 FOR UPDATE
+	</select>
+
+	<insert id="insertPlanMemberIfAbsent">
+		INSERT INTO PLAN_MEMBER (
+			PLAN_ID,
+			MEMBER_ID,
+			PARTICIPANT_TYPE
+		)
+		SELECT #{planId},
+		       #{memberId},
+		       #{participantType}
+		  FROM DUAL
+		 WHERE NOT EXISTS (
+		       SELECT 1
+		         FROM PLAN_MEMBER
+		        WHERE PLAN_ID = #{planId}
+		          AND MEMBER_ID = #{memberId}
+		 )
+	</insert>
+
 </mapper>

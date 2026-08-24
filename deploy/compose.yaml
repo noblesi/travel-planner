@@ -1,0 +1,37 @@
+name: withtrip
+
+services:
+  backend:
+    image: withtrip-backend:http-demo
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    env_file:
+      - ../.env
+    environment:
+      SERVER_PORT: "8080"
+      JAVA_TOOL_OPTIONS: >-
+        -XX:InitialRAMPercentage=20.0
+        -XX:MaxRAMPercentage=70.0
+        -Dfile.encoding=UTF-8
+        -Duser.timezone=Asia/Seoul
+    ports:
+      - "127.0.0.1:8080:8080"
+    init: true
+    restart: unless-stopped
+    mem_limit: 768m
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"

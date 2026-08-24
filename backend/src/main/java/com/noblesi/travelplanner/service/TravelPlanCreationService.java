@@ -1,5 +1,7 @@
 package com.noblesi.travelplanner.service;
 
+import java.time.Clock;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,7 @@ class TravelPlanCreationService {
 	private final TravelPlanRepository travelPlanRepository;
 	private final PlanMemberMapper planMemberMapper;
 	private final PlanDayRangeSynchronizer dayRangeSynchronizer;
+	private final Clock clock;
 
 	TravelPlanCreationService(
 			PlanAccessService planAccessService,
@@ -34,7 +37,8 @@ class TravelPlanCreationService {
 			RegionMapper regionMapper,
 			TravelPlanRepository travelPlanRepository,
 			PlanMemberMapper planMemberMapper,
-			PlanDayRangeSynchronizer dayRangeSynchronizer
+			PlanDayRangeSynchronizer dayRangeSynchronizer,
+			Clock clock
 	) {
 		this.planAccessService = planAccessService;
 		this.requestValidator = requestValidator;
@@ -42,6 +46,7 @@ class TravelPlanCreationService {
 		this.travelPlanRepository = travelPlanRepository;
 		this.planMemberMapper = planMemberMapper;
 		this.dayRangeSynchronizer = dayRangeSynchronizer;
+		this.clock = clock;
 	}
 
 	@Transactional
@@ -56,7 +61,8 @@ class TravelPlanCreationService {
 				region.regionCode(),
 				request.startDate(),
 				request.endDate(),
-				request.visibility()
+				request.visibility(),
+				OffsetDateTime.now(clock)
 		);
 		travelPlanRepository.saveAndFlush(planEntity);
 		TravelPlan travelPlan = planEntity.toDomain();

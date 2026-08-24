@@ -3,7 +3,6 @@ package com.noblesi.travelplanner.service;
 import java.util.Locale;
 import java.util.regex.Pattern;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,12 +18,11 @@ public class MemberJoinService {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$");
 
-    @Autowired(required = false)
-    private MemberMapper memberMapper;
-    
+    private final MemberMapper memberMapper;
     private final PasswordEncoder passwordEncoder;
 
-    public MemberJoinService(PasswordEncoder passwordEncoder) {
+    public MemberJoinService(MemberMapper memberMapper, PasswordEncoder passwordEncoder) {
+        this.memberMapper = memberMapper;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -35,7 +33,6 @@ public class MemberJoinService {
      */
     @Transactional(readOnly = true)
     public boolean searchEmail(String email) {
-        System.out.println("service email check: " + email);
         return memberMapper.selectEmailCnt(normalizeEmail(email)) > 0;
     }
 
@@ -61,7 +58,6 @@ public class MemberJoinService {
             joinMemberRequest.phone()
      
         );
-        System.out.println("service joinMemberRequestHash : " + joinMemberRequestHash.toString());
         try {
             if (memberMapper.insertMember(joinMemberRequestHash) != 1) {
                 throw new BusinessException(

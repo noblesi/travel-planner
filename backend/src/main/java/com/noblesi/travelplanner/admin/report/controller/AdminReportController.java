@@ -24,7 +24,7 @@ public class AdminReportController {
 	private AdminReportService adminReportService;
 
 	@GetMapping("/{reportId}")
-	public String getReportDetail(@PathVariable("reportId") int reportId, Model model) {
+	public String getReportDetail(@PathVariable("reportId") Long reportId, Model model) {
 		AdminReportDTO report = adminReportService.getReportDetail(reportId);
 		AdminReportProcessDTO processForm = new AdminReportProcessDTO();
 		processForm.setReportId(reportId);
@@ -37,12 +37,12 @@ public class AdminReportController {
 
 	@PostMapping("/{reportId}/complete")
 	public String completeReport(
-			@PathVariable("reportId") int reportId,
+			@PathVariable("reportId") Long reportId,
 			@ModelAttribute("processForm") AdminReportProcessDTO processForm,
 			@AuthenticationPrincipal AdminPrincipal loginAdmin,
 			RedirectAttributes redirectAttributes) {
 		processForm.setReportId(reportId);
-		adminReportService.completeReport(processForm, Math.toIntExact(loginAdmin.adminId()));
+		adminReportService.completeReport(processForm, loginAdmin.adminId());
 		redirectAttributes.addFlashAttribute("message", "신고 검토가 완료되었습니다.");
 		return "redirect:/admin/reports/" + reportId;
 	}

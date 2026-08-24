@@ -3,6 +3,23 @@
 - 기준일: `2026-08-18`
 - 대상: Linux, Nginx 정적 Frontend, Spring Boot 실행 JAR, Oracle `WITHTRIP_DEV`
 
+## EC2 HTTP 시연
+
+현재 시연 서버처럼 HTTP만 사용하는 경우 [`deploy/README.md`](../../deploy/README.md)의 Docker Compose와 Nginx 설정을 적용합니다. 이 모드는 운영 HTTPS 배포와 명확히 분리합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 `
+  -DeploymentMode HttpDemo
+```
+
+- `FRONTEND_BASE_URL=http://EC2_PUBLIC_IP`
+- `SESSION_COOKIE_SECURE=false`
+- EC2 Security Group은 `22 → 관리자 IP`, `80 → 시연 접근 범위`만 허용
+- Backend `8080`과 Oracle Port는 외부에 공개하지 않음
+- Kakao Developers 허용 도메인에 `http://EC2_PUBLIC_IP` 등록
+
+아래의 HTTPS 설정과 완료 조건은 운영 전환 시 적용합니다.
+
 ## 빌드 전 검증
 
 실제 값을 출력하지 않고 필수 환경변수와 Release 산출물을 검증합니다.
@@ -110,6 +127,14 @@ VITE_KAKAO_MAP_KEY=javascript-key
 - 권장 초기값은 IP당 분당 5회이며, 실제 NAT·사내망 사용자 패턴을 관찰한 뒤 조정합니다.
 - 장소 검색 endpoint는 로그인 Session을 필수로 하고, Reverse Proxy 또는 API Gateway에서 별도의 IP 기준 rate limit과 TourAPI 할당량 경보를 적용합니다.
 - 애플리케이션 내부의 단순 메모리 limiter는 다중 인스턴스에서 우회되고 재시작 시 상태가 사라지므로 현재 코드에 추가하지 않습니다.
+
+## 로그 운영
+
+- 운영 기본 로그 수준은 `INFO`로 유지하고 일시적인 장애 분석 외에는 `DEBUG`를 활성화하지 않습니다.
+- 비밀번호, Session·CSRF·초대 Token, API Key, 전체 Query String과 요청·응답 본문이 Application·Nginx·Container 로그에 남지 않는지 확인합니다.
+- 이메일과 전화번호는 원문 대신 마스킹 값 또는 내부 식별자를 사용합니다.
+- Docker `json-file`을 사용한다면 `max-size: 10m`, `max-file: 5` 이상의 Rotation 제한을 운영 `compose.yaml`에 설정하거나 동등한 중앙 Log 보존 정책을 적용합니다.
+- 배포 전 Frontend Lint의 `no-console` 검증과 Backend Source의 `System.out`, `printStackTrace` 잔존 여부를 확인합니다.
 
 ## Kakao Map
 

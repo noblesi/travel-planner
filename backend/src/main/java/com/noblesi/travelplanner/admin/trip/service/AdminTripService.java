@@ -60,7 +60,7 @@ public class AdminTripService {
 		);
 	}
 
-	public AdminTripDetailDTO getTripDetail(int planId) {
+	public AdminTripDetailDTO getTripDetail(Long planId) {
 		AdminTripDetailDTO trip = adminTripMapper.selectTripDetail(planId);
 
 		if (trip == null) {
@@ -70,11 +70,11 @@ public class AdminTripService {
 		return trip;
 	}
 
-	public List<AdminTripScheduleDTO> getTripSchedules(int planId) {
+	public List<AdminTripScheduleDTO> getTripSchedules(Long planId) {
 		return adminTripMapper.selectTripSchedules(planId);
 	}
 
-	public List<AdminTripReportDTO> getTripReports(int planId) {
+	public List<AdminTripReportDTO> getTripReports(Long planId) {
 		return adminTripMapper.selectTripReports(planId);
 	}
 

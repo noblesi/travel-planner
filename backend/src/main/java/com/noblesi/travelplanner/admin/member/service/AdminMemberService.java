@@ -40,7 +40,7 @@ public class AdminMemberService {
 	/**
 	 * 회원 번호에 해당하는 회원 상세 정보를 조회합니다.
 	 */
-	public AdminMemberDetailDTO getMemberDetail(String memberId) {
+	public AdminMemberDetailDTO getMemberDetail(Long memberId) {
 		AdminMemberDetailDTO member = adminMemberMapper.selectMemberDetail(memberId);
 
 		// 조회 결과가 없으면 존재하지 않는 회원이므로 404 예외를 발생시킵니다.
@@ -55,7 +55,7 @@ public class AdminMemberService {
 	 * 회원 상태를 변경한 후 변경된 회원 상세 정보를 다시 조회합니다.
 	 */
 	@Transactional
-	public AdminMemberDetailDTO removeMemberStatus(String memberId, String memberStatus) {
+	public AdminMemberDetailDTO removeMemberStatus(Long memberId, String memberStatus) {
 		// 화면에서 받은 상태 값을 DB에 저장할 수 있는 값인지 검사합니다.
 		String normalizedMemberStatus = normalizeMemberStatus(memberStatus);
 

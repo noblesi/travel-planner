@@ -19,8 +19,6 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.SequenceGenerator;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
@@ -99,7 +97,8 @@ public class TravelPlanEntity {
 			String regionCode,
 			LocalDate startDate,
 			LocalDate endDate,
-			PlanVisibility visibility
+			PlanVisibility visibility,
+			OffsetDateTime createdAt
 	) {
 		this.ownerMemberId = ownerMemberId;
 		this.title = title;
@@ -109,6 +108,8 @@ public class TravelPlanEntity {
 		this.visibility = visibility;
 		this.publishStatus = PlanPublishStatus.DRAFT;
 		this.planStatus = TravelPlanStatus.ACTIVE;
+		this.createdAt = createdAt;
+		this.updatedAt = createdAt;
 	}
 
 	public static TravelPlanEntity create(
@@ -117,7 +118,8 @@ public class TravelPlanEntity {
 			String regionCode,
 			LocalDate startDate,
 			LocalDate endDate,
-			PlanVisibility visibility
+			PlanVisibility visibility,
+			OffsetDateTime createdAt
 	) {
 		return new TravelPlanEntity(
 				ownerMemberId,
@@ -125,47 +127,41 @@ public class TravelPlanEntity {
 				regionCode,
 				startDate,
 				endDate,
-				visibility
+				visibility,
+				createdAt
 		);
 	}
 
-	@PrePersist
-	void initializeTimestamps() {
-		OffsetDateTime now = OffsetDateTime.now();
-		createdAt = now;
-		updatedAt = now;
-	}
-
-	@PreUpdate
-	void updateTimestamp() {
-		updatedAt = OffsetDateTime.now();
-	}
-
-	public void updateMetadata(String title, PlanVisibility visibility) {
+	public void updateMetadata(String title, PlanVisibility visibility, OffsetDateTime updatedAt) {
 		this.title = title;
 		this.visibility = visibility;
+		this.updatedAt = updatedAt;
 	}
 
 	public void updatePublication(
 			PlanPublishStatus publishStatus,
-			String fallbackThumbnailImageUrl
+			String fallbackThumbnailImageUrl,
+			OffsetDateTime updatedAt
 	) {
 		this.publishStatus = publishStatus;
 		if (thumbnailImageUrl == null) {
 			thumbnailImageUrl = fallbackThumbnailImageUrl;
 		}
+		this.updatedAt = updatedAt;
 	}
 
-	public void softDelete(long memberId) {
+	public void softDelete(long memberId, OffsetDateTime deletedAt) {
 		planStatus = TravelPlanStatus.DELETED;
-		deletedAt = OffsetDateTime.now();
+		this.deletedAt = deletedAt;
 		deletedByMemberId = memberId;
+		updatedAt = deletedAt;
 	}
 
-	public void restore() {
+	public void restore(OffsetDateTime restoredAt) {
 		planStatus = TravelPlanStatus.ACTIVE;
 		deletedAt = null;
 		deletedByMemberId = null;
+		updatedAt = restoredAt;
 	}
 
 	public boolean hasSameMetadata(String title, PlanVisibility visibility) {

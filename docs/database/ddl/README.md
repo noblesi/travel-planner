@@ -12,7 +12,10 @@
 6. `007_add_report_integrity_constraints.sql`: 동일 회원의 중복 신고와 정의되지 않은 신고 사유 차단
 7. `008_backfill_plan_thumbnails.sql`: 기존 공개·제작 완료 플랜의 대표 이미지 멱등 재계산
 8. `009_verify_plan_thumbnails.sql`: 장소 유형과 저장된 대표 이미지 일치 여부 읽기 전용 검증
-9. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
+9. `010_align_schedule_coordinate_types.sql`: 과거 통합 DDL로 만든 Schema의 문자열 좌표를 숫자형으로 변환할 때만 실행
+10. `011_rebuild_public_plan_indexes.sql`: `006`까지 적용된 기존 Schema의 공개 플랜 Index를 canonical 이름과 발행 상태 기준으로 정리
+11. `012_add_tour_sync_execution.sql`: 다중 Instance TOUR API 동기화 Lease와 실행 이력 Table 추가
+12. `003_add_identity_foreign_keys.sql`: 인증 Table 확정 후에만 선택 실행
 
 빈 애플리케이션 Schema에서 다음과 같이 실행합니다. 비밀번호는 명령행에 넣지 않고 Prompt에서 입력합니다.
 
@@ -28,6 +31,8 @@ sqlplus travel_planner@//localhost:1521/FREEPDB1 `@docs/database/ddl/009_verify_
 Windows Oracle Client의 문자셋이 UTF-8이 아니면 한글 Seed 실행 중 `ORA-01756`이 발생할 수 있으므로 위 `NLS_LANG`을 먼저 설정합니다.
 
 `001`은 일회성 생성 Script입니다. 일부 Object가 이미 있는 Schema에서 재실행하면 실패합니다. 자동 Drop은 데이터 손실 위험이 있어 제공하지 않습니다.
+
+`travelplanner_final.sql`은 전체 Schema를 초기화하는 파괴적 개발용 Script입니다. 기존 데이터가 있는 환경에는 실행하지 않습니다. 신규 여행 플랜 Schema의 canonical 기준은 `001`과 후속 migration이며, 과거 `travelplanner_final.sql`로 생성한 Schema에서 좌표 Column이 `VARCHAR2`인 경우에만 백업 후 `010`을 실행합니다. `011`은 `006`까지 적용되어 `IX_TRAVEL_PLAN_PUBLISH`가 존재하고, 기존 `IX_PLAN_PUBLIC_UPDATED`와 `IX_PLAN_REGION_PUBLIC`에는 `PUBLISH_STATUS`가 없는 Schema에서만 한 번 실행합니다.
 
 ## Oracle 접속 전 로컬 개발
 
@@ -65,6 +70,8 @@ TourAPI의 현재 국문 관광정보 Service Base URL은 `apis.data.go.kr/B5510
 - TourAPI 검색 결과는 `PLACE_MASTER.PLACE_TYPE`에 서버 정규화 유형을 저장합니다. 일정 추가 Request의 표시용 장소 필드는 신뢰하지 않고 이 Master를 다시 조회합니다.
 - `008`은 `PUBLIC + PUBLISHED + ACTIVE` 플랜에만 적용되며 여러 번 실행해도 같은 결과입니다. 관광 후보가 없으면 `THUMBNAIL_IMG`를 `NULL`로 유지합니다.
 - `009`의 두 Query는 모두 0행이어야 합니다.
+- `TOUR_SYNC_STATE`의 단일 행은 동기화 Lease를 관리하며, 만료된 Lease는 다음 실행이 인수할 수 있습니다.
+- `TOUR_SYNC_HISTORY`는 재시작 후에도 관리자 화면의 최근 동기화 결과를 유지합니다.
 - 자동 저장 충돌 검사를 위해 `TRAVEL_PLAN.VERSION_NO`, `PLAN_DAY.SCHEDULE_VERSION`, `PLAN_SCHEDULE_ITEM.ITEM_VERSION`은 0 이상으로 제한했습니다.
 
 ## 애플리케이션 Insert 규칙
