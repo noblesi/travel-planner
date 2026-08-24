@@ -24,7 +24,9 @@ public class AdminTripReportDTO {
 		return switch (reportStatus.toUpperCase()) {
 			case "RESOLVED", "COMPLETED" -> "검토 완료";
 			case "PENDING", "RECEIVED" -> "검토 대기";
-			default -> reportStatus;
+			case "IN_PROGRESS" -> "검토 중";
+			case "REJECTED" -> "반려";
+			default -> "알 수 없음";
 		};
 	}
 }

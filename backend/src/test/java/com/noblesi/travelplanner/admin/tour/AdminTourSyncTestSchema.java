@@ -1,0 +1,34 @@
+package com.noblesi.travelplanner.admin.tour;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+
+public final class AdminTourSyncTestSchema {
+
+	private AdminTourSyncTestSchema() {
+	}
+
+	public static void create(JdbcTemplate jdbcTemplate) {
+		jdbcTemplate.execute("""
+				CREATE SEQUENCE IF NOT EXISTS SEQ_TOUR_SYNC_HISTORY
+				START WITH 1 INCREMENT BY 1
+				""");
+		jdbcTemplate.execute("""
+				CREATE TABLE IF NOT EXISTS TOUR_SYNC_HISTORY (
+				    SYNC_HISTORY_ID NUMBER(19) NOT NULL,
+				    ADMIN_ID NUMBER(19) NOT NULL,
+				    PROVIDER_CODE VARCHAR2(30) NOT NULL,
+				    STARTED_AT TIMESTAMP WITH TIME ZONE NOT NULL,
+				    FINISHED_AT TIMESTAMP WITH TIME ZONE,
+				    TOTAL_COUNT NUMBER(10) DEFAULT 0 NOT NULL,
+				    INSERT_COUNT NUMBER(10) DEFAULT 0 NOT NULL,
+				    UPDATE_COUNT NUMBER(10) DEFAULT 0 NOT NULL,
+				    SUCCESS_COUNT NUMBER(10) DEFAULT 0 NOT NULL,
+				    FAIL_COUNT NUMBER(10) DEFAULT 0 NOT NULL,
+				    ERROR_MESSAGE CLOB,
+				    PROCESS_STATUS VARCHAR2(20) NOT NULL,
+				    CONSTRAINT PK_TOUR_SYNC_HISTORY PRIMARY KEY (SYNC_HISTORY_ID),
+				    CONSTRAINT FK_TOUR_SYNC_ADMIN FOREIGN KEY (ADMIN_ID) REFERENCES ADMIN (ADMIN_ID)
+				)
+				""");
+	}
+}
