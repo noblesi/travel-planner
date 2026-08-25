@@ -17,6 +17,19 @@ public class AdminTripReportDTO {
 	private String reportStatus;
 	private Date createdAt;
 
+	public String getReasonLabel() {
+		if (reasonCode == null) {
+			return "";
+		}
+		return switch (reasonCode.toUpperCase()) {
+			case "INAPPROPRIATE" -> "부적절한 콘텐츠";
+			case "FALSE_INFO" -> "허위 정보";
+			case "SPAM" -> "스팸/광고성";
+			case "OTHER" -> "기타";
+			default -> "알 수 없음";
+		};
+	}
+
 	public String getReportStatusLabel() {
 		if (reportStatus == null) {
 			return "";

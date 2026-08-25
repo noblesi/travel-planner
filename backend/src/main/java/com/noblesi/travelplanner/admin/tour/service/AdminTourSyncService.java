@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import com.noblesi.travelplanner.admin.tour.domain.TourSyncHistoryRecord;
 import com.noblesi.travelplanner.admin.tour.dto.TourSyncHistoryDTO;
 import com.noblesi.travelplanner.admin.tour.dto.TourSyncSummaryDTO;
-import com.noblesi.travelplanner.admin.tour.mapper.AdminTourSyncMapper;
 import com.noblesi.travelplanner.domain.place.PlaceType;
 import com.noblesi.travelplanner.integration.tourapi.TourApiClient;
 import com.noblesi.travelplanner.integration.tourapi.TourApiException;
@@ -79,13 +78,6 @@ public class AdminTourSyncService {
 						throw exception;
 					}
 				}
-			} catch (RuntimeException exception) {
-				// API 인증 오류처럼 작업 자체가 실패해도 운영자가 원인을 추적할 수 있도록 이력을 남긴다.
-				saveHistory(
-						startedAt, changedCount, Math.max(1, failedCount), "FAILED", manager,
-						exception.getMessage()
-				);
-				throw exception;
 			}
 
 			String status = failedCount == 0 ? "성공" : "부분 성공";
@@ -167,8 +159,7 @@ public class AdminTourSyncService {
 			int changedCount,
 			int failedCount,
 			String status,
-			String manager,
-			String errorMessage
+			String manager
 	) {
 		String startedAtText = startedAt.atZoneSameInstant(KOREA_ZONE).format(DATE_FORMAT);
 		return new TourSyncHistoryDTO(syncId, startedAtText, changedCount, failedCount, status, manager);
