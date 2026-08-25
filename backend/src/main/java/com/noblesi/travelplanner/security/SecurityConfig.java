@@ -128,11 +128,15 @@ public class SecurityConfig {
 								"/api/auth/**",
 								"/api/health",
 								"/error").permitAll()
+						.requestMatchers("/api/find/**").permitAll()
+						.requestMatchers("/alarm/**").permitAll()
+						.requestMatchers("/uploads/profile/**").permitAll()
 						.requestMatchers("/api/admin/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/members/me").authenticated()
 						.requestMatchers(HttpMethod.PATCH, "/api/members/me").authenticated()
 						.requestMatchers(HttpMethod.PATCH, "/api/members/me/password").authenticated()
 						.requestMatchers(HttpMethod.DELETE, "/api/members/me").authenticated()
+						.requestMatchers("/api/member/**").permitAll()
 						.requestMatchers(HttpMethod.OPTIONS, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()
