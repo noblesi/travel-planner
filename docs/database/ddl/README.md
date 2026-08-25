@@ -33,7 +33,7 @@ Windows Oracle Client의 문자셋이 UTF-8이 아니면 한글 Seed 실행 중 
 
 `001`은 일회성 생성 Script입니다. 일부 Object가 이미 있는 Schema에서 재실행하면 실패합니다. 자동 Drop은 데이터 손실 위험이 있어 제공하지 않습니다.
 
-`travelplanner_final.sql`은 전체 Schema를 초기화하는 파괴적 개발용 Script입니다. 기존 데이터가 있는 환경에는 실행하지 않습니다. 신규 여행 플랜 Schema의 canonical 기준은 `001`, `002`, `012`입니다. `001`에는 `005`와 `006`의 변경이 이미 반영되어 있으므로 신규 Schema에는 두 파일을 다시 실행하지 않습니다. 과거 `travelplanner_final.sql`로 생성한 Schema에서 좌표 Column이 `VARCHAR2`인 경우에만 백업 후 `010`을 실행합니다. `011`은 `006`까지 적용되어 `IX_TRAVEL_PLAN_PUBLISH`가 존재하고, 기존 `IX_PLAN_PUBLIC_UPDATED`와 `IX_PLAN_REGION_PUBLIC`에는 `PUBLISH_STATUS`가 없는 Schema에서만 한 번 실행합니다. 구형 `TOUR_SYNC_HISTORY`가 있는 Schema에서도 `012`를 한 번 실행하면 기존 이력을 신형 구조로 옮기고 더 이상 사용하지 않는 Sequence를 제거합니다.
+`travelplanner_final.sql`은 전체 Schema를 초기화하는 파괴적 개발용 Script입니다. 기존 데이터가 있는 환경에는 실행하지 않습니다. 신규 여행 플랜 Schema의 canonical 기준은 `001`, `002`, `012`입니다. `001`에는 `005`와 `006`의 변경이 이미 반영되어 있으므로 신규 Schema에는 두 파일을 다시 실행하지 않습니다. 과거 `travelplanner_final.sql`로 생성한 Schema에서 좌표 Column이 `VARCHAR2`인 경우에만 백업 후 `010`을 실행합니다. `011`은 `006`까지 적용되어 `IX_TRAVEL_PLAN_PUBLISH`가 존재하고, 기존 `IX_PLAN_PUBLIC_UPDATED`와 `IX_PLAN_REGION_PUBLIC`에는 `PUBLISH_STATUS`가 없는 Schema에서만 한 번 실행합니다. 구형 `TOUR_SYNC_HISTORY`가 있는 Schema에서도 `012`를 한 번 실행하면 기존 이력을 신형 구조로 옮기고 더 이상 사용하지 않는 Sequence를 제거합니다. 전환 전 Table은 `TOUR_SYNC_HISTORY_LEGACY`로 보존되며, `004_verify_travel_plan_schema.sql`과 이력 Data를 확인한 뒤에만 수동으로 제거합니다. 중단된 실행이 남긴 `TOUR_SYNC_HISTORY_V2`는 Row 수와 Schema가 유효할 때 재실행으로 복구됩니다.
 
 ## Oracle 접속 전 로컬 개발
 

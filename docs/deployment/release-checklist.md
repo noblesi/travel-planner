@@ -124,7 +124,7 @@ VITE_KAKAO_MAP_KEY=javascript-key
 
 - 현재 서버 session 저장소는 단일 인스턴스 기준입니다. Backend를 2대 이상 운영하기 전에는 Spring Session Redis 등 공유 저장소를 먼저 적용합니다.
 - 회원·관리자 로그인 endpoint에는 Reverse Proxy 또는 API Gateway에서 IP 기준 rate limit과 반복 실패 모니터링을 적용합니다.
-- 권장 초기값은 IP당 분당 5회이며, 실제 NAT·사내망 사용자 패턴을 관찰한 뒤 조정합니다.
+- HTTP 시연용 Nginx 설정은 로그인 POST 요청에 IP당 분당 5회와 순간 요청 3회의 제한을 적용합니다. 실제 NAT·사내망 사용자 패턴을 관찰한 뒤 조정합니다.
 - 장소 검색 endpoint는 로그인 Session을 필수로 하고, Reverse Proxy 또는 API Gateway에서 별도의 IP 기준 rate limit과 TourAPI 할당량 경보를 적용합니다.
 - 애플리케이션 내부의 단순 메모리 limiter는 다중 인스턴스에서 우회되고 재시작 시 상태가 사라지므로 현재 코드에 추가하지 않습니다.
 
@@ -132,6 +132,7 @@ VITE_KAKAO_MAP_KEY=javascript-key
 
 - 운영 기본 로그 수준은 `INFO`로 유지하고 일시적인 장애 분석 외에는 `DEBUG`를 활성화하지 않습니다.
 - 비밀번호, Session·CSRF·초대 Token, API Key, 전체 Query String과 요청·응답 본문이 Application·Nginx·Container 로그에 남지 않는지 확인합니다.
+- Hibernate DB 연결 정보 로거는 `WARN`으로 유지해 접속 위치와 Schema 식별자가 시작 로그에 남지 않게 합니다.
 - 이메일과 전화번호는 원문 대신 마스킹 값 또는 내부 식별자를 사용합니다.
 - Docker `json-file`을 사용한다면 `max-size: 10m`, `max-file: 5` 이상의 Rotation 제한을 운영 `compose.yaml`에 설정하거나 동등한 중앙 Log 보존 정책을 적용합니다.
 - 배포 전 Frontend Lint의 `no-console` 검증과 Backend Source의 `System.out`, `printStackTrace` 잔존 여부를 확인합니다.
@@ -151,7 +152,7 @@ VITE_KAKAO_MAP_KEY=javascript-key
 
 1. `004_verify_travel_plan_schema.sql`로 `THUMBNAIL_IMG`, `PUBLISH_STATUS`, 제약·인덱스 누락이 없는지 확인
 2. `008_backfill_plan_thumbnails.sql`을 실행한 뒤 `009_verify_plan_thumbnails.sql`의 두 Query가 0행인지 확인
-3. `GET /api/health`가 `UP`인지 확인
+3. `GET /api/health`가 Oracle 연결을 포함해 `UP`인지, `GET /api/health/live`가 Application Process 상태 `UP`인지 확인
 4. `GET /api/plans?page=1&size=24`가 데모 플랜과 페이지 메타데이터를 반환하는지 확인
 5. 공개 탐색 카드에서 관광 장소 이미지가 표시되고, 후보·정상 URL이 없으면 로컬 기본 이미지가 표시되는지 확인
 6. `e2e.*@withtrip.test` 임시 회원이 0건인지 확인
