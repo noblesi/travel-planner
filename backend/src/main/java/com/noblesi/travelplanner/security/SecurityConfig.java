@@ -127,6 +127,7 @@ public class SecurityConfig {
 						.requestMatchers(
 								"/api/auth/**",
 								"/api/health",
+								"/api/health/live",
 								"/error").permitAll()
 						.requestMatchers("/api/find/**").permitAll()
 						.requestMatchers("/alarm/**").permitAll()
