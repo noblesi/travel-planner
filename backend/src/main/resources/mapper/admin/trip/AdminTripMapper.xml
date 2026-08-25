@@ -149,7 +149,7 @@
 		       report.REASON_CODE AS reasonCode,
 		       report.REASON_DETAIL AS reasonDetail,
 		       report.REPORT_STATUS AS reportStatus,
-		       report.CREATED_AT AS createAt
+		       report.CREATED_AT AS createdAt
 		  FROM REPORT report
 		  JOIN MEMBER member
 		    ON member.MEMBER_ID = report.REPORTER_MEMBER_ID

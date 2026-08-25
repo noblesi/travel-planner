@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { getPlanDetail, toggleLike as toggleLikeApi } from '@/api/planSearch'
@@ -31,6 +31,8 @@ const errorMessage = ref('')
 const selectedDay = ref(1)
 const showReportModal = ref(false)
 const showImportModal = ref(false)
+const likePending = ref(false)
+let loadSequence = 0
 
 // 신고/가져오기는 비로그인 사용자도 버튼을 누를 수 있어서, 모달을 열기 전에
 // 여기서 먼저 로그인 여부를 확인한다 (백엔드 401을 받은 뒤 안내하면 원인이 불명확해짐).
@@ -97,21 +99,32 @@ function mapPlanDetail(detail) {
   }
 }
 
-async function loadPlan() {
-  const planId = props.id ?? route.params.id
+async function loadPlan(planId = props.id ?? route.params.id) {
+  const sequence = ++loadSequence
   loading.value = true
   errorMessage.value = ''
+  plan.value = null
+  likePending.value = false
+  showReportModal.value = false
+  showImportModal.value = false
   try {
-    plan.value = mapPlanDetail(await getPlanDetail(planId))
+    const loadedPlan = mapPlanDetail(await getPlanDetail(planId))
+    if (sequence !== loadSequence) return null
+
+    plan.value = loadedPlan
     const queryDay = Number(route.query.day)
-    selectedDay.value = plan.value.days.some((day) => day.dayNumber === queryDay)
+    selectedDay.value = loadedPlan.days.some((day) => day.dayNumber === queryDay)
       ? queryDay
-      : (plan.value.days[0]?.dayNumber ?? 1)
+      : (loadedPlan.days[0]?.dayNumber ?? 1)
+    return loadedPlan
   } catch {
+    if (sequence !== loadSequence) return null
+
     plan.value = null
     errorMessage.value = '공개 일정을 찾을 수 없거나 불러오지 못했어요.'
+    return null
   } finally {
-    loading.value = false
+    if (sequence === loadSequence) loading.value = false
   }
 }
 
@@ -125,21 +138,42 @@ function selectDay(dayNumber) {
 }
 
 async function toggleLike() {
+  if (likePending.value || !plan.value) return null
+
+  const targetPlan = plan.value
+  const targetPlanId = targetPlan.id
+  const targetLoadSequence = loadSequence
+  likePending.value = true
   try {
-    const liked = await toggleLikeApi(plan.value.id)
-    plan.value.liked = liked
-    plan.value.likeCount += liked ? 1 : -1
+    const liked = await toggleLikeApi(targetPlanId)
+    if (targetLoadSequence !== loadSequence || plan.value?.id !== targetPlanId) return null
+
+    if (targetPlan.liked !== liked) targetPlan.likeCount += liked ? 1 : -1
+    targetPlan.liked = liked
+    return liked
   } catch (error) {
+    if (targetLoadSequence !== loadSequence || plan.value?.id !== targetPlanId) return null
+
     // blocking alert 대신 공통 접근성 Toast를 사용해 기존 화면 흐름과 알림 정책을 일치시킨다.
     if (error?.response?.status === 401) {
       toast.info('로그인 후 좋아요를 누를 수 있습니다.')
-      return
+      return null
     }
     toast.error('좋아요 처리에 실패했어요. 잠시 후 다시 시도해 주세요.')
+    return null
+  } finally {
+    if (targetLoadSequence === loadSequence) likePending.value = false
   }
 }
 
-watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
+watch(
+  () => props.id ?? route.params.id,
+  (planId) => loadPlan(planId),
+  { immediate: true },
+)
+onBeforeUnmount(() => {
+  loadSequence += 1
+})
 </script>
 
 <template>
@@ -154,11 +188,12 @@ watch(() => props.id ?? route.params.id, loadPlan, { immediate: true })
         role="alert"
       >
         <span>{{ errorMessage }}</span>
-        <button type="button" @click="loadPlan">다시 시도</button>
+        <button type="button" @click="loadPlan()">다시 시도</button>
       </div>
       <article v-else-if="plan" class="app-container detail-card">
         <PublicPlanDetailHeader
           :plan="plan"
+          :like-pending="likePending"
           @back="goBack"
           @report="openReportModal"
           @toggle-like="toggleLike"

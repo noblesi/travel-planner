@@ -39,6 +39,13 @@ class AuthenticationControllerIntegrationTest {
 		jdbcTemplate.update("DELETE FROM PLAN_DAY");
 		jdbcTemplate.update("DELETE FROM PLAN_MEMBER");
 		jdbcTemplate.update("DELETE FROM TRAVEL_PLAN");
+		jdbcTemplate.update("""
+				UPDATE MEMBER
+				   SET NICKNAME = 'E2E 플랜 소유자',
+				       MEMBER_STATUS = 'ACTIVE',
+				       WITHDRAWN_AT = NULL
+				 WHERE EMAIL = ?
+				""", OWNER_EMAIL);
 	}
 
 	@Test
@@ -85,6 +92,37 @@ class AuthenticationControllerIntegrationTest {
 				Long.class
 		);
 		org.assertj.core.api.Assertions.assertThat(ownerMemberId).isEqualTo(expectedMemberId);
+	}
+
+	@Test
+	void refreshesSessionPrincipalFromCurrentMemberData() throws Exception {
+		MockHttpSession session = login();
+		jdbcTemplate.update(
+				"UPDATE MEMBER SET NICKNAME = ?, UPDATED_AT = CURRENT_TIMESTAMP WHERE EMAIL = ?",
+				"변경된 닉네임",
+				OWNER_EMAIL
+		);
+
+		mockMvc.perform(get("/api/auth/session").session(session))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.authenticated").value(true))
+				.andExpect(jsonPath("$.data.member.displayName").value("변경된 닉네임"));
+	}
+
+	@Test
+	void invalidatesExistingSessionWhenMemberBecomesWithdrawn() throws Exception {
+		MockHttpSession session = login();
+		jdbcTemplate.update("""
+				UPDATE MEMBER
+				   SET MEMBER_STATUS = 'WITHDRAWN',
+				       WITHDRAWN_AT = CURRENT_TIMESTAMP,
+				       UPDATED_AT = CURRENT_TIMESTAMP
+				 WHERE EMAIL = ?
+				""", OWNER_EMAIL);
+
+		mockMvc.perform(get("/api/plans/mine").session(session))
+				.andExpect(status().isUnauthorized())
+				.andExpect(jsonPath("$.code").value("CURRENT_MEMBER_NOT_AVAILABLE"));
 	}
 
 	@Test
@@ -150,7 +188,17 @@ class AuthenticationControllerIntegrationTest {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(loginRequest(OWNER_EMAIL, TEST_PASSWORD)))
 				.andExpect(status().isForbidden())
-				.andExpect(jsonPath("$.code").value("ACCESS_DENIED"));
+				.andExpect(jsonPath("$.code").value("CSRF_TOKEN_INVALID"));
+	}
+
+	@Test
+	void rejectsStateChangingRequestWithInvalidCsrfToken() throws Exception {
+		mockMvc.perform(post("/api/auth/login")
+				.with(csrf().asHeader().useInvalidToken())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(loginRequest(OWNER_EMAIL, TEST_PASSWORD)))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.code").value("CSRF_TOKEN_INVALID"));
 	}
 
 	@Test

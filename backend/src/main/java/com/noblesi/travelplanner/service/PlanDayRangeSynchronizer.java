@@ -53,13 +53,13 @@ class PlanDayRangeSynchronizer {
 
 	void synchronize(
 			long planId,
+			List<PlanDay> existingDays,
 			LocalDate oldStartDate,
 			LocalDate oldEndDate,
 			LocalDate newStartDate,
 			LocalDate newEndDate,
 			boolean force
 	) {
-		List<PlanDay> existingDays = planDayMapper.findByPlanIdOrderByDayNo(planId);
 		long oldDuration = ChronoUnit.DAYS.between(oldStartDate, oldEndDate) + 1;
 		long newDuration = ChronoUnit.DAYS.between(newStartDate, newEndDate) + 1;
 		List<PlanDay> removedDays = oldDuration == newDuration
@@ -75,6 +75,10 @@ class PlanDayRangeSynchronizer {
 			return;
 		}
 		reshapePlanDays(planId, existingDays, removedDays, newStartDate, newEndDate);
+	}
+
+	List<PlanDay> lockPlanDays(long planId) {
+		return planDayMapper.findByPlanIdOrderByDayNoForUpdate(planId);
 	}
 
 	private void requireScheduleRemovalConfirmation(

@@ -15,9 +15,6 @@ class LocalInvitationMailSender implements InvitationMailSender {
 
 	@Override
 	public void send(String toEmail, String planTitle, String acceptLink, OffsetDateTime expiresAt) {
-		log.info(
-				"[로컬] 초대 메일 발송(모의) to={}, planTitle={}, link={}, expiresAt={}",
-				toEmail, planTitle, acceptLink, expiresAt
-		);
+		log.info("[로컬] 초대 메일 발송(모의). expiresAt={}", expiresAt);
 	}
 }

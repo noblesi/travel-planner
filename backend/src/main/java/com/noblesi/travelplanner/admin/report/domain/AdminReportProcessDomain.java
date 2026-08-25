@@ -11,8 +11,8 @@ import lombok.ToString;
 @ToString
 public class AdminReportProcessDomain {
 
-	private int reportId;
-	private int adminId;
+	private Long reportId;
+	private Long adminId;
 	private String processResultCode;
 	private String processReason;
 	private Date processedAt;

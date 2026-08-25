@@ -60,6 +60,31 @@ beforeEach(() => {
 })
 
 describe('PlanSearchView', () => {
+  it('검색과 결과 영역을 keyboard 및 screen reader가 이해할 수 있는 구조로 제공한다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.get('h1').text()).toBe('다른 사람들은 어떻게 떠날까요?')
+
+    const searchForm = wrapper.get('form[role="search"]')
+    const searchInput = searchForm.get('input[type="search"]')
+    expect(searchForm.get('label').attributes('for')).toBe(searchInput.attributes('id'))
+    expect(searchForm.get('button[type="submit"]').attributes('aria-label')).toBe('공개 일정 검색')
+    expect(searchInput.attributes('aria-controls')).toBe('plan-search-results')
+
+    const results = wrapper.get('#plan-search-results')
+    expect(results.attributes()).toMatchObject({
+      'aria-busy': 'false',
+      'aria-labelledby': 'plan-search-results-heading',
+    })
+    expect(results.get('[role="status"]').text()).toBe('공개 여행 일정 1개')
+    expect(results.findAll('ul.grid > li')).toHaveLength(1)
+    expect(results.get('.stat-like').text()).toContain('좋아요 12')
+    expect(results.get('.stat:not(.stat-like)').text()).toContain('조회수 345')
+
+    wrapper.unmount()
+  })
+
   it('공개 일정을 불러와 카드를 표시하고 상세로 이동한다', async () => {
     const wrapper = mountView()
     await flushPromises()
@@ -79,11 +104,45 @@ describe('PlanSearchView', () => {
     getPlanListMock.mockClear()
 
     await wrapper.get('.search-input').setValue('  서울  ')
-    await wrapper.get('.search-input').trigger('keyup.enter')
+    await wrapper.get('.search-wrap').trigger('submit')
     await flushPromises()
 
     expect(replaceMock).toHaveBeenCalledWith({ query: { keyword: '서울' } })
     expect(getPlanListMock).toHaveBeenCalledWith({ keyword: '서울', page: 1, size: 8 })
+    expect(wrapper.get('#plan-search-results [role="status"]').text()).toBe('“서울” 검색 결과 1개')
+
+    wrapper.unmount()
+  })
+
+  it('직접 접근한 누적 25페이지를 2개의 batch 요청으로 복원한다', async () => {
+    route.query = { keyword: '제주', page: '25' }
+    getPlanListMock.mockImplementation(({ page }) =>
+      Promise.resolve({
+        page,
+        totalCount: 200,
+        hasNext: page < 2,
+        plans: Array.from({ length: 100 }, (_, index) => ({
+          ...publicPlan,
+          planId: String((page - 1) * 100 + index + 1),
+        })),
+      }),
+    )
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(getPlanListMock).toHaveBeenCalledTimes(2)
+    expect(getPlanListMock).toHaveBeenNthCalledWith(1, {
+      keyword: '제주',
+      page: 1,
+      size: 100,
+    })
+    expect(getPlanListMock).toHaveBeenNthCalledWith(2, {
+      keyword: '제주',
+      page: 2,
+      size: 100,
+    })
+    expect(wrapper.findAll('.card')).toHaveLength(200)
 
     wrapper.unmount()
   })
@@ -197,7 +256,7 @@ describe('PlanSearchView', () => {
     await Promise.resolve()
 
     await wrapper.get('.search-input').setValue('부산')
-    await wrapper.get('.search-input').trigger('keyup.enter')
+    await wrapper.get('.search-wrap').trigger('submit')
     await flushPromises()
 
     expect(wrapper.text()).toContain('부산 새 검색 결과')
@@ -250,7 +309,7 @@ describe('PlanSearchView', () => {
     const wrapper = mountView()
     await flushPromises()
     await wrapper.get('.search-input').setValue('경주')
-    await wrapper.get('.search-input').trigger('keyup.enter')
+    await wrapper.get('.search-wrap').trigger('submit')
     await Promise.resolve()
 
     window.dispatchEvent(new CustomEvent('plan-search:reset'))

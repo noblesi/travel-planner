@@ -51,6 +51,8 @@ public class AdminTripController {
 				keyword, visibility, regionCode, reportedOnly, reportStatus);
 		int totalPages = Math.max(1, (int) Math.ceil((double) allTrips.size() / PAGE_SIZE));
 		int currentPage = Math.min(Math.max(page, 1), totalPages);
+		int startPage = ((currentPage - 1) / 10) * 10 + 1;
+		int endPage = Math.min(startPage + 9, totalPages);
 		int fromIndex = (currentPage - 1) * PAGE_SIZE;
 		int toIndex = Math.min(fromIndex + PAGE_SIZE, allTrips.size());
 
@@ -64,13 +66,15 @@ public class AdminTripController {
 		model.addAttribute("totalCount", allTrips.size());
 		model.addAttribute("currentPage", currentPage);
 		model.addAttribute("totalPages", totalPages);
+		model.addAttribute("startPage", startPage);
+		model.addAttribute("endPage", endPage);
 		model.addAttribute("recommendRule", adminRecommendRuleService.searchRecommendRule());
 
 		return "admin/trip/tripFormView";
 	}
 
 	@GetMapping("/{planId}")
-	public String getTripDetail(@PathVariable("planId") int planId, Model model) {
+	public String getTripDetail(@PathVariable("planId") Long planId, Model model) {
 		AdminTripDetailDTO trip = adminTripService.getTripDetail(planId);
 		List<AdminTripScheduleDTO> schedules = adminTripService.getTripSchedules(planId);
 		List<AdminTripReportDTO> reports = adminTripService.getTripReports(planId);

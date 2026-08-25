@@ -17,7 +17,7 @@ public class AdminReportService {
 	@Autowired
 	private AdminReportMapper adminReportMapper;
 
-	public AdminReportDTO getReportDetail(int reportId) {
+	public AdminReportDTO getReportDetail(Long reportId) {
 		AdminReportDTO report = adminReportMapper.selectReportDetail(reportId);
 		if (report == null) {
 			throw new IllegalArgumentException("신고 정보를 찾을 수 없습니다.");
@@ -26,7 +26,7 @@ public class AdminReportService {
 	}
 
 	@Transactional
-	public void completeReport(AdminReportProcessDTO processDTO, int adminId) {
+	public void completeReport(AdminReportProcessDTO processDTO, Long adminId) {
 		AdminReportDTO report = getReportDetail(processDTO.getReportId());
 
 		AdminReportProcessDomain reportProcess = AdminReportProcessDomain.builder()

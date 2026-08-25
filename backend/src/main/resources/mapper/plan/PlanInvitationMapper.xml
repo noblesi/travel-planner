@@ -97,11 +97,4 @@
 		   AND INVITATION_STATUS = 'PENDING'
 	</update>
 
-	<select id="countPlanMember" resultType="int">
-		SELECT COUNT(*)
-		  FROM PLAN_MEMBER
-		 WHERE PLAN_ID = #{planId}
-		   AND MEMBER_ID = #{memberId}
-	</select>
-
 </mapper>

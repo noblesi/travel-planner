@@ -1,7 +1,24 @@
 # WithTrip 배포·시연 체크리스트
 
-- 기준일: `2026-08-11`
+- 기준일: `2026-08-18`
 - 대상: Linux, Nginx 정적 Frontend, Spring Boot 실행 JAR, Oracle `WITHTRIP_DEV`
+
+## EC2 HTTP 시연
+
+현재 시연 서버처럼 HTTP만 사용하는 경우 [`deploy/README.md`](../../deploy/README.md)의 Docker Compose와 Nginx 설정을 적용합니다. 이 모드는 운영 HTTPS 배포와 명확히 분리합니다.
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-release.ps1 `
+  -DeploymentMode HttpDemo
+```
+
+- `FRONTEND_BASE_URL=http://EC2_PUBLIC_IP`
+- `SESSION_COOKIE_SECURE=false`
+- EC2 Security Group은 `22 → 관리자 IP`, `80 → 시연 접근 범위`만 허용
+- Backend `8080`과 Oracle Port는 외부에 공개하지 않음
+- Kakao Developers 허용 도메인에 `http://EC2_PUBLIC_IP` 등록
+
+아래의 HTTPS 설정과 완료 조건은 운영 전환 시 적용합니다.
 
 ## 빌드 전 검증
 
@@ -18,19 +35,20 @@ Windows 실행 정책상 로컬 스크립트 실행이 제한된 환경에서도
 - Oracle Application 계정과 TourAPI·Kakao REST 키
 - SMTP 계정·발신 주소와 실제 HTTPS `FRONTEND_BASE_URL`
 - Frontend `/api` 경로와 Kakao JavaScript 키
-- 배포 시 `AUTH_ENFORCE_SECURITY=true`, `SESSION_COOKIE_SECURE=true`
+- 배포 시 `SERVER_FORWARD_HEADERS_STRATEGY=framework`, `AUTH_ENFORCE_SECURITY=true`, `SESSION_COOKIE_SECURE=true`
 - Backend 전체 Test와 `travel-planner.jar`
-- Frontend 전체 Test와 `frontend/dist`
+- Frontend Lint·전체 Test와 `frontend/dist`
 
 ## 권장 배치
 
 ```text
 Browser
   └── https://service.example.com
-      ├── /          -> Nginx -> frontend/dist/index.html
-      └── /api/**    -> Nginx -> http://127.0.0.1:8080/api/**
-                              -> travel-planner.jar
-                              -> Oracle WITHTRIP_DEV
+      ├── /                 -> Nginx -> frontend/dist/index.html
+      ├── /api/**           -> Nginx -> travel-planner.jar
+      ├── /admin/**         -> Nginx -> travel-planner.jar (Thymeleaf)
+      └── /assets/admin/**  -> Nginx -> travel-planner.jar (관리자 정적 자원)
+                                      -> Oracle WITHTRIP_DEV
 ```
 
 Frontend와 API를 같은 Origin으로 제공하면 별도 CORS 없이 Session Cookie와 CSRF를 사용할 수 있습니다.
@@ -47,7 +65,16 @@ server {
     root /opt/withtrip/frontend;
     index index.html;
 
-    location /api/ {
+    # 사용자 REST API와 Thymeleaf 관리자 화면은 URI를 유지해 Spring Boot로 전달합니다.
+    location ~ ^/(api|admin)(/|$) {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    # 관리자 CSS·JavaScript가 Vue 정적 파일 또는 SPA fallback으로 처리되지 않게 분리합니다.
+    location ^~ /assets/admin/ {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
         proxy_set_header X-Forwarded-Proto $scheme;
@@ -101,6 +128,14 @@ VITE_KAKAO_MAP_KEY=javascript-key
 - 장소 검색 endpoint는 로그인 Session을 필수로 하고, Reverse Proxy 또는 API Gateway에서 별도의 IP 기준 rate limit과 TourAPI 할당량 경보를 적용합니다.
 - 애플리케이션 내부의 단순 메모리 limiter는 다중 인스턴스에서 우회되고 재시작 시 상태가 사라지므로 현재 코드에 추가하지 않습니다.
 
+## 로그 운영
+
+- 운영 기본 로그 수준은 `INFO`로 유지하고 일시적인 장애 분석 외에는 `DEBUG`를 활성화하지 않습니다.
+- 비밀번호, Session·CSRF·초대 Token, API Key, 전체 Query String과 요청·응답 본문이 Application·Nginx·Container 로그에 남지 않는지 확인합니다.
+- 이메일과 전화번호는 원문 대신 마스킹 값 또는 내부 식별자를 사용합니다.
+- Docker `json-file`을 사용한다면 `max-size: 10m`, `max-file: 5` 이상의 Rotation 제한을 운영 `compose.yaml`에 설정하거나 동등한 중앙 Log 보존 정책을 적용합니다.
+- 배포 전 Frontend Lint의 `no-console` 검증과 Backend Source의 `System.out`, `printStackTrace` 잔존 여부를 확인합니다.
+
 ## Kakao Map
 
 - 개발 Origin은 정확히 `http://localhost:5173` 또는 실제 사용하는 Origin을 등록합니다.
@@ -132,6 +167,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\invoke-oracle-sql.
 
 - HTTPS에서 로그인 후 Session Cookie에 `Secure`, `HttpOnly`, `SameSite=Lax`가 적용됨
 - 로그인 후 새 CSRF 토큰으로 플랜 상태 변경이 성공함
+- `/admin/login` 로그인 후 대시보드·회원·여행·공지·신고 화면이 정상 표시됨
+- `/assets/admin/**` CSS·JavaScript가 `200`으로 제공되고 `/admin/**`가 Vue SPA fallback으로 처리되지 않음
 - 공개 탐색·상세·Kakao Marker가 Desktop과 Mobile에서 표시됨
 - 일정 추가 Request의 장소명·카테고리·이미지를 변조해도 서버 검색 결과 Snapshot과 대표 이미지가 유지됨
 - Vue Router 직접 접근과 새로고침이 `404`가 아닌 `index.html`로 연결됨

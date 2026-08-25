@@ -12,8 +12,8 @@
         <BaseInput v-model="newEndDate" label="종료일" type="date" required />
       </div>
       <div class="notice-box">
-        💡 원본은 {{ plan.days.length }}일 일정이에요. 여행 기간을 더 짧게 설정하면, 넘어가는
-        날짜의 일정은 담기지 않아요.
+        💡 원본은 {{ plan.days.length }}일 일정이에요. 여행 기간을 더 짧게 설정하면, 넘어가는 날짜의
+        일정은 담기지 않아요.
       </div>
       <p v-if="errorMessage" class="error-text">{{ errorMessage }}</p>
     </div>
@@ -71,6 +71,9 @@ function apiErrorMessage(error) {
 }
 
 async function submitNew() {
+  if (submitting.value || !newPlanName.value.trim() || !newStartDate.value || !newEndDate.value) {
+    return
+  }
   submitting.value = true
   errorMessage.value = ''
   try {

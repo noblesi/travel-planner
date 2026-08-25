@@ -9,14 +9,14 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AdminMemberDetailDTO {
 
-	private int memberId;
+	private Long memberId;
 	private String memberName;
 	private String nickName;
 	private String email;
 	private String phoneNumber;
 	private Date birthDate;
 	private String memberStatus;
-	private Date createAt;
+	private Date createdAt;
 	private int planCount;
 	private int reportedPlanCount;
 }

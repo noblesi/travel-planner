@@ -14,13 +14,13 @@ src/
 │   ├── ui/              # BaseButton, BaseInput, BaseModal, AsyncState, ToastRegion
 │   ├── AppHeader.vue
 │   └── AppFooter.vue
-├── layouts/             # DefaultLayout, AdminLayout
-├── router/              # 사용자·관리자 route와 404 fallback
+├── layouts/             # 사용자 화면의 DefaultLayout
+├── router/              # 사용자 route와 404 fallback
 ├── stores/              # Pinia 전역 상태와 Toast store
 └── views/               # route 단위 화면
 ```
 
-사용자 화면은 `DefaultLayout`을 사용해 skip link, Header, main landmark, Footer를 공유합니다. 관리자 route는 `AdminLayout`에서 Sidebar, Header와 scroll 영역을 관리합니다. 상세 구조와 Component API는 [공통 레이아웃·UI Component 가이드](../docs/frontend/common-layout-ui.md)를 확인합니다.
+사용자 화면은 `DefaultLayout`을 사용해 skip link, Header, main landmark, Footer를 공유합니다. 관리자 화면은 프론트엔드 SPA 범위에 포함하지 않으며 Backend의 Spring MVC + Thymeleaf로 제공합니다. 상세 구조와 Component API는 [공통 레이아웃·UI Component 가이드](../docs/frontend/common-layout-ui.md)를 확인합니다.
 
 ## 권장 IDE
 

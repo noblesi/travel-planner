@@ -2,10 +2,14 @@ spring:
   application:
     name: travel-planner
   datasource:
-    url: ${ORACLE_URL:jdbc:oracle:thin:@//localhost:1521/FREEPDB1}
-    username: ${ORACLE_USERNAME:travel_planner}
-    password: ${ORACLE_PASSWORD:travel_planner}
+    url: ${ORACLE_URL}
+    username: ${ORACLE_USERNAME}
+    password: ${ORACLE_PASSWORD}
     driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}

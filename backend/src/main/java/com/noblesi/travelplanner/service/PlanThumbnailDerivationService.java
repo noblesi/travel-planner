@@ -3,25 +3,29 @@ package com.noblesi.travelplanner.service;
 import org.springframework.stereotype.Service;
 
 import com.noblesi.travelplanner.mapper.PlanScheduleItemMapper;
-import com.noblesi.travelplanner.mapper.TravelPlanCommandMapper;
+import com.noblesi.travelplanner.mapper.TravelPlanDerivedDataMapper;
 
 @Service
 class PlanThumbnailDerivationService {
 
 	private final PlanScheduleItemMapper scheduleItemMapper;
-	private final TravelPlanCommandMapper commandMapper;
+	private final TravelPlanDerivedDataMapper derivedDataMapper;
 
 	PlanThumbnailDerivationService(
 			PlanScheduleItemMapper scheduleItemMapper,
-			TravelPlanCommandMapper commandMapper
+			TravelPlanDerivedDataMapper derivedDataMapper
 	) {
 		this.scheduleItemMapper = scheduleItemMapper;
-		this.commandMapper = commandMapper;
+		this.derivedDataMapper = derivedDataMapper;
 	}
 
 	String refresh(long planId) {
-		String imageUrl = scheduleItemMapper.findFirstImageUrlByPlanId(planId);
-		commandMapper.updateDerivedThumbnail(planId, imageUrl);
+		String imageUrl = derive(planId);
+		derivedDataMapper.updateThumbnailWithoutVersion(planId, imageUrl);
 		return imageUrl;
+	}
+
+	String derive(long planId) {
+		return scheduleItemMapper.findFirstImageUrlByPlanId(planId);
 	}
 }

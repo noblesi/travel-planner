@@ -29,6 +29,7 @@ class TourApiClientTest {
 	private final AtomicReference<String> responseBody = new AtomicReference<>();
 	private final AtomicReference<String> rawQuery = new AtomicReference<>();
 	private final AtomicInteger requestCount = new AtomicInteger();
+	private final AtomicInteger responseStatus = new AtomicInteger(200);
 
 	@BeforeEach
 	void setUp() throws IOException {
@@ -142,6 +143,19 @@ class TourApiClientTest {
 						assertThat(exception.getReason()).isEqualTo(Reason.INVALID_RESPONSE));
 	}
 
+	@Test
+	void removesCredentialBearingHttpCauseFromMappedException() {
+		responseStatus.set(503);
+		responseBody.set("service unavailable");
+
+		assertThatThrownBy(() -> client("sensitive-service-key").searchKeyword("서울", null, 1, 10))
+				.isInstanceOfSatisfying(TourApiException.class, exception -> {
+					assertThat(exception.getReason()).isEqualTo(Reason.UNAVAILABLE);
+					assertThat(exception.getCause()).isNull();
+					assertThat(exception.toString()).doesNotContain("sensitive-service-key");
+				});
+	}
+
 	private TourApiClient client(String serviceKey) {
 		URI baseUrl = URI.create(
 				"http://127.0.0.1:" + server.getAddress().getPort() + "/B551011/KorService2"
@@ -173,7 +187,7 @@ class TourApiClientTest {
 		rawQuery.set(exchange.getRequestURI().getRawQuery());
 		byte[] body = responseBody.get().getBytes(StandardCharsets.UTF_8);
 		exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-		exchange.sendResponseHeaders(200, body.length);
+		exchange.sendResponseHeaders(responseStatus.get(), body.length);
 		exchange.getResponseBody().write(body);
 		exchange.close();
 	}

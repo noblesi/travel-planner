@@ -11,12 +11,12 @@ import lombok.ToString;
 @ToString
 public class AdminMemberDomain {
 
-	private int memberId;
+	private Long memberId;
 	private String memberName;
 	private String email;
 	private String nickName;
 	private Date birthDate;
 	private String phoneNumber;
 	private String memberStatus;
-	private Date createAt;
+	private Date createdAt;
 }//class

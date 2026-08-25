@@ -189,6 +189,13 @@ const closeAlarmDetail = () => {
               </transition>
             </div>
             <span class="member-name">{{ authStore.currentUser.displayName }}</span>
+            <RouterLink
+              class="navigation__account-link"
+              :to="{ name: 'myPage' }"
+              @click="closeMenu"
+            >
+              마이페이지
+            </RouterLink>
             <button type="button" :disabled="authStore.pending" @click="handleLogout">로그아웃</button>
           </template>
         </div>

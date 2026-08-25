@@ -16,4 +16,10 @@ public interface PlaceMasterMapper {
 	int updatePlace(PlaceCatalogEntry place);
 
 	int insertPlace(PlaceCatalogEntry place);
+
+	int countActiveTourApiPlaces();
+
+	int countActiveTourApiPlacesByType(@Param("placeType") String placeType);
+
+	java.time.OffsetDateTime findLastTourApiSyncedAt();
 }

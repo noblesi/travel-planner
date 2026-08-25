@@ -12,8 +12,8 @@
 			copy_weight copyWeight, 
 			active_yn activeYn, 
 			admin_id adminId, 
-			created_at createAt, 
-			updated_at updateAt
+			created_at createdAt,
+			updated_at updatedAt
 		from
 			(
 			select

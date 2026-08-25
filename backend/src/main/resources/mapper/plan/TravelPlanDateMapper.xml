@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.TravelPlanDateMapper">
+
+	<update id="updateTravelDates">
+		UPDATE TRAVEL_PLAN
+		   SET START_DATE = #{startDate},
+		       END_DATE = #{endDate},
+		       VERSION_NO = VERSION_NO + 1,
+		       UPDATED_AT = #{updatedAt}
+		 WHERE PLAN_ID = #{planId}
+		   AND OWNER_MEMBER_ID = #{memberId}
+		   AND PLAN_STATUS = 'ACTIVE'
+		   AND VERSION_NO = #{versionNo}
+	</update>
+
+</mapper>

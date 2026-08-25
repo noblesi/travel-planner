@@ -39,6 +39,16 @@
 		 WHERE LOWER(EMAIL) = #{email}
 	</select>
 
+	<select id="findForSessionValidation" resultMap="authenticatedMemberResultMap">
+		SELECT MEMBER_ID,
+		       EMAIL,
+		       NICKNAME AS DISPLAY_NAME,
+		       PASSWORD_HASH,
+		       MEMBER_STATUS
+		  FROM MEMBER
+		 WHERE MEMBER_ID = #{memberId}
+	</select>
+
 	<insert id="insertMember" parameterType="joinMemberRequest">
 		INSERT INTO MEMBER (
 			MEMBER_ID, 

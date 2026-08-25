@@ -63,7 +63,7 @@ views/       라우트 단위 화면
 
 ### 공통 레이아웃과 UI Component
 
-- 사용자 route는 특별한 이유가 없으면 `DefaultLayout`, 관리자 route는 `AdminLayout`을 사용합니다.
+- 사용자 route는 특별한 이유가 없으면 `DefaultLayout`을 사용합니다. 관리자 화면은 Vue route를 추가하지 않고 Backend의 `/admin/**` Spring MVC + Thymeleaf 구조에서 구현합니다.
 - 새 버튼·입력·Modal·비동기 상태 UI를 만들기 전에 `src/components/ui`의 기존 Component로 조합할 수 있는지 확인합니다.
 - brand 색상, surface, border, text, layout 너비는 `src/assets/main.css`의 CSS variable을 사용합니다.
 - `BaseModal`을 사용하는 화면은 `close` event로 open state를 소유하며 dialog 내부에 별도 overlay나 document keydown listener를 추가하지 않습니다.
@@ -100,6 +100,14 @@ views/       라우트 단위 화면
 - 날짜·시간 형식, 페이지 번호 기준과 null 가능 여부를 API 명세에 적습니다.
 - 프론트엔드에는 사용자용 메시지를 표시하고 서버 상세 오류나 스택 추적은 노출하지 않습니다.
 - 수정·삭제 API는 로그인 여부와 대상 데이터 소유권을 확인합니다.
+
+## 로그와 민감정보
+
+- 비밀번호, 인증·초대 Token, Session·CSRF 값, API Key와 전체 요청·응답 본문을 로그에 기록하지 않습니다.
+- 이메일·전화번호 등 개인정보는 진단에 꼭 필요한 경우에도 원문 대신 마스킹 값이나 내부 식별자를 사용합니다.
+- 외부 API 예외는 요청 URL과 Query String을 그대로 기록하지 않고 제공자명, 안전한 오류 분류와 HTTP 상태만 기록합니다.
+- Frontend 운영 코드에서는 `console.*`을 사용하지 않습니다. 사용자 오류는 화면 상태나 공통 Toast로 처리합니다.
+- 예외 스택을 기록하기 전에 원인 예외 메시지에 자격 증명이나 개인정보가 포함될 가능성이 없는지 확인합니다.
 
 ## 커밋 메시지
 

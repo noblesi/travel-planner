@@ -9,7 +9,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AdminTripScheduleDTO {
 
-	private int scheduleItemId;
+	private Long scheduleItemId;
 	private int dayNo;
 	private Date travelDate;
 	private String timeSlot;

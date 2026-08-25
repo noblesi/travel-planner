@@ -15,10 +15,13 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.access.AccessDeniedHandlerImpl;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
+import org.springframework.security.web.csrf.CsrfException;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 
@@ -64,11 +67,13 @@ public class SecurityConfig {
 			ObjectMapper objectMapper
 	) throws Exception {
 		AuthenticationManager adminAuthenticationManager = new ProviderManager(authenticationProvider);
+		AccessDeniedHandlerImpl adminAccessDeniedHandler = new AccessDeniedHandlerImpl();
+		adminAccessDeniedHandler.setErrorPage("/admin/error/403");
 		http
 				.securityMatcher("/admin/**", "/api/admin/**", "/assets/admin/**")
 				.authenticationManager(adminAuthenticationManager)
 				.authorizeHttpRequests(authorize -> authorize
-						.requestMatchers("/admin/login", "/assets/admin/**").permitAll()
+						.requestMatchers("/admin/login", "/admin/error/**", "/assets/admin/**").permitAll()
 						.anyRequest().hasRole("ADMIN"))
 				.formLogin(form -> form
 						.loginPage("/admin/login")
@@ -83,6 +88,10 @@ public class SecurityConfig {
 						.invalidateHttpSession(true)
 						.deleteCookies("JSESSIONID"))
 				.exceptionHandling(exceptions -> exceptions
+						.accessDeniedHandler((request, response, exception) -> {
+							request.setAttribute("admin.originalRequestUri", request.getRequestURI());
+							adminAccessDeniedHandler.handle(request, response, exception);
+						})
 						.authenticationEntryPoint((request, response, exception) -> {
 							if (request.getRequestURI().startsWith(request.getContextPath() + "/api/admin/")) {
 								writeError(
@@ -108,7 +117,8 @@ public class SecurityConfig {
 	SecurityFilterChain securedApiFilterChain(
 			HttpSecurity http,
 			ObjectMapper objectMapper,
-			CsrfTokenRepository csrfTokenRepository
+			CsrfTokenRepository csrfTokenRepository,
+			MemberSessionValidationFilter memberSessionValidationFilter
 	) throws Exception {
 		http
 				.csrf(csrf -> csrf
@@ -122,6 +132,10 @@ public class SecurityConfig {
 						.requestMatchers("/alarm/**").permitAll()
 						.requestMatchers("/uploads/profile/**").permitAll()
 						.requestMatchers("/api/admin/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/members/me").authenticated()
+						.requestMatchers(HttpMethod.PATCH, "/api/members/me").authenticated()
+						.requestMatchers(HttpMethod.PATCH, "/api/members/me/password").authenticated()
+						.requestMatchers(HttpMethod.DELETE, "/api/members/me").authenticated()
 						.requestMatchers("/api/member/**").permitAll()
 						.requestMatchers(HttpMethod.OPTIONS, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
@@ -133,6 +147,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/notices", "/api/notices/*").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/plan-invitations/**").permitAll()
 						.anyRequest().authenticated())
+				.addFilterBefore(memberSessionValidationFilter, AuthorizationFilter.class)
 				.exceptionHandling(exceptions -> exceptions
 						.authenticationEntryPoint((request, response, exception) -> writeError(
 								response,
@@ -144,16 +159,21 @@ public class SecurityConfig {
 										request.getRequestURI()
 								)
 						))
-						.accessDeniedHandler((request, response, exception) -> writeError(
-								response,
-								objectMapper,
-								HttpServletResponse.SC_FORBIDDEN,
-								ErrorResponse.of(
-										"ACCESS_DENIED",
-										"요청을 수행할 권한이 없습니다.",
-										request.getRequestURI()
-								)
-						)));
+						.accessDeniedHandler((request, response, exception) -> {
+							boolean csrfFailure = exception instanceof CsrfException;
+							writeError(
+									response,
+									objectMapper,
+									HttpServletResponse.SC_FORBIDDEN,
+									ErrorResponse.of(
+											csrfFailure ? "CSRF_TOKEN_INVALID" : "ACCESS_DENIED",
+											csrfFailure
+													? "CSRF token이 없거나 만료되었습니다."
+													: "요청을 수행할 권한이 없습니다.",
+											request.getRequestURI()
+									)
+							);
+						}));
 		return http.build();
 	}
 
@@ -162,7 +182,8 @@ public class SecurityConfig {
 	@ConditionalOnProperty(name = "app.auth.enforce-security", havingValue = "false")
 	SecurityFilterChain localDevelopmentFilterChain(
 			HttpSecurity http,
-			CsrfTokenRepository csrfTokenRepository
+			CsrfTokenRepository csrfTokenRepository,
+			MemberSessionValidationFilter memberSessionValidationFilter
 	) throws Exception {
 			http
 				.csrf(csrf -> csrf
@@ -171,7 +192,8 @@ public class SecurityConfig {
 								// local profile의 mutation API에는 개발용 CSRF 예외 정책을 적용한다.
 								"/api/plans/**",
 								"/api/plan-invitations/**"))
-				.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll());
+				.authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+				.addFilterBefore(memberSessionValidationFilter, AuthorizationFilter.class);
 		return http.build();
 	}
 

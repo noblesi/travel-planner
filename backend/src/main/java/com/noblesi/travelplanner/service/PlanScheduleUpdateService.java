@@ -73,11 +73,21 @@ class PlanScheduleUpdateService {
 		if (replay != null) {
 			return responseFactory.fromReplay(replay, planIdValue);
 		}
+		var lockedDays = support.lockOwnedDays(planId, planDayId, targetPlanDayId);
+		PlanDay day = lockedDays.get(planDayId);
+		PlanDay targetDay = lockedDays.get(targetPlanDayId);
+		replay = operationLedger.findReplay(
+				operationId,
+				planId,
+				memberId,
+				ScheduleOperationType.UPDATE,
+				request.scheduleVersion(),
+				requestHash
+		);
+		if (replay != null) {
+			return responseFactory.fromReplay(replay, planIdValue);
+		}
 
-		PlanDay day = support.requireOwnedDay(planDayId, planId);
-		PlanDay targetDay = targetPlanDayId == planDayId
-				? day
-				: support.requireOwnedDay(targetPlanDayId, planId);
 		PlanScheduleItem item = support.requireScheduleItem(scheduleItemId, planDayId);
 		support.requireItemVersion(item, request.itemVersion());
 		support.requireScheduleVersion(day, request.scheduleVersion());

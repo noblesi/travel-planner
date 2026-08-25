@@ -12,7 +12,7 @@ import lombok.ToString;
 @ToString
 public class AdminReportProcessDTO {
 
-	private int reportId;
+	private Long reportId;
 	private String processResultCode;
 	private String processReason;
 	

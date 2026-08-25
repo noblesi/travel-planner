@@ -31,8 +31,4 @@ public interface PlanInvitationMapper {
 			@Param("respondedAt") OffsetDateTime respondedAt
 	);
 
-	int countPlanMember(
-			@Param("planId") long planId,
-			@Param("memberId") long memberId
-	);
 }

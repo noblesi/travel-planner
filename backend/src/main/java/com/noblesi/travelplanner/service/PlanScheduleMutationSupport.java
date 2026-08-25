@@ -2,7 +2,10 @@ package com.noblesi.travelplanner.service;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -37,6 +40,22 @@ class PlanScheduleMutationSupport {
 			throw new BusinessException(HttpStatus.NOT_FOUND, "PLAN_DAY_NOT_FOUND", "여행 일차를 찾을 수 없습니다.");
 		}
 		return day;
+	}
+
+	Map<Long, PlanDay> lockOwnedDays(long planId, long... planDayIds) {
+		List<Long> distinctIds = java.util.Arrays.stream(planDayIds)
+				.boxed()
+				.distinct()
+				.sorted()
+				.toList();
+		Map<Long, PlanDay> daysById = planDayMapper
+				.findByIdsAndPlanIdForUpdate(distinctIds, planId)
+				.stream()
+				.collect(Collectors.toMap(PlanDay::planDayId, Function.identity()));
+		if (daysById.size() != distinctIds.size()) {
+			throw new BusinessException(HttpStatus.NOT_FOUND, "PLAN_DAY_NOT_FOUND", "여행 일차를 찾을 수 없습니다.");
+		}
+		return daysById;
 	}
 
 	PlanScheduleItem requireScheduleItem(long scheduleItemId, long planDayId) {

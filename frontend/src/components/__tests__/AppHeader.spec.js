@@ -15,6 +15,7 @@ const routes = [
   },
   { path: '/loginView', name: 'login', component: { template: '<div />' } },
   { path: '/joinView', name: 'join', component: { template: '<div />' } },
+  { path: '/myPage', name: 'myPage', component: { template: '<div />' } },
 ]
 
 async function mountHeader(initialPath = '/') {

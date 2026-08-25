@@ -322,10 +322,6 @@ BEGIN
     DELETE FROM MEMBER_WARNING_SUPPRESSION
      WHERE MEMBER_ID BETWEEN 900201 AND 900205;
 
-    DELETE FROM GOOGLE_ACCOUNT_LINK
-     WHERE MEMBER_ID BETWEEN 900201 AND 900205
-        OR GOOGLE_SUBJECT LIKE 'test-google-sub-%';
-
     DELETE FROM MEMBER
      WHERE MEMBER_ID BETWEEN 900201 AND 900205
         OR EMAIL LIKE 'test.member%@withtrip.test';
@@ -373,16 +369,6 @@ BEGIN
             c_password_hash,
             'Y',
             'ACTIVE'
-        );
-
-        INSERT INTO GOOGLE_ACCOUNT_LINK (
-            GOOGLE_SUBJECT,
-            MEMBER_ID,
-            GOOGLE_EMAIL
-        ) VALUES (
-            'test-google-sub-' || v_suffix,
-            900200 + i,
-            'test.member' || v_suffix || '@gmail.com'
         );
 
         INSERT INTO MEMBER_WARNING_SUPPRESSION (
@@ -728,11 +714,6 @@ BEGIN
 
     SELECT COUNT(*) INTO v_count FROM MEMBER WHERE MEMBER_ID BETWEEN 900201 AND 900205;
     assert_count('MEMBER', v_count, 5);
-
-    SELECT COUNT(*) INTO v_count
-      FROM GOOGLE_ACCOUNT_LINK
-     WHERE MEMBER_ID BETWEEN 900201 AND 900205;
-    assert_count('GOOGLE_ACCOUNT_LINK', v_count, 5);
 
     SELECT COUNT(*) INTO v_count
       FROM MEMBER_WARNING_SUPPRESSION

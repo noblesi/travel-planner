@@ -55,12 +55,12 @@
 								</tr>
 							</thead>
 							<tbody>
-								<tr th:each="member : ${members}">
+								<tr th:each="member : ${members.content}">
 									<td class="text-column" th:text="${member.memberId}">1</td>
 									<td class="text-column"
 										th:text="|${member.memberName} / ${member.memberNickName}|">이름 / 닉네임</td>
 									<td class="text-column" th:text="${member.email}">member@example.com</td>
-									<td th:text="${#dates.format(member.createAt, 'yyyy.MM.dd')}">2026.08.07</td>
+									<td th:text="${#dates.format(member.createdAt, 'yyyy.MM.dd')}">2026.08.07</td>
 									<td th:text="${member.planCount}">0</td>
 									<td th:text="${member.reportedPlanCount}">0</td>
 									<td>
@@ -83,12 +83,24 @@
 										</div>
 									</td>
 								</tr>
-								<tr th:if="${#lists.isEmpty(members)}">
+								<tr th:if="${#lists.isEmpty(members.content)}">
 									<td colspan="8">조회된 회원이 없습니다.</td>
 								</tr>
 							</tbody>
 						</table>
 					</div>
+					<nav class="pagination" aria-label="회원 목록 페이지" th:if="${members.pagination.totalPages > 1}">
+						<a class="pagination-direction" th:if="${members.pagination.hasPrevious()}"
+							th:href="@{/admin/members(page=${members.pagination.page - 1},keyword=${keyword},memberStatus=${memberStatus})}">이전</a>
+						<span class="pagination-direction disabled" th:unless="${members.pagination.hasPrevious()}">이전</span>
+						<a th:each="number : ${#numbers.sequence(members.pagination.startPage, members.pagination.endPage)}"
+							th:href="@{/admin/members(page=${number},keyword=${keyword},memberStatus=${memberStatus})}"
+							th:text="${number}" th:classappend="${number == members.pagination.page} ? ' active'"
+							th:attr="aria-current=${number == members.pagination.page ? 'page' : null}">1</a>
+						<a class="pagination-direction" th:if="${members.pagination.hasNext()}"
+							th:href="@{/admin/members(page=${members.pagination.page + 1},keyword=${keyword},memberStatus=${memberStatus})}">다음</a>
+						<span class="pagination-direction disabled" th:unless="${members.pagination.hasNext()}">다음</span>
+					</nav>
 				</section>
 			</main>
 		</div>

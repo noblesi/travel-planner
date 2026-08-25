@@ -1,42 +1,37 @@
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { useUserStore } from '@/stores/useUserStore'
+import { useJoinDraftStore } from '@/stores/joinDraft'
 import JoinProfileView from '@/views/joinView/JoinProfileView.vue'
 
-const { postMemberJoinMock, pushMock } = vi.hoisted(() => ({
+const { postMemberJoinMock, replaceMock } = vi.hoisted(() => ({
   postMemberJoinMock: vi.fn(),
-  pushMock: vi.fn(),
+  replaceMock: vi.fn(),
 }))
 
 vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: pushMock }),
+  useRouter: () => ({ replace: replaceMock }),
+  isNavigationFailure: (failure) => Boolean(failure),
 }))
 
 vi.mock('@/api/users', () => ({
   postMemberJoin: postMemberJoinMock,
 }))
 
-let alertMock
-
 beforeEach(() => {
   setActivePinia(createPinia())
-  pushMock.mockReset()
+  replaceMock.mockReset()
+  replaceMock.mockResolvedValue(undefined)
   postMemberJoinMock.mockReset()
   postMemberJoinMock.mockResolvedValue(true)
-  alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {})
-})
-
-afterEach(() => {
-  alertMock.mockRestore()
 })
 
 function mountViewWithStep1Data() {
   const pinia = createPinia()
   setActivePinia(pinia)
-  const store = useUserStore()
-  store.setUserInfo('member@example.com', 'password-value')
+  const store = useJoinDraftStore()
+  store.beginRegistration({ email: 'member@example.com', password: 'password-value' })
   const wrapper = mount(JoinProfileView, { global: { plugins: [pinia] } })
   return { store, wrapper }
 }
@@ -60,11 +55,12 @@ describe('JoinProfileView', () => {
       birth: '20000101',
       privacy: 'Y',
       name: '홍길동',
+      nickname: '홍길동',
       gender: 'F',
       phone: '010-1234-5678',
     })
-    expect(store.userInfo).toEqual({ email: '', password: '' })
-    expect(pushMock).toHaveBeenCalledWith('/joinComplete')
+    expect(store.hasCredentials).toBe(false)
+    expect(replaceMock).toHaveBeenCalledWith({ name: 'complete' })
 
     wrapper.unmount()
   })
@@ -77,11 +73,9 @@ describe('JoinProfileView', () => {
     await inputs[1].setValue('2000010')
     await wrapper.get('form').trigger('submit')
 
-    expect(alertMock).toHaveBeenCalledWith(
-      '생년월일을 8자리로 정확하게 입력하여 주세요. (예: 20001031)',
-    )
+    expect(wrapper.get('[role="alert"]').text()).toContain('생년월일을 8자리로 정확하게')
     expect(postMemberJoinMock).not.toHaveBeenCalled()
-    expect(pushMock).not.toHaveBeenCalled()
+    expect(replaceMock).not.toHaveBeenCalled()
 
     wrapper.unmount()
   })
@@ -95,10 +89,78 @@ describe('JoinProfileView', () => {
     await inputs[2].setValue('010-1234-5678')
     await wrapper.get('form').trigger('submit')
 
-    expect(alertMock).toHaveBeenCalledWith('개인정보 저장에 동의하여 주세요.')
+    expect(wrapper.get('[role="alert"]').text()).toContain('개인정보 저장에 동의해 주세요.')
     expect(postMemberJoinMock).not.toHaveBeenCalled()
-    expect(pushMock).not.toHaveBeenCalled()
+    expect(replaceMock).not.toHaveBeenCalled()
 
+    wrapper.unmount()
+  })
+
+  it('중복 제출을 막고 API 오류를 화면에 표시한다', async () => {
+    let rejectRequest
+    postMemberJoinMock.mockReturnValue(
+      new Promise((resolve, reject) => {
+        rejectRequest = reject
+      }),
+    )
+    const { wrapper } = mountViewWithStep1Data()
+    const inputs = wrapper.findAll('input[type="text"]')
+
+    await inputs[0].setValue('홍길동')
+    await inputs[1].setValue('20000101')
+    await inputs[2].setValue('010-1234-5678')
+    await wrapper.get('input[type="checkbox"]').setValue(true)
+    await wrapper.get('form').trigger('submit')
+    await wrapper.get('form').trigger('submit')
+
+    expect(postMemberJoinMock).toHaveBeenCalledOnce()
+    expect(wrapper.get('button[type="submit"]').attributes()).toHaveProperty('disabled')
+
+    rejectRequest({ response: { data: { message: '이미 사용 중인 이메일입니다.' } } })
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toBe('이미 사용 중인 이메일입니다.')
+    wrapper.unmount()
+  })
+
+  it('가입 성공 후 화면 이동이 실패해도 가입 요청을 재전송하지 않는다', async () => {
+    replaceMock.mockRejectedValueOnce(new Error('navigation failed'))
+    const { store, wrapper } = mountViewWithStep1Data()
+    const inputs = wrapper.findAll('input[type="text"]')
+    await inputs[0].setValue('홍길동')
+    await inputs[1].setValue('20000101')
+    await inputs[2].setValue('010-1234-5678')
+    await wrapper.get('input[type="checkbox"]').setValue(true)
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(store.hasCredentials).toBe(false)
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      '회원가입은 완료되었지만 완료 화면으로 이동하지 못했습니다.',
+    )
+    expect(wrapper.get('button[type="submit"]').text()).toBe('가입 완료')
+    expect(wrapper.get('button[type="submit"]').attributes()).toHaveProperty('disabled')
+
+    await wrapper.get('form').trigger('submit')
+    expect(postMemberJoinMock).toHaveBeenCalledOnce()
+    wrapper.unmount()
+  })
+
+  it('가입 성공 후 router가 NavigationFailure를 resolve해도 완료 상태를 유지한다', async () => {
+    replaceMock.mockResolvedValueOnce({ type: 'aborted' })
+    const { wrapper } = mountViewWithStep1Data()
+    const inputs = wrapper.findAll('input[type="text"]')
+    await inputs[0].setValue('홍길동')
+    await inputs[1].setValue('20000101')
+    await inputs[2].setValue('010-1234-5678')
+    await wrapper.get('input[type="checkbox"]').setValue(true)
+
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('회원가입은 완료되었지만')
+    expect(wrapper.get('button[type="submit"]').text()).toBe('가입 완료')
     wrapper.unmount()
   })
 })

@@ -11,9 +11,4 @@ import com.noblesi.travelplanner.domain.plan.ManagedTravelPlan;
 public interface MyPlanMapper {
 
 	List<ManagedTravelPlan> findByMemberId(@Param("memberId") long memberId);
-
-	ManagedTravelPlan findOwnedById(
-			@Param("planId") long planId,
-			@Param("memberId") long memberId
-	);
 }

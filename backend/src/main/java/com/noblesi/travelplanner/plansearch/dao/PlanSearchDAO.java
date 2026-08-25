@@ -27,9 +27,6 @@ public interface PlanSearchDAO {
 	// 플랜 상세 조회 (일차/장소 제외)
 	PlanDetailResponseDTO selectPlanById(@Param("planId") Long planId);
 
-	// 플랜 조회 수 증가
-	int updatePlanViewCount(@Param("planId") Long planId);
-
 	// 여행 일차 목록 조회
 	List<PlanDetailDayDTO> selectPlanDays(@Param("planId") Long planId);
 

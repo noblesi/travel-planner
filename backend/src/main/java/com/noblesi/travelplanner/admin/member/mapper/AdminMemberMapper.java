@@ -7,26 +7,20 @@ import org.apache.ibatis.annotations.Param;
 
 import com.noblesi.travelplanner.admin.member.dto.AdminMemberDetailDTO;
 import com.noblesi.travelplanner.admin.member.dto.AdminMemberListDTO;
+import com.noblesi.travelplanner.admin.member.dto.AdminMemberSearchDTO;
 
 @Mapper
 public interface AdminMemberMapper {
 
-	List<AdminMemberListDTO> selectMemberList(
+	long countMemberList(@Param("search") AdminMemberSearchDTO search);
 
-			@Param("keyword") String keyword, 
-			@Param("memberStatus") String memberStatus
-			
-	);
+	List<AdminMemberListDTO> selectMemberList(@Param("search") AdminMemberSearchDTO search);
 
-	AdminMemberDetailDTO selectMemberDetail(
-			
-			@Param("memberId") String MemberID
-			
-	);
+	AdminMemberDetailDTO selectMemberDetail(@Param("memberId") Long memberId);
 	
 	int updateStatus(
 		
-			@Param("memberId") String memberId,
+			@Param("memberId") Long memberId,
 			@Param("memberStatus") String memberStatus
 	);
 

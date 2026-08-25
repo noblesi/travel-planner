@@ -67,8 +67,19 @@ class PlanScheduleDeleteService {
 		if (replay != null) {
 			return responseFactory.fromReplay(replay, planIdValue);
 		}
+		PlanDay day = support.lockOwnedDays(planId, planDayId).get(planDayId);
+		replay = operationLedger.findReplay(
+				operationId,
+				planId,
+				memberId,
+				ScheduleOperationType.DELETE,
+				request.scheduleVersion(),
+				requestHash
+		);
+		if (replay != null) {
+			return responseFactory.fromReplay(replay, planIdValue);
+		}
 
-		PlanDay day = support.requireOwnedDay(planDayId, planId);
 		PlanScheduleItem item = support.requireScheduleItem(scheduleItemId, planDayId);
 		support.requireItemVersion(item, request.itemVersion());
 		support.requireScheduleVersion(day, request.scheduleVersion());

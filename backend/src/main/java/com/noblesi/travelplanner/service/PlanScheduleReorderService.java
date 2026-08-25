@@ -67,8 +67,19 @@ class PlanScheduleReorderService {
 		if (replay != null) {
 			return responseFactory.fromReplay(replay, planIdValue);
 		}
+		PlanDay day = support.lockOwnedDays(planId, planDayId).get(planDayId);
+		replay = operationLedger.findReplay(
+				operationId,
+				planId,
+				memberId,
+				ScheduleOperationType.REORDER,
+				request.scheduleVersion(),
+				requestHash
+		);
+		if (replay != null) {
+			return responseFactory.fromReplay(replay, planIdValue);
+		}
 
-		PlanDay day = support.requireOwnedDay(planDayId, planId);
 		support.requireScheduleVersion(day, request.scheduleVersion());
 		List<Long> currentItemIds = planScheduleItemMapper.findIdsByDayAndTimeSlot(
 				planDayId,

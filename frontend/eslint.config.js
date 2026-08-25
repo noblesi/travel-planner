@@ -22,6 +22,15 @@ export default defineConfig([
     },
   },
 
+  {
+    name: 'app/no-production-console',
+    files: ['src/**/*.{vue,js,mjs,jsx}'],
+    ignores: ['src/**/__tests__/**'],
+    rules: {
+      'no-console': 'error',
+    },
+  },
+
   js.configs.recommended,
   ...pluginVue.configs['flat/essential'],
 

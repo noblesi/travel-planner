@@ -9,7 +9,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class AdminTripListDTO {
 
-	private int planId;
+	private Long planId;
 	private String title;
 	private String regionName;
 	private String ownerName;
@@ -20,7 +20,7 @@ public class AdminTripListDTO {
 	private String visibility;
 	private String planStatus;
 	private int reportCount;
-	private Integer latestReportId;
+	private Long latestReportId;
 	private String latestReportStatus;
 
 	public String getVisibilityLabel() {

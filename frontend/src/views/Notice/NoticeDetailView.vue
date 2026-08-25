@@ -6,7 +6,7 @@
     <div v-if="loading" class="status-wrap" role="status">공지사항을 불러오는 중이에요.</div>
     <div v-else-if="errorMessage" class="status-wrap status-wrap--error" role="alert">
       <span>{{ errorMessage }}</span>
-      <button type="button" @click="fetchNotice">다시 시도</button>
+      <button type="button" @click="fetchNotice()">다시 시도</button>
     </div>
 
     <template v-else>
@@ -25,7 +25,7 @@
     <div class="detail-body">{{ notice.content }}</div>
 
     <div class="back-wrap">
-      <button class="back-btn" @click="goToList">목록으로</button>
+      <button class="back-btn" type="button" @click="goToList">목록으로</button>
     </div>
     </template>
 
@@ -35,11 +35,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import { getNoticeDetail } from '@/api/notices'
 import { NOTICE_CATEGORY_LABELS, formatNoticeDate } from '@/utils/noticeCategory'
+
+const props = defineProps({
+  id: {
+    type: [String, Number],
+    default: undefined,
+  },
+})
 
 const route = useRoute()
 const router = useRouter()
@@ -47,13 +54,18 @@ const router = useRouter()
 const notice = ref(null)
 const loading = ref(true)
 const errorMessage = ref('')
+let requestSequence = 0
 
-async function fetchNotice() {
+async function fetchNotice(noticeId = props.id ?? route.params.id) {
+  const sequence = ++requestSequence
   loading.value = true
   errorMessage.value = ''
+  notice.value = null
   try {
-    const result = await getNoticeDetail(route.params.id)
-    notice.value = {
+    const result = await getNoticeDetail(noticeId)
+    if (sequence !== requestSequence) return null
+
+    const loadedNotice = {
       id: result.noticeId,
       category: result.category,
       categoryLabel: NOTICE_CATEGORY_LABELS[result.category] ?? result.category,
@@ -62,11 +74,16 @@ async function fetchNotice() {
       viewCount: result.viewCount,
       content: result.content,
     }
+    notice.value = loadedNotice
+    return loadedNotice
   } catch {
+    if (sequence !== requestSequence) return null
+
     notice.value = null
     errorMessage.value = '공지사항을 찾을 수 없어요.'
+    return null
   } finally {
-    loading.value = false
+    if (sequence === requestSequence) loading.value = false
   }
 }
 
@@ -74,7 +91,15 @@ function goToList() {
   router.push({ name: 'notice-list' })
 }
 
-onMounted(fetchNotice)
+watch(
+  () => props.id ?? route.params.id,
+  (noticeId) => fetchNotice(noticeId),
+  { immediate: true },
+)
+
+onBeforeUnmount(() => {
+  requestSequence += 1
+})
 </script>
 
 <style scoped>

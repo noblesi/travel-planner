@@ -10,7 +10,7 @@
 		       report.reason_code as reasoncode,
 		       report.reason_detail as reasondetail,
 		       report.report_status as reportstatus,
-		       report.created_at as createat,
+		       report.created_at as createdAt,
 		       report_process.process_result_code as processresultcode,
 		       report_process.process_reason as processreason,
 		       report_process.processed_at as processedat
@@ -18,22 +18,22 @@
 		  join member member on member.member_id = report.reporter_member_id
 		  join travel_plan plan on plan.plan_id = report.plan_id
 		  left join report_process report_process on report_process.report_id = report.report_id
-		 where report.report_id = #{reportid}
+		 where report.report_id = #{reportId}
 	</select>
 
 	<insert id="insertReportProcess">
 		merge into report_process target
 		using (
-			select #{reportid} as report_id
+			select CAST(#{reportId} AS NUMBER(19)) as report_id
 			  from dual
 		) source
 		on (target.report_id = source.report_id)
 		when matched then
 			update set
-				target.processor_admin_id = #{adminid},
-				target.process_result_code = #{processresultcode},
-				target.process_reason = #{processreason},
-				target.processed_at = #{processedat}
+				target.processor_admin_id = #{adminId},
+				target.process_result_code = #{processResultCode},
+				target.process_reason = #{processReason},
+				target.processed_at = #{processedAt}
 		when not matched then
 			insert (
 				report_id,
@@ -43,19 +43,23 @@
 				processed_at
 			)
 			values (
-				#{reportid},
-				#{adminid},
-				#{processresultcode},
-				#{processreason},
-				#{processedat}
+				#{reportId},
+				#{adminId},
+				#{processResultCode},
+				#{processReason},
+				#{processedAt}
 			)
 	</insert>
 
 	<update id="updateReportStatus">
-		update report set report_status = #{reportstatus} where report_id = #{reportid}
+		update report set report_status = #{reportStatus} where report_id = #{reportId}
 	</update>
 
 	<update id="updatePlanVisibility">
-		update travel_plan set visibility = #{visibility} where plan_id = #{planid}
+		update travel_plan
+		   set visibility = #{visibility},
+		       version_no = version_no + 1,
+		       updated_at = CURRENT_TIMESTAMP
+		 where plan_id = #{planId}
 	</update>
 </mapper>

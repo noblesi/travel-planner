@@ -5,42 +5,60 @@
 
 <mapper
 	namespace="com.noblesi.travelplanner.admin.member.mapper.AdminMemberMapper">
+	<select id="countMemberList" resultType="long">
+		SELECT COUNT(*)
+		  FROM MEMBER member
+		 WHERE 1 = 1
+		<if test="search.keyword != null and search.keyword != ''">
+		   AND (member.MEMBER_NAME LIKE '%' || #{search.keyword} || '%'
+		        OR member.NICKNAME LIKE '%' || #{search.keyword} || '%'
+		        OR member.EMAIL LIKE '%' || #{search.keyword} || '%')
+		</if>
+		<if test="search.memberStatus != null and search.memberStatus != ''">
+		   AND member.MEMBER_STATUS = #{search.memberStatus}
+		</if>
+	</select>
 
 	<select id="selectMemberList"
 		resultType="com.noblesi.travelplanner.admin.member.dto.AdminMemberListDTO">
-		SELECT 
-			member.MEMBER_ID AS memberId,
-			member.MEMBER_NAME AS memberName,
-			member.NICKNAME AS memberNickName,
-			member.EMAIL AS email,
-			member.CREATED_AT AS createAt,
-			member.MEMBER_STATUS AS memberStatus,
-			COUNT(DISTINCT plan.PLAN_ID) AS planCount,
-			COUNT(DISTINCT report.PLAN_ID) AS reportedPlanCount
-			FROM MEMBER member
-			LEFT JOIN TRAVEL_PLAN plan ON plan.OWNER_MEMBER_ID = member.MEMBER_ID
-			LEFT JOIN REPORT report ON report.PLAN_ID = plan.PLAN_ID
-			WHERE 1 = 1
-
-		<if test="keyword != null and keyword != ''">
-			AND (
-			member.MEMBER_NAME LIKE '%' || #{keyword} || '%'
-			OR member.NICKNAME LIKE '%' || #{keyword} || '%'
-			OR member.EMAIL LIKE '%' || #{keyword} || '%'
-			)
-		</if>
-
-		<if test="memberStatus != null and memberStatus != ''">
-			AND member.MEMBER_STATUS = #{memberStatus}
-		</if>
-
-		GROUP BY member.MEMBER_ID,
-		member.MEMBER_NAME,
-		member.NICKNAME,
-		member.EMAIL,
-		member.CREATED_AT,
-		member.MEMBER_STATUS
-		ORDER BY member.CREATED_AT DESC
+		SELECT MEMBER_ID AS memberId,
+		       MEMBER_NAME AS memberName,
+		       NICKNAME AS memberNickName,
+		       EMAIL AS email,
+		       CREATED_AT AS createdAt,
+		       MEMBER_STATUS AS memberStatus,
+		       PLAN_COUNT AS planCount,
+		       REPORTED_PLAN_COUNT AS reportedPlanCount
+		  FROM (
+		        SELECT ordered_member.*, ROWNUM AS RN
+		          FROM (
+		                SELECT member.MEMBER_ID,
+		                       member.MEMBER_NAME,
+		                       member.NICKNAME,
+		                       member.EMAIL,
+		                       member.CREATED_AT,
+		                       member.MEMBER_STATUS,
+		                       COUNT(DISTINCT plan.PLAN_ID) AS PLAN_COUNT,
+		                       COUNT(DISTINCT report.PLAN_ID) AS REPORTED_PLAN_COUNT
+		                  FROM MEMBER member
+		                  LEFT JOIN TRAVEL_PLAN plan ON plan.OWNER_MEMBER_ID = member.MEMBER_ID
+		                  LEFT JOIN REPORT report ON report.PLAN_ID = plan.PLAN_ID
+		                 WHERE 1 = 1
+		                <if test="search.keyword != null and search.keyword != ''">
+		                   AND (member.MEMBER_NAME LIKE '%' || #{search.keyword} || '%'
+		                        OR member.NICKNAME LIKE '%' || #{search.keyword} || '%'
+		                        OR member.EMAIL LIKE '%' || #{search.keyword} || '%')
+		                </if>
+		                <if test="search.memberStatus != null and search.memberStatus != ''">
+		                   AND member.MEMBER_STATUS = #{search.memberStatus}
+		                </if>
+		                 GROUP BY member.MEMBER_ID, member.MEMBER_NAME, member.NICKNAME,
+		                          member.EMAIL, member.CREATED_AT, member.MEMBER_STATUS
+		                 ORDER BY member.CREATED_AT DESC, member.MEMBER_ID DESC
+		               ) ordered_member
+		         WHERE ROWNUM &lt;= (#{search.page} * #{search.size})
+		       )
+		 WHERE RN &gt; ((#{search.page} - 1) * #{search.size})
 	</select>
 
 
@@ -54,7 +72,7 @@
 			member.PHONE_NUMBER AS phoneNumber,
 			member.BIRTH_DATE AS birthDate,
 			member.MEMBER_STATUS AS memberStatus,
-			member.CREATED_AT AS createAt,
+			member.CREATED_AT AS createdAt,
 			COUNT(DISTINCT plan.PLAN_ID) AS planCount,
 			COUNT(DISTINCT report.PLAN_ID) AS reportedPlanCount
 		FROM MEMBER member
@@ -74,6 +92,10 @@
 	<update id="updateStatus">
 		UPDATE MEMBER
 		SET MEMBER_STATUS = #{memberStatus},
+			WITHDRAWN_AT = CASE
+				WHEN #{memberStatus} = 'WITHDRAWN' THEN CURRENT_TIMESTAMP
+				ELSE NULL
+			END,
 			UPDATED_AT = CURRENT_TIMESTAMP
 		WHERE MEMBER_ID = #{memberId}
 	</update>

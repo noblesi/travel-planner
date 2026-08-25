@@ -20,9 +20,6 @@ public record EmailLoginRequest(
 		if (email != null) {
 			email = email.trim().toLowerCase(Locale.ROOT);
 		}
-		if (password != null) {
-			password = password.trim();
-		}
 	}
 	
 }

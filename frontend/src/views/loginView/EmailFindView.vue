@@ -221,6 +221,44 @@ const goToLogin = () => {
   }
 }
 
+// 공통 사각형 박스 버튼 스타일
+.card-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 68px;
+  border: 1px solid #e3e3e3;
+  border-radius: 6px;
+  background-color: #ffffff;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.15s, border-color 0.15s;
+
+  &:hover {
+    background-color: #f7f7f7;
+    border-color: #cccccc;
+  }
+
+  img {
+    width: 20px;
+    height: 20px;
+    margin-bottom: 6px;
+  }
+
+  .emoji-icon {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  span {
+    font-size: 12px;
+    color: #1a1a1a;
+    font-weight: 500;
+  }
+}
+
+// 하단 가이드 문구 스타일 영역
 // 하단 가이드 문구
 .footer-links {
   margin-top: 40px;
