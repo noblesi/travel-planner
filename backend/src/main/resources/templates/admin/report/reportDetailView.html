@@ -25,8 +25,8 @@
 							<div><dt>플랜 번호</dt><dd th:text="${report.planId}">1</dd></div>
 							<div><dt>신고인</dt><dd th:text="${report.reporterName}">홍길동</dd></div>
 							<div><dt>신고일</dt><dd th:text="${report.createdAt}">2026-08-13</dd></div>
-							<div><dt>신고 사유</dt><dd th:text="${report.reasonCode}">INAPPROPRIATE</dd></div>
-							<div><dt>처리 상태</dt><dd><span class="badge" th:text="${report.reportStatus}">PENDING</span></dd></div>
+							<div><dt>신고 사유</dt><dd th:text="${report.reasonLabel}">부적절한 콘텐츠</dd></div>
+							<div><dt>처리 상태</dt><dd><span class="badge" th:text="${report.reportStatusLabel}">검토 대기</span></dd></div>
 						</dl>
 						<h2>신고 내용</h2>
 						<p class="report-content" th:text="${#strings.isEmpty(report.reasonDetail) ? '상세 신고 내용이 없습니다.' : report.reasonDetail}">신고 상세 내용</p>
@@ -51,7 +51,7 @@
 						</div>
 						<div th:if="${report.reportStatus == 'RESOLVED'}">
 							<h2 class="section-gap">처리 내역</h2>
-							<p th:text="${report.processResultCode}">WARNING</p>
+							<p th:text="${report.processResultLabel}">경고</p>
 							<p class="report-content" th:text="${report.processReason}">처리 사유</p>
 						</div>
 					</aside>
