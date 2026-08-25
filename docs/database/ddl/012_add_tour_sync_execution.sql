@@ -37,11 +37,13 @@ BEGIN
         ]';
     END IF;
 
-    MERGE INTO TOUR_SYNC_STATE target
-    USING (SELECT 1 LOCK_ID FROM DUAL) source
-       ON (target.LOCK_ID = source.LOCK_ID)
-     WHEN NOT MATCHED THEN
-        INSERT (LOCK_ID, RUNNING_YN) VALUES (1, 'N');
+    EXECUTE IMMEDIATE q'[
+        MERGE INTO TOUR_SYNC_STATE target
+        USING (SELECT 1 LOCK_ID FROM DUAL) source
+           ON (target.LOCK_ID = source.LOCK_ID)
+         WHEN NOT MATCHED THEN
+            INSERT (LOCK_ID, RUNNING_YN) VALUES (1, 'N')
+    ]';
 
     SELECT COUNT(*)
       INTO v_table_count
