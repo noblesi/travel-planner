@@ -18,6 +18,6 @@ class AdminTripReportDTOTest {
 	}
 
 	private AdminTripReportDTO report(String status) {
-		return new AdminTripReportDTO(1, 1, "신고자", "OTHER", null, status, null);
+		return new AdminTripReportDTO(1L, 1L, "신고자", "OTHER", null, status, null);
 	}
 }

@@ -309,8 +309,10 @@ BEGIN
         OR ADMIN_ID BETWEEN 900101 AND 900105;
 
     DELETE FROM TOUR_SYNC_HISTORY
-     WHERE SYNC_HISTORY_ID BETWEEN 900501 AND 900505
-        OR ADMIN_ID BETWEEN 900101 AND 900105;
+     WHERE SYNC_ID IN (
+               'TEST-SYNC-01', 'TEST-SYNC-02', 'TEST-SYNC-03', 'TEST-SYNC-04', 'TEST-SYNC-05'
+           )
+        OR MANAGER LIKE 'test_admin%';
 
     DELETE FROM PLACE_MASTER
      WHERE PLACE_PROVIDER = 'TEST';
@@ -452,29 +454,19 @@ BEGIN
         );
 
         INSERT INTO TOUR_SYNC_HISTORY (
-            SYNC_HISTORY_ID,
-            ADMIN_ID,
-            PROVIDER_CODE,
+            SYNC_ID,
             STARTED_AT,
-            FINISHED_AT,
-            TOTAL_COUNT,
-            INSERT_COUNT,
-            UPDATE_COUNT,
-            SUCCESS_COUNT,
-            FAIL_COUNT,
-            PROCESS_STATUS
+            CHANGED_COUNT,
+            FAILED_COUNT,
+            SYNC_STATUS,
+            MANAGER
         ) VALUES (
-            900500 + i,
-            900100 + i,
-            'TEST-PROVIDER-' || i,
+            'TEST-SYNC-' || LPAD(i, 2, '0'),
             SYSTIMESTAMP - NUMTODSINTERVAL(1, 'DAY'),
-            SYSTIMESTAMP,
-            100 * i,
-            10 * i,
-            5 * i,
             90 * i,
             10 * i,
-            'COMPLETED'
+            '부분 성공',
+            'test_admin' || LPAD(i, 2, '0')
         );
     END LOOP;
 
@@ -732,7 +724,11 @@ BEGIN
     SELECT COUNT(*) INTO v_count FROM RECOMMEND_RULE WHERE RULE_ID BETWEEN 900401 AND 900405;
     assert_count('RECOMMEND_RULE', v_count, 5);
 
-    SELECT COUNT(*) INTO v_count FROM TOUR_SYNC_HISTORY WHERE SYNC_HISTORY_ID BETWEEN 900501 AND 900505;
+    SELECT COUNT(*) INTO v_count
+      FROM TOUR_SYNC_HISTORY
+     WHERE SYNC_ID IN (
+               'TEST-SYNC-01', 'TEST-SYNC-02', 'TEST-SYNC-03', 'TEST-SYNC-04', 'TEST-SYNC-05'
+           );
     assert_count('TOUR_SYNC_HISTORY', v_count, 5);
 
     SELECT COUNT(*) INTO v_count FROM TRAVEL_PLAN WHERE PLAN_ID BETWEEN 900601 AND 900605;
@@ -781,8 +777,12 @@ BEGIN
 
     SELECT COUNT(*) INTO v_count
       FROM TOUR_SYNC_HISTORY
-     WHERE SYNC_HISTORY_ID BETWEEN 900501 AND 900505
-       AND TOTAL_COUNT = SUCCESS_COUNT + FAIL_COUNT;
+     WHERE SYNC_ID IN (
+               'TEST-SYNC-01', 'TEST-SYNC-02', 'TEST-SYNC-03', 'TEST-SYNC-04', 'TEST-SYNC-05'
+           )
+       AND CHANGED_COUNT >= 0
+       AND FAILED_COUNT >= 0
+       AND SYNC_STATUS IN ('성공', '부분 성공', '실패');
     assert_count('consistent TOUR_SYNC_HISTORY', v_count, 5);
 
     SELECT COUNT(*) INTO v_count

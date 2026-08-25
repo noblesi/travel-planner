@@ -232,17 +232,23 @@ BEGIN
                   AND REPORT_STATUS IN ('RESOLVED', 'REJECTED')
            );
 
-    /* Every completed sync row must satisfy TOTAL_COUNT = SUCCESS_COUNT + FAIL_COUNT. */
+    /* Normalize migrated legacy sync rows to the status vocabulary used by the application. */
     UPDATE TOUR_SYNC_HISTORY
-       SET FAIL_COUNT = TOTAL_COUNT - SUCCESS_COUNT
-     WHERE SYNC_HISTORY_ID BETWEEN 900501 AND 900505
-       AND PROCESS_STATUS = 'COMPLETED'
-       AND SUCCESS_COUNT BETWEEN 0 AND TOTAL_COUNT;
+       SET SYNC_STATUS = CASE
+               WHEN FAILED_COUNT = 0 THEN '성공'
+               WHEN CHANGED_COUNT = 0 THEN '실패'
+               ELSE '부분 성공'
+           END
+     WHERE SYNC_ID IN ('L-900501', 'L-900502', 'L-900503', 'L-900504', 'L-900505');
 
     SELECT COUNT(*) INTO v_count
       FROM TOUR_SYNC_HISTORY
-     WHERE SYNC_HISTORY_ID BETWEEN 900501 AND 900505
-       AND TOTAL_COUNT = SUCCESS_COUNT + FAIL_COUNT;
+     WHERE SYNC_ID IN ('L-900501', 'L-900502', 'L-900503', 'L-900504', 'L-900505')
+       AND SYNC_STATUS = CASE
+               WHEN FAILED_COUNT = 0 THEN '성공'
+               WHEN CHANGED_COUNT = 0 THEN '실패'
+               ELSE '부분 성공'
+           END;
     assert_count('consistent TOUR_SYNC_HISTORY', v_count, 5);
 
     /* Replace inert legacy operations with valid, replayable no-op UPDATE ledger rows. */
@@ -346,7 +352,11 @@ SELECT COUNT(*) AS ACCEPTED_INVITEE_MEMBER_COUNT
 
 SELECT COUNT(*) AS INCONSISTENT_SYNC_COUNT
   FROM TOUR_SYNC_HISTORY
- WHERE SYNC_HISTORY_ID BETWEEN 900501 AND 900505
-   AND TOTAL_COUNT <> SUCCESS_COUNT + FAIL_COUNT;
+ WHERE SYNC_ID IN ('L-900501', 'L-900502', 'L-900503', 'L-900504', 'L-900505')
+   AND SYNC_STATUS <> CASE
+           WHEN FAILED_COUNT = 0 THEN '성공'
+           WHEN CHANGED_COUNT = 0 THEN '실패'
+           ELSE '부분 성공'
+       END;
 
 EXIT SUCCESS;
