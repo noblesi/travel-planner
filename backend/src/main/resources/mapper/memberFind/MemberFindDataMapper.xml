@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.MemberFindDataMapper">
+    
+    <select id="selectEmailFind" parameterType="com.noblesi.travelplanner.dto.login.EmailFindRequest">
+        select 
+            EMAIL
+        from MEMBER
+        where MEMBER_NAME = #{memberName} and PHONE_NUMBER = #{phoneNumber} and BIRTH_DATE = #{birthDate}
+    </select>
+
+    <select id="selectPasswordFind" parameterType="passwordFindRewordRequest">
+        select 
+            MEMBER_ID
+        from MEMBER
+        where EMAIL = #{email} and PHONE_NUMBER = #{phoneNumber} and BIRTH_DATE = #{birthDate}
+    </select>
+   
+    <update id="updateRewordPassword" parameterType="memberRewordPass">
+        update MEMBER
+        set PASSWORD_HASH = #{newPassword},
+            UPDATED_AT = SYSTIMESTAMP
+        where EMAIL = #{email}
+    </update>
+
+</mapper>

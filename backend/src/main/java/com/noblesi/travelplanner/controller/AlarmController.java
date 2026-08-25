@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.domain.alarm.AlarmDomain;
-import com.noblesi.travelplanner.dto.alarm.AlarmRequest;
 import com.noblesi.travelplanner.service.AlarmService;
 
 import org.springframework.beans.factory.annotation.Autowired;
