@@ -118,6 +118,7 @@ public class SecurityConfig {
 								"/api/auth/**",
 								"/api/health",
 								"/error").permitAll()
+						.requestMatchers("/alarm/**").permitAll()
 						.requestMatchers("/uploads/profile/**").permitAll()
 						.requestMatchers("/api/admin/**").permitAll()
 						.requestMatchers("/api/member/**").permitAll()

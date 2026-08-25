@@ -100,7 +100,6 @@ public class MyPageController {
 		}
     }
     
-
     @GetMapping("/deleteAccount")
     public ApiResponse<Boolean> getDeleteAccount(Authentication authentication) {
         return ApiResponse.success(myPageService.deleteAccount(authentication));

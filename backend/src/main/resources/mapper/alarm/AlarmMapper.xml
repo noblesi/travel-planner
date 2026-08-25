@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.AlarmMapper">
+    <resultMap id="alarmDomain" type="com.noblesi.travelplanner.domain.alarm.AlarmDomain">
+        <constructor>
+            <arg column="NOTIFICATION_ID" javaType="_long" />
+            <arg column="RECIPIENT_MEMBER_ID" javaType="_long" />
+            <arg column="NOTIFICATION_TYPE" javaType="string" />
+            <arg column="TITLE" javaType="string" />
+            <arg column="CONTENT" javaType="string" />
+            <arg column="READ_YN" javaType="string" />
+            <arg column="RELATED_REPORT_ID" javaType="_long" />
+            <arg column="CREATED_AT" javaType="java.time.LocalDateTime" />
+        </constructor>
+    </resultMap>
+
+    <select id="selectAlarm" parameterType="long" resultType="com.noblesi.travelplanner.domain.alarm.AlarmDomain">
+        select 
+            NOTIFICATION_ID, 
+            RECIPIENT_MEMBER_ID, 
+            NOTIFICATION_TYPE,
+            TITLE, 
+            CONTENT, 
+            READ_YN, 
+            RELATED_REPORT_ID, 
+            CREATED_AT 
+        from NOTIFICATION
+        where RECIPIENT_MEMBER_ID = #{memberId} and READ_YN = 'N'
+    </select>
+    <!-- <select id="selectAlarm" parameterType="long">
+        select count(*)
+        from NOTIFICATION
+        where RECIPIENT_MEMBER_ID = #{memberId} and READ_YN = 'N'
+    </select> -->
+    <update id="updateAlarm" parameterType="alarmRequest">
+        update NOTIFICATION
+        set READ_YN = 'Y'
+        where RECIPIENT_MEMBER_ID = #{recipientMemberId} and NOTIFICATION_ID = #{notificationId}
+    </update>
+
+</mapper>
