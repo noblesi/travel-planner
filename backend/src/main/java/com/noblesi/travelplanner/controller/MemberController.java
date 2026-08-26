@@ -24,7 +24,7 @@ public class MemberController {
     }
 
     @PostMapping("/join")
-    public ApiResponse<Boolean> postJoinMember(@Valid @RequestBody JoinMemberRequest userInfo) {
+    public ApiResponse<Boolean> postJoinMember(@RequestBody JoinMemberRequest userInfo) {
         return ApiResponse.success(memberJoinService.addMember(userInfo));
     }
 
