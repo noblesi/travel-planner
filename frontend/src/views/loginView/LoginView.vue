@@ -113,11 +113,9 @@ const handleContinue = async () => {
           <RouterLink :to="{ name: 'passwordFind' }">비밀번호 재설정</RouterLink>
         </p>
         <p class="signup-prompt">신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink></p>
-        <p class="signup-prompt">이메일을 잊으셨나요? <RouterLink :to="{ name: 'findEmail' }">이메일 찾기</RouterLink></p>
-        <p class="signup-prompt">비밀번호를 잊으셨나요? <RouterLink :to="{ name: 'findPassword' }">비밀번호 찾기</RouterLink></p>
       </div>
      
-      
+
     </div>
   </div>
 </template>

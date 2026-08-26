@@ -1,35 +1,31 @@
-import http from "./http"
+import http, { clearCsrfTokenCache } from './http'
 
-export async function getMemberInfo() { 
-  const response = await http.get('/member/myPage')
+export async function getMyProfile() {
+  const response = await http.get('/members/me')
   return response.data.data
 }
 
-export async function postModifyMemberInfo(requestData) { 
-  const response = await http.post('/member/modifyMemberInfo', requestData)
+export async function updateMyProfile(payload) {
+  const response = await http.patch('/members/me', payload)
   return response.data.data
 }
 
-export async function getModifyNickname(nickname) { 
-  const response = await http.get('/member/modifyNickname', {params:{nickname}})
+export async function changeMyPassword(payload) {
+  const response = await http.patch('/members/me/password', payload)
   return response.data.data
 }
 
-export async function postModifyProfileImage(formData) { 
-  const response = await http.post('/member/modifyProfileImage', formData, {
-      headers: {
-          'Content-Type': 'multipart/form-data'
-      }
+export async function updateProfileImage(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await http.patch('/members/me/profile-image', formData)
+  return response.data.data
+}
+
+export async function withdrawMyAccount(currentPassword) {
+  const response = await http.delete('/members/me', {
+    data: { currentPassword },
   })
-  return response.data.data
-}
-
-export async function postModifyPassword(rewordPass) { 
-  const response = await http.post('/member/modifyPassword',rewordPass)
-  return response.data.data
-}
-
-export async function getDeleteAccount() { 
-  const response = await http.get('/member/deleteAccount')
+  clearCsrfTokenCache()
   return response.data.data
 }

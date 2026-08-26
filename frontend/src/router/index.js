@@ -110,18 +110,6 @@ const router = createRouter({
       name: 'complete',
       component: () => import('@/views/joinView/JoinCompleteView.vue'),
     },
-    //이메일 찾기
-    {
-      path: '/findEmail',
-      name: 'findEmail',
-      component: () => import('@/views/loginView/EmailFindView.vue')
-    },
-    //비밀번호 찾기
-    {
-      path: '/findPassword',
-      name: 'findPassword',
-      component: () => import('@/views/loginView/PasswordFindView.vue')
-    },
     //마이 페이지
     {
       path: '/myPage',
