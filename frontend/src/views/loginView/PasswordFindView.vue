@@ -43,9 +43,9 @@ const findPassword = () => {
   }
 
   // API 호출 후 성공 시 모달 오픈
-  getPasswordFindReword(userFindPassword.value).then((response)=>{
+  getPasswordFindReword(userFindPassword.value).then(()=>{
     isResetModalOpen.value = true // 🟢 유저 확인 성공 시 모달창 열기
-  }).catch((error)=>{
+  }).catch(()=>{
     alert("일치하는 회원 정보를 찾을 수 없습니다.") // 오류 메시지 다듬기
   })
 }
@@ -77,12 +77,12 @@ const submitNewPassword = () => {
   // 💡 TODO: 백엔드로 진짜 비밀번호를 변경하는 API를 호출하세요!
   // 예: postResetPassword({ email: inputEmail.value, newPassword: newPassword.value })
   //     .then(() => { ... })
-  getPasswordReword(rewordPass.value).then((response)=>{
+  getPasswordReword(rewordPass.value).then(()=>{
     alert("비밀번호가 성공적으로 변경되었습니다.")
     closeResetModal()
     router.push({ name: 'login' }) // 성공 후 로그인 화면으로 이동
-  }).catch((error)=>{
-
+  }).catch(()=>{
+    alert("비밀번호 변경에 실패했습니다.")
   })
   
 }

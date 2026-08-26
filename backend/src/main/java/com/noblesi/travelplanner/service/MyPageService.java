@@ -72,7 +72,6 @@ public class MyPageService {
     }
 
     public boolean modifyProfileImage(Authentication authentication, MultipartFile file){
-       System.out.println("service IN");
         try {
             MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
             long memberId = principal.memberId();
@@ -96,8 +95,6 @@ public class MyPageService {
             }
 
             File destinationFile = new File(uploadDir,saveFileName);
-            System.out.println("주입된 설정 경로: " + uploadDir);
-            System.out.println("최종 저장될 파일 경로: " + destinationFile.getAbsolutePath());
             file.transferTo(destinationFile.getAbsoluteFile());
            
             String profileImageUrl = "/uploads/profile/"+ saveFileName;
@@ -116,9 +113,7 @@ public class MyPageService {
         String resultPass = "";
 
         resultPass = myPageMapper.selectCurrentPassword(principal.memberId());
-        System.out.println(resultPass + "검색된 current pass");
        if (passwordEncoder.matches(memberRewordPasswordRequest.currentPassword(), resultPass)) {
-           System.out.println("password matches");
             MemberRewordPassword rewordPassword = new MemberRewordPassword(
                principal.memberId(), 
                passwordEncoder.encode(memberRewordPasswordRequest.rewordPassword())
@@ -132,7 +127,6 @@ public class MyPageService {
        }
 
 
-        System.out.println(flag + "false And True");
         return flag;
     }
 

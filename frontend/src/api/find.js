@@ -1,7 +1,6 @@
 import http from "./http"
 
 export async function getEmailFind(userFindInfo){
-  console.log(userFindInfo)
   const response = await http.post('/find/emailFind',userFindInfo)
   return response.data.data
 }

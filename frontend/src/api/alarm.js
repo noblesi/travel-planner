@@ -5,8 +5,7 @@ export async function getAlarmList() {
     return response.data.data;
 }
 
-export async function getAlarmCheck(notificationId) {
-    console.log(notificationId + " : notificationId")
-    const response = await http.get("/alarm/alarmCheck", { params: {notificationId:notificationId }} );
+export async function markAlarmAsRead(notificationId) {
+    const response = await http.post("/alarm/alarmCheck", null, { params: {notificationId} });
     return response.data.data;
 }

@@ -13,6 +13,7 @@ import com.noblesi.travelplanner.service.AlarmService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 
 
 @RestController
@@ -27,9 +28,8 @@ public class AlarmController {
         return ApiResponse.success(alarmService.getAlarmList(authentication));
     }
     
-    @GetMapping("/alarmCheck")
-    public ApiResponse<List<AlarmDomain>> getAlarmCheck(Authentication authentication, @RequestParam long notificationId){
-        //System.out.println(notificationId+" : notificationId");
+    @PostMapping("/alarmCheck")
+    public ApiResponse<List<AlarmDomain>> markAlarmAsRead(Authentication authentication, @RequestParam long notificationId){
         return ApiResponse.success(alarmService.getAlarmCheck(authentication, notificationId));
     }
 
