@@ -100,7 +100,7 @@ public class MyPageService {
             System.out.println("최종 저장될 파일 경로: " + destinationFile.getAbsolutePath());
             file.transferTo(destinationFile.getAbsoluteFile());
            
-            String profileImageUrl = "/uploads/profile/"+ saveFileName;
+            String profileImageUrl = saveFileName;
             MemberProfileChangeRequest memberProfileChangeRequest = new MemberProfileChangeRequest(memberId, profileImageUrl);
 
             return myPageMapper.updateProfileImage(memberProfileChangeRequest) > 0;

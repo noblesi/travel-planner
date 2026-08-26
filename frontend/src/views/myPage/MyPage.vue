@@ -55,8 +55,8 @@
                         <div class="grid-row">
                             <div class="form-group">
                                 <label>성별</label>
-                                <div v-if="!isEditMode" class="value-text">{{ userInfo.gender }}</div>
-                                <select v-else v-model="userInfo.gender" class="info-input select-box">
+                                <div v-if="!isEditMode" class="value-text">{{ userInfo.genderCode }}</div>
+                                <select v-else v-model="userInfo.genderCode" class="info-input select-box">
                                     <option value="선택 안함">선택 안함</option>
                                     <option value="남성">남성</option>
                                     <option value="여성">여성</option>
@@ -196,7 +196,8 @@ const userInfo = ref({
 setMember().then((response)=>{
     const member = response.data ? response.data : response
     let memberGender = "N";
-
+    console.log(member.genderCode+ "genderCode")
+    
     switch (member.genderCode) {
         case "M":
             memberGender = "남성"
@@ -208,14 +209,16 @@ setMember().then((response)=>{
             memberGender = "선택 안함"
             break;
     }
+    console.log(memberGender+ "genderCode")
     
     originalNickName.value = member.nickname
     if(member.profileImageUrl == '' || member.profileImageUrl == null){
         imageURL.value = DefaultImg
     } else {
-        console.log(member.profileImageUrl)
-        imageURL.value = member.profileImageUrl
-        console.log(imageURL.value)
+        console.log(member.profileImageUrl + "get profileURL")
+        imageURL.value = getImageUrl("/uploads/profile/"+member.profileImageUrl)
+        console.log(imageURL.value + "imageURL profileURL")
+        console.log(userInfo.value.imageURL + "userInfo profileURL")
     }
 
     userInfo.value = {
@@ -224,7 +227,7 @@ setMember().then((response)=>{
         birthDate: member.birthDate.split('T')[0],
         genderCode: memberGender,
         email: member.email,
-        phoneNumber: member.phoneNumber,
+        phoneNumber: member.phoneNumber
     }
     
 }).catch((error) => {
@@ -288,9 +291,9 @@ const isEditMode = ref(false)
 const saveInfo = () => {
     let genderCodeStr = 'N'
 
-    if (userInfo.value.gender === '남성') {
+    if (userInfo.value.genderCode === '남성') {
         genderCodeStr = 'M'
-    } else if (userInfo.value.gender === '여성') {
+    } else if (userInfo.value.genderCode === '여성') {
         genderCodeStr = 'F'
     }
 
