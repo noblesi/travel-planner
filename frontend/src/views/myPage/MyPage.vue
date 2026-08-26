@@ -145,6 +145,7 @@
 
 <script setup>
 import { ref } from 'vue'
+
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import PansleImg from '@/assets/myPageImage/pencil.webp'
 import DefaultImg from '@/assets/myPageImage/default_profile.webp'
@@ -185,7 +186,7 @@ async function setMember(){
 const userInfo = ref({
     name: '',
     nickName: '',
-    gender: '',
+    genderCode: '',
     birthDate: '',
     email: '',
     phoneNumber: '',
@@ -212,14 +213,16 @@ setMember().then((response)=>{
     if(member.profileImageUrl == '' || member.profileImageUrl == null){
         imageURL.value = DefaultImg
     } else {
-        imageURL.value = getImageUrl(member.profileImageUrl)
+        console.log(member.profileImageUrl)
+        imageURL.value = member.profileImageUrl
+        console.log(imageURL.value)
     }
 
     userInfo.value = {
         name: member.memberName,
         nickName: member.nickname,
-        birthDate: member.birthDate ? member.birthDate.split('T')[0] : '',
-        gender: memberGender,
+        birthDate: member.birthDate.split('T')[0],
+        genderCode: memberGender,
         email: member.email,
         phoneNumber: member.phoneNumber,
     }

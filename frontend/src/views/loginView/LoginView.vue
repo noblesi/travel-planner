@@ -112,7 +112,7 @@ const handleContinue = async () => {
         <p class="signup-prompt">비밀번호를 잊으셨나요? <RouterLink :to="{ name: 'findPassword' }">비밀번호 찾기</RouterLink></p>
       </div>
      
-
+      
     </div>
   </div>
 </template>
