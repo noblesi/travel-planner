@@ -4,6 +4,8 @@ import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.dto.member.JoinMemberRequest;
 import com.noblesi.travelplanner.service.MemberJoinService;
 
+import jakarta.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
