@@ -4,8 +4,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import alarmImg from '@/assets/headerImage/bell-icon.png'
 import headerLogoUrl from '@/assets/branding/travel-planner-logo-symbol.webp'
 import { useAuthStore } from '@/stores/auth'
-import { getAlarmList } from '@/api/alarm'
-import { getAlarmCheck } from '@/api/alarm'
+import { getAlarmList, markAlarmAsRead } from '@/api/alarm'
 
 const alarms = ref([])
 
@@ -47,15 +46,9 @@ const handleLogout = async () => {
     // Store에 사용자에게 표시할 오류를 유지하고 현재 화면에 머뭅니다.
   }
 }
-const handleMypage = () => {
-  console.log(authStore.currentUser)
- // router.push({name : 'myPage'})
-}
-
 const fetchAlarmList = () => {
   if (authStore.isAuthenticated) {
     getAlarmList().then((response) => {
-        console.log('알림 목록 가져오기 성공:', response)
         if(response != null){
           alarms.value = response
         } else {
@@ -63,8 +56,8 @@ const fetchAlarmList = () => {
         }
         
       })
-      .catch((error) => {
-        console.error('알림 목록 가져오기 실패:', error)
+      .catch(() => {
+        alarms.value = []
       })
   }
 }
@@ -87,11 +80,13 @@ const openAlarmDetail = (alarm) => {
   
   const notificationId = alarm.notificationId
   if (notificationId) {
-    getAlarmCheck(notificationId)
+    markAlarmAsRead(notificationId)
       .then(() => {
         alarm.isRead = true
       })
-      .catch((err) => console.error('알림 읽음 처리 실패:', err))
+      .catch(() => {
+        alarm.isRead = false
+      })
   }
   
 }

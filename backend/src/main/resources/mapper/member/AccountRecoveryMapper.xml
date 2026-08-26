@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.noblesi.travelplanner.mapper.AccountRecoveryMapper">
+
+	<select id="findActiveEmail" resultType="string">
+		SELECT EMAIL
+		  FROM MEMBER
+		 WHERE MEMBER_NAME = #{request.memberName}
+		   AND BIRTH_DATE = #{request.birthDate, jdbcType=DATE}
+		   AND REGEXP_REPLACE(PHONE_NUMBER, '[^0-9]', '') = #{request.phoneNumber}
+		   AND MEMBER_STATUS = 'ACTIVE'
+	</select>
+
+	<select id="findActiveMemberId" resultType="long">
+		SELECT MEMBER_ID
+		  FROM MEMBER
+		 WHERE LOWER(EMAIL) = #{request.email}
+		   AND BIRTH_DATE = #{request.birthDate, jdbcType=DATE}
+		   AND REGEXP_REPLACE(PHONE_NUMBER, '[^0-9]', '') = #{request.phoneNumber}
+		   AND MEMBER_STATUS = 'ACTIVE'
+	</select>
+
+	<select id="findActivePasswordHash" resultType="string">
+		SELECT PASSWORD_HASH
+		  FROM MEMBER
+		 WHERE MEMBER_ID = #{memberId}
+		   AND MEMBER_STATUS = 'ACTIVE'
+	</select>
+
+	<update id="updateActivePassword">
+		UPDATE MEMBER
+		   SET PASSWORD_HASH = #{passwordHash},
+		       UPDATED_AT = SYSTIMESTAMP
+		 WHERE MEMBER_ID = #{memberId}
+		   AND MEMBER_STATUS = 'ACTIVE'
+	</update>
+
+</mapper>

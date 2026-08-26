@@ -23,7 +23,6 @@ public class AlarmService {
         MemberPrincipal principal = (MemberPrincipal) authentication.getPrincipal();
 
         list = alarmMapper.selectAlarm(principal.memberId());
-        //System.out.println(alarmMapper.selectAlarm(principal.memberId()));
         return list;
     }
 

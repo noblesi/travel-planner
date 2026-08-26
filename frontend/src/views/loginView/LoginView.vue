@@ -107,6 +107,11 @@ const handleContinue = async () => {
 
       <!-- 하단 네비게이션 가이드 -->
       <div class="footer-links">
+        <p class="recovery-links">
+          <RouterLink :to="{ name: 'emailFind' }">이메일 찾기</RouterLink>
+          <span aria-hidden="true">·</span>
+          <RouterLink :to="{ name: 'passwordFind' }">비밀번호 재설정</RouterLink>
+        </p>
         <p class="signup-prompt">신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink></p>
         <p class="signup-prompt">이메일을 잊으셨나요? <RouterLink :to="{ name: 'findEmail' }">이메일 찾기</RouterLink></p>
         <p class="signup-prompt">비밀번호를 잊으셨나요? <RouterLink :to="{ name: 'findPassword' }">비밀번호 찾기</RouterLink></p>
@@ -236,6 +241,14 @@ const handleContinue = async () => {
 // 하단 가이드 문구 스타일 영역
 .footer-links {
   margin-top: 10px;
+
+  .recovery-links {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 0 8px;
+    font-size: 13px;
+  }
 
   a {
     color: #1a1a1a;

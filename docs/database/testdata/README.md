@@ -2,6 +2,8 @@
 
 이 디렉터리의 SQL은 `WITHTRIP_DEV` 개발·시연 스키마 전용입니다. 운영 스키마나 `SYSTEM`, `SCOTT`, `TRAVEL_PLANNER` 계정에서는 실행하지 않습니다.
 
+실행 전에 `docs/database/ddl/012_add_tour_sync_execution.sql`을 적용해 TOUR 동기화 이력을 신형 Schema로 맞춥니다. 구형 통합 DDL로 만든 Schema도 `012`가 기존 이력을 보존 전환합니다.
+
 ## 실행 순서
 
 1. `001_seed_demo_content.sql`: 화면 시연용 영구 데이터 입력
@@ -9,7 +11,7 @@
 3. 애플리케이션을 통한 로그인·플랜·초대 흐름 검증
 4. `003_cleanup_e2e_data.sql`: E2E 회원과 해당 회원이 만든 데이터만 정리
 
-기존 `seed_data.sql`의 예약 ID(`900xxx`) 데이터가 이미 입력된 개발 DB는
+기존 `seed_data.sql`의 예약 ID(`900xxx`) 데이터가 이미 입력된 개발 DB는 `012` 적용 후
 `004_repair_seed_data.sql`을 한 번 실행해 초대 Token, 수락 멤버십, 신고 처리 상태,
 동기화 집계와 편집 작업 이력을 보정합니다. 이 Script는 기존 Seed 행의 필수 개수를
 먼저 검증하며, 검증 실패 시 아무 변경도 Commit하지 않습니다.

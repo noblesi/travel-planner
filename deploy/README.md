@@ -64,9 +64,12 @@ docker compose -f deploy/compose.yaml up -d --build backend
 docker compose -f deploy/compose.yaml ps
 docker compose -f deploy/compose.yaml logs --tail=100 backend
 curl --fail http://127.0.0.1:8080/api/health
+curl --fail http://127.0.0.1:8080/api/health/live
 ```
 
-Backend Port는 `127.0.0.1:8080`에만 열리므로 EC2 Security Group에서 8080을 공개하지 않습니다.
+`/api/health`는 Application과 Oracle 연결을 함께 확인하는 readiness endpoint이고, `/api/health/live`는 Application Process만 확인하는 liveness endpoint입니다. Backend Port는 `127.0.0.1:8080`에만 열리므로 EC2 Security Group에서 8080을 공개하지 않습니다.
+
+프로필 이미지는 Compose named volume `withtrip_profile-uploads`에 저장됩니다. 컨테이너를 재생성해도 유지되며, 서버를 완전히 이전할 때는 이 volume도 함께 백업해야 합니다.
 
 ## 4. Nginx 적용
 
@@ -79,12 +82,15 @@ sudo systemctl reload nginx
 
 기본 Nginx Site가 같은 `default_server` Port를 사용한다면 `/etc/nginx/sites-enabled/default`를 비활성화한 뒤 `nginx -t`를 다시 실행해야 합니다.
 
+제공 설정은 로그인 요청(`/api/auth/login`, `/admin/login`)과 계정 복구 요청(`/api/account-recovery/**`)을 IP당 분당 5회로 제한하고 짧은 순간의 요청 3회까지 허용합니다. 로그인 화면을 여는 GET 요청은 제한하지 않습니다. `/uploads/profile/**`는 Backend의 영속 volume에서 제공됩니다. `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy`도 정적 파일과 Proxy 응답에 적용됩니다.
+
 ## 5. 시연 검증
 
 EC2 Security Group의 HTTP 80 Inbound가 열려 있는지 확인한 뒤 다음을 검증합니다.
 
 ```bash
 curl --fail http://EC2_PUBLIC_IP/api/health
+curl --fail http://EC2_PUBLIC_IP/api/health/live
 ```
 
 - Public IP의 `/`에서 Vue 화면 표시

@@ -58,6 +58,14 @@
 		   AND MEMBER_STATUS = 'ACTIVE'
 	</update>
 
+	<update id="updateActiveProfileImage">
+		UPDATE MEMBER
+		   SET PROFILE_IMAGE_URL = #{profileImageUrl},
+		       UPDATED_AT = SYSTIMESTAMP
+		 WHERE MEMBER_ID = #{memberId}
+		   AND MEMBER_STATUS = 'ACTIVE'
+	</update>
+
 	<update id="withdrawActiveMember">
 		UPDATE MEMBER
 		   SET MEMBER_STATUS = 'WITHDRAWN',

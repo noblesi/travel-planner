@@ -25,12 +25,21 @@ spring:
           connectiontimeout: ${MAIL_CONNECTION_TIMEOUT_MS:5000}
           timeout: ${MAIL_READ_TIMEOUT_MS:5000}
           writetimeout: ${MAIL_WRITE_TIMEOUT_MS:5000}
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
 
 mybatis:
   mapper-locations: classpath*:mapper/**/*.xml
   type-aliases-package: com.noblesi.travelplanner
   configuration:
     map-underscore-to-camel-case: true
+
+logging:
+  level:
+    # Hibernate의 시작 INFO에는 DB 접속 위치와 Schema 식별자가 포함되므로 배포 로그에서 숨긴다.
+    org.hibernate.orm.connections.pooling: WARN
 
 server:
   port: ${SERVER_PORT:8080}
@@ -59,7 +68,7 @@ app:
   
   #프로필 이미지 업로드 경로
   profile:
-    upload-path: ${PROFILE_UPLOAD_PATH:C:/uploads/profile/}
+    upload-path: ${PROFILE_UPLOAD_PATH:./uploads/profile/}
 
   external-api:
     tour:

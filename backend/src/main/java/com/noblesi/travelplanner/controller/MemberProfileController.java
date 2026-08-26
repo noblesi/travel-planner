@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.noblesi.travelplanner.common.api.ApiResponse;
 import com.noblesi.travelplanner.dto.member.ChangeMemberPasswordRequest;
@@ -60,5 +63,12 @@ public class MemberProfileController {
 	) {
 		memberProfileService.changeMyPassword(request);
 		return ApiResponse.successWithoutData();
+	}
+
+	@PatchMapping(value = "/profile-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ApiResponse<MemberProfileResponse> updateProfileImage(
+			@RequestPart("file") MultipartFile file
+	) {
+		return ApiResponse.success(memberProfileService.updateProfileImage(file));
 	}
 }
