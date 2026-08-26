@@ -49,7 +49,7 @@ public class MyPageService {
             myPageMapper.selectMemberInfo(memberId).memberName(),
             myPageMapper.selectMemberInfo(memberId).email(),
             myPageMapper.selectMemberInfo(memberId).nickname(),
-            backendUrl + myPageMapper.selectMemberInfo(memberId).genderCode(),
+            myPageMapper.selectMemberInfo(memberId).genderCode(),
             myPageMapper.selectMemberInfo(memberId).phoneNumber(),
             myPageMapper.selectMemberInfo(memberId).profileImageUrl(),
             myPageMapper.selectMemberInfo(memberId).memberStatus(),
