@@ -13,14 +13,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,8 +29,11 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import com.noblesi.travelplanner.security.MemberPrincipal;
+import com.noblesi.travelplanner.service.MemberProfileService;
 
 @SpringBootTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:travel_planner_member_profile;MODE=Oracle;DATABASE_TO_UPPER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
@@ -49,6 +53,12 @@ class MemberProfileControllerIntegrationTest {
 
 	@Autowired
 	private PasswordEncoder passwordEncoder;
+
+	@Autowired
+	private MemberProfileService memberProfileService;
+
+	@Autowired
+	private PlatformTransactionManager transactionManager;
 
 	@BeforeEach
 	void resetOwnerProfile() {
@@ -198,6 +208,37 @@ class MemberProfileControllerIntegrationTest {
 	}
 
 	@Test
+	void withdrawalClearsAndDeletesStoredProfileImageAfterCommit() throws Exception {
+		Path uploadRoot = Path.of("build/test-profile-uploads");
+		Path storedImage = uploadRoot.resolve("withdrawal-profile.png");
+		Files.createDirectories(uploadRoot);
+		Files.write(storedImage, new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47});
+		jdbcTemplate.update(
+				"UPDATE MEMBER SET PROFILE_IMAGE_URL = ? WHERE MEMBER_ID = 1",
+				"/uploads/profile/withdrawal-profile.png"
+		);
+
+		try {
+			mockMvc.perform(delete("/api/members/me")
+						.with(authentication(memberToken(1L)))
+						.with(csrf().asHeader())
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{ "currentPassword": "WithTrip-E2E-2026!" }
+								"""))
+					.andExpect(status().isOk());
+
+			assertThat(jdbcTemplate.queryForObject(
+					"SELECT PROFILE_IMAGE_URL FROM MEMBER WHERE MEMBER_ID = 1",
+					String.class
+			)).isNull();
+			assertThat(storedImage).doesNotExist();
+		} finally {
+			Files.deleteIfExists(storedImage);
+		}
+	}
+
+	@Test
 	void rejectsWithdrawalWhenCurrentPasswordDoesNotMatch() throws Exception {
 		mockMvc.perform(delete("/api/members/me")
 						.with(authentication(memberToken(1L)))
@@ -296,6 +337,89 @@ class MemberProfileControllerIntegrationTest {
 				.resolve(profileImageUrl.substring("/uploads/profile/".length()));
 		assertThat(Files.readAllBytes(savedFile)).isEqualTo(png);
 		Files.deleteIfExists(savedFile);
+	}
+
+	@Test
+	void replacingProfileImageDeletesPreviousFileAfterCommit() throws Exception {
+		Path uploadRoot = Path.of("build/test-profile-uploads");
+		Path previousImage = uploadRoot.resolve("previous-profile.png");
+		Files.createDirectories(uploadRoot);
+		Files.write(previousImage, new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47});
+		jdbcTemplate.update(
+				"UPDATE MEMBER SET PROFILE_IMAGE_URL = ? WHERE MEMBER_ID = 1",
+				"/uploads/profile/previous-profile.png"
+		);
+
+		byte[] png = {
+				(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+				0x00, 0x00, 0x00, 0x00
+		};
+		MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", png);
+		Path newImage = null;
+
+		try {
+			mockMvc.perform(multipart(HttpMethod.PATCH, "/api/members/me/profile-image")
+						.file(file)
+						.with(authentication(memberToken(1L)))
+						.with(csrf().asHeader()))
+					.andExpect(status().isOk());
+
+			String newImageUrl = jdbcTemplate.queryForObject(
+					"SELECT PROFILE_IMAGE_URL FROM MEMBER WHERE MEMBER_ID = 1",
+					String.class
+			);
+			newImage = uploadRoot.resolve(newImageUrl.substring("/uploads/profile/".length()));
+			assertThat(previousImage).doesNotExist();
+			assertThat(newImage).exists();
+		} finally {
+			Files.deleteIfExists(previousImage);
+			if (newImage != null) {
+				Files.deleteIfExists(newImage);
+			}
+		}
+	}
+
+	@Test
+	void rollingBackProfileImageReplacementKeepsPreviousFileAndDeletesNewFile() throws Exception {
+		Path uploadRoot = Path.of("build/test-profile-uploads");
+		Path previousImage = uploadRoot.resolve("rollback-previous-profile.png");
+		Files.createDirectories(uploadRoot);
+		Files.write(previousImage, new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47});
+		String previousImageUrl = "/uploads/profile/rollback-previous-profile.png";
+		jdbcTemplate.update(
+				"UPDATE MEMBER SET PROFILE_IMAGE_URL = ? WHERE MEMBER_ID = 1",
+				previousImageUrl
+		);
+
+		byte[] png = {
+				(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+				0x00, 0x00, 0x00, 0x00
+		};
+		MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", png);
+		AtomicReference<String> newImageUrl = new AtomicReference<>();
+		Path newImage = null;
+
+		try {
+			new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+				newImageUrl.set(memberProfileService.updateProfileImage(file).profileImageUrl());
+				status.setRollbackOnly();
+			});
+
+			newImage = uploadRoot.resolve(
+					newImageUrl.get().substring("/uploads/profile/".length())
+			);
+			assertThat(jdbcTemplate.queryForObject(
+					"SELECT PROFILE_IMAGE_URL FROM MEMBER WHERE MEMBER_ID = 1",
+					String.class
+			)).isEqualTo(previousImageUrl);
+			assertThat(previousImage).exists();
+			assertThat(newImage).doesNotExist();
+		} finally {
+			Files.deleteIfExists(previousImage);
+			if (newImage != null) {
+				Files.deleteIfExists(newImage);
+			}
+		}
 	}
 
 	@Test

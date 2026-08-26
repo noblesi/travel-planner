@@ -31,6 +31,21 @@
 		   AND MEMBER_STATUS = 'ACTIVE'
 	</select>
 
+	<select id="findActiveProfileByMemberIdForUpdate" resultMap="memberProfileResultMap">
+		SELECT MEMBER_ID,
+		       MEMBER_NAME,
+		       EMAIL,
+		       NICKNAME,
+		       BIRTH_DATE,
+		       GENDER_CODE,
+		       PHONE_NUMBER,
+		       PROFILE_IMAGE_URL
+		  FROM MEMBER
+		 WHERE MEMBER_ID = #{memberId}
+		   AND MEMBER_STATUS = 'ACTIVE'
+		 FOR UPDATE
+	</select>
+
 	<update id="updateActiveProfile">
 		UPDATE MEMBER
 		   SET MEMBER_NAME = #{request.name},
@@ -69,6 +84,7 @@
 	<update id="withdrawActiveMember">
 		UPDATE MEMBER
 		   SET MEMBER_STATUS = 'WITHDRAWN',
+		       PROFILE_IMAGE_URL = NULL,
 		       WITHDRAWN_AT = SYSTIMESTAMP,
 		       UPDATED_AT = SYSTIMESTAMP
 		 WHERE MEMBER_ID = #{memberId}

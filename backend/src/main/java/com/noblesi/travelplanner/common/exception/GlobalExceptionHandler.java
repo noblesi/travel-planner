@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.noblesi.travelplanner.common.api.ErrorResponse;
@@ -80,6 +81,19 @@ public class GlobalExceptionHandler {
 				request.getRequestURI()
 		);
 		return ResponseEntity.badRequest().body(body);
+	}
+
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(
+			MaxUploadSizeExceededException exception,
+			HttpServletRequest request
+	) {
+		ErrorResponse body = ErrorResponse.of(
+				"PROFILE_IMAGE_TOO_LARGE",
+				"프로필 이미지는 5MB 이하만 업로드할 수 있습니다.",
+				request.getRequestURI()
+		);
+		return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body(body);
 	}
 
 	@ExceptionHandler({HandlerMethodValidationException.class, MethodArgumentTypeMismatchException.class})
