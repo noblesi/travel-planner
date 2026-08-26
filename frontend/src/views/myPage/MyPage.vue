@@ -2,8 +2,8 @@
     <DefaultLayout>
     <div name="myPageContainer" class="myPage-container">
         <div name="profileWrapDiv" class="profile-wrap">
-            <div name="profileImageDiv" class="profile-div">
-                <!-- 왼쪽 프로필 카드리뉴얼 -->
+            
+            <!-- 왼쪽 프로필 카드리뉴얼 -->
             <div name="profileImageDiv" class="profile-div">
                 <div class="profile-img-container">
                     <img :src="imageURL" class="img-size"/>
@@ -24,13 +24,14 @@
 
                 <a class="member-draw-btn" @click="drawMember">회원 탈퇴</a>
             </div>
-            </div>
+
+            <!-- 오른쪽 나의 정보 영역 -->
             <div name="myInfoWrap" class="myInfo-wrap">
                 <div class="my-info-container">
                     <!-- 타이틀 영역 -->
                     <div class="title-section">
-                    <h2 class="title">나의 정보</h2>
-                        <div>
+                        <h2 class="title">나의 정보</h2>
+                        <div class="title-btn-group">
                             <button class="password-reword-btn" @click="passwordReword">
                                 비밀번호 재설정
                             </button>
@@ -43,55 +44,56 @@
 
                     <!-- 정보 표시 / 수정 폼 영역 -->
                     <div class="info-content">
-                    <!-- 1. 이름 (전체 너비) -->
-                    <div class="form-group full-width">
-                        <label>이름</label>
-                        <div v-if="!isEditMode" class="value-text">{{ userInfo.name }}</div>
-                        <input v-else v-model="userInfo.name" type="text" class="info-input" placeholder="이름을 입력하세요" />
-                    </div>
-
-                    <!-- 2. 성별 & 3. 생년월일 (2열 배치로 공간 절약) -->
-                    <div class="grid-row">
-                        <div class="form-group">
-                        <label>성별</label>
-                        <div v-if="!isEditMode" class="value-text">{{ userInfo.genderCode }}</div>
-                        <select v-else v-model="userInfo.genderCode" class="info-input select-box">
-                            <option value="선택 안함">선택 안함</option>
-                            <option value="남성">남성</option>
-                            <option value="여성">여성</option>
-                        </select>
+                        <!-- 1. 이름 (전체 너비) -->
+                        <div class="form-group full-width">
+                            <label>이름</label>
+                            <div v-if="!isEditMode" class="value-text">{{ userInfo.name }}</div>
+                            <input v-else v-model="userInfo.name" type="text" class="info-input" placeholder="이름을 입력하세요" />
                         </div>
 
-                        <div class="form-group">
-                        <label>생년월일</label>
-                        <div v-if="!isEditMode" class="value-text">{{ userInfo.birthDate }}</div>
-                        <input v-else v-model="userInfo.birthDate" type="date" class="info-input" />
+                        <!-- 2. 성별 & 3. 생년월일 (2열 배치) -->
+                        <div class="grid-row">
+                            <div class="form-group">
+                                <label>성별</label>
+                                <div v-if="!isEditMode" class="value-text">{{ userInfo.genderCode }}</div>
+                                <select v-else v-model="userInfo.genderCode" class="info-input select-box">
+                                    <option value="선택 안함">선택 안함</option>
+                                    <option value="남성">남성</option>
+                                    <option value="여성">여성</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label>생년월일</label>
+                                <div v-if="!isEditMode" class="value-text">{{ userInfo.birthDate }}</div>
+                                <input v-else v-model="userInfo.birthDate" type="date" class="info-input" />
+                            </div>
+                        </div>
+
+                        <!-- 4. 이메일 (전체 너비) -->
+                        <div class="form-group full-width">
+                            <label>이메일 주소</label>
+                            <div v-if="!isEditMode" class="value-text">{{ userInfo.email }}</div>
+                            <input v-else v-model="userInfo.email" type="email" class="info-input" placeholder="example@email.com" />
+                        </div>
+
+                        <!-- 5. 전화번호 (전체 너비) -->
+                        <div class="form-group full-width">
+                            <label>휴대전화 번호</label>
+                            <div v-if="!isEditMode" class="value-text">{{ userInfo.phoneNumber }}</div>
+                            <input v-else v-model="userInfo.phoneNumber" type="tel" class="info-input" placeholder="010-1234-5678" />
                         </div>
                     </div>
 
-                    <!-- 4. 이메일 (전체 너비) -->
-                    <div class="form-group full-width">
-                        <label>이메일 주소</label>
-                        <div v-if="!isEditMode" class="value-text">{{ userInfo.email }}</div>
-                        <input v-else v-model="userInfo.email" type="email" class="info-input" placeholder="example@email.com" />
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label>휴대전화 번호</label>
-                        <div v-if="!isEditMode" class="value-text">{{ userInfo.phoneNumber }}</div>
-                        <input v-else v-model="userInfo.phoneNumber" type="tel" class="info-input" placeholder="010-1234-5678" />
-                    </div>
-                </div>
-
-                    <!-- 수정 모드일 때만 나타나는 저장 버튼 -->
+                    <!-- 수정 모드 저장 버튼 -->
                     <div v-if="isEditMode" class="button-section">
-                    <button class="save-btn" @click="saveInfo">변경사항 저장</button>
+                        <button class="save-btn" @click="saveInfo">변경사항 저장</button>
                     </div>
                 </div>
-                <!-- 영역 끝 -->
             </div>
         </div>
     </div>
+
     <!-- 비밀번호 재설정 모달 창 -->
     <div v-if="isPasswordModalOpen" class="modal-overlay" @click="closePasswordModal">
         <div class="modal-content" @click.stop>
@@ -119,6 +121,7 @@
         </div>
     </div>
 
+    <!-- 커스텀 Alert 모달 -->
     <div v-if="customAlert.isOpen" class="modal-overlay" @click="closeAlert">
         <div class="alert-content" @click.stop>
             <p class="alert-message">{{ customAlert.message }}</p>
@@ -126,6 +129,7 @@
         </div>
     </div>
 
+    <!-- 커스텀 Confirm 모달 -->
     <div v-if="customConfirm.isOpen" class="modal-overlay" @click="closeConfirm">
         <div class="alert-content" @click.stop>
             <p class="alert-message">{{ customConfirm.message }}</p>
@@ -146,12 +150,8 @@ import DefaultLayout from '@/layouts/DefaultLayout.vue'
 import PansleImg from '@/assets/myPageImage/pencil.webp'
 import DefaultImg from '@/assets/myPageImage/default_profile.webp'
 
-import { getMemberInfo } from '@/api/member'
-import { postModifyMemberInfo } from '@/api/member'
-import { getModifyNickname } from '@/api/member'
-import { postModifyProfileImage } from '@/api/member'
-import { getDeleteAccount } from '@/api/member'
-import { postModifyPassword } from '@/api/member'
+import { getImageUrl } from '@/utils/image'
+import { getMemberInfo, postModifyMemberInfo, getModifyNickname, postModifyProfileImage, getDeleteAccount, postModifyPassword } from '@/api/member'
 import { useAuthStore } from '@/stores/auth'
 import router from '@/router'
 
@@ -173,8 +173,8 @@ const closeAlert = () => {
 }
 
 const isReadOnly = ref(true)
-const nickNameInput = ref('')
-const fileInput = ref('')
+const nickNameInput = ref(null)
+const fileInput = ref(null)
 const imageURL = ref('')
 const originalNickName = ref('')
 
@@ -196,8 +196,8 @@ const userInfo = ref({
 setMember().then((response)=>{
     const member = response.data ? response.data : response
     let memberGender = "N";
-
-   
+    console.log(member.genderCode+ "genderCode")
+    
     switch (member.genderCode) {
         case "M":
             memberGender = "남성"
@@ -209,15 +209,16 @@ setMember().then((response)=>{
             memberGender = "선택 안함"
             break;
     }
+    console.log(memberGender+ "genderCode")
     
     originalNickName.value = member.nickname
-    console.log(member.profileImageUrl + "/ date")
     if(member.profileImageUrl == '' || member.profileImageUrl == null){
         imageURL.value = DefaultImg
     } else {
-        console.log(member.profileImageUrl)
-        imageURL.value = member.profileImageUrl
-        console.log(imageURL.value)
+        console.log(member.profileImageUrl + "get profileURL")
+        imageURL.value = getImageUrl("/uploads/profile/"+member.profileImageUrl)
+        console.log(imageURL.value + "imageURL profileURL")
+        console.log(userInfo.value.imageURL + "userInfo profileURL")
     }
 
     userInfo.value = {
@@ -226,53 +227,47 @@ setMember().then((response)=>{
         birthDate: member.birthDate.split('T')[0],
         genderCode: memberGender,
         email: member.email,
-        phoneNumber: member.phoneNumber,
-        
+        phoneNumber: member.phoneNumber
     }
     
 }).catch((error) => {
-    console.log(error + "값이 없으니 돌아간다.")
+    console.error(error)
     router.push({name: 'home'})
 })
 
-
-
 const handleNicknameSubmit = () => {
-    console.log(originalNickName.value + " / " + userInfo.value.nickName)
     isReadOnly.value = true;
-    
     
     if (userInfo.value.nickName !== originalNickName.value) {
         changeNicnameApply();
-        originalNickName.value = userInfo.value.nickName; 
     } else {
-        
         userInfo.value.nickName = originalNickName.value;
     }
 }
 
 const changeNicnameApply = () => {
-    console.log("보내기 전 변경할 내 닉네임 : " + userInfo.value.nickName + " / " + originalNickName.value)
-    getModifyNickname(userInfo.value.nickName).then((response)=>{
-        console.log("보낸 후 변경할 내 닉네임 : " + userInfo.value.nickName)
+    getModifyNickname(userInfo.value.nickName).then(()=>{
         showAlert("닉네임 변경에 성공했습니다."); 
-        originalNickName.value = userInfo.value.nickName; // 성공 시 기준값 업데이트
-    }).catch((error) => {
+        originalNickName.value = userInfo.value.nickName;
+    }).catch(() => {
         showAlert("닉네임 변경에 실패했습니다."); 
-        userInfo.value.nickName = originalNickName.value; // 실패 시 원래 값으로 복구
+        userInfo.value.nickName = originalNickName.value;
     });
 }
 
 const changeNickName = () => {
     isReadOnly.value = false
-    nickNameInput.value.focus()
+    if (nickNameInput.value) {
+        nickNameInput.value.focus()
+    }
 }
 
 const changeProfileImage = () => {
-    fileInput.value.click()
+    if (fileInput.value) {
+        fileInput.value.click()
+    }
 }
 
-////////////////////////////////////////////////////////////////
 const handleFileChange = (event) => {
   const file = event.target.files[0]
   
@@ -282,7 +277,7 @@ const handleFileChange = (event) => {
     const formData = new FormData()
     formData.append('file', file)
 
-    postModifyProfileImage(formData).then((response) => {
+    postModifyProfileImage(formData).then(() => {
         showAlert("프로필 이미지가 성공적으로 변경되었습니다.");
     }).catch((error) => {
         showAlert("이미지 변경에 실패했습니다.");
@@ -291,17 +286,14 @@ const handleFileChange = (event) => {
   }
 }
 
-// 수정 모드 상태 토글
 const isEditMode = ref(false)
 
-
-// 저장 함수
 const saveInfo = () => {
     let genderCodeStr = 'N'
 
-    if (userInfo.value.gender === '남성') {
+    if (userInfo.value.genderCode === '남성') {
         genderCodeStr = 'M'
-    } else if (userInfo.value.gender === '여성') {
+    } else if (userInfo.value.genderCode === '여성') {
         genderCodeStr = 'F'
     }
 
@@ -313,16 +305,14 @@ const saveInfo = () => {
         phoneNumber: userInfo.value.phoneNumber === '' ? null : userInfo.value.phoneNumber
     }
 
-    postModifyMemberInfo(requestData).then((response) => {
+    postModifyMemberInfo(requestData).then(() => {
         showAlert('정보가 성공적으로 수정되었습니다.'); 
         isEditMode.value = false;
     }).catch((error) => {
         showAlert('정보 수정에 실패했습니다.'); 
         console.error(error);
     });
-
 }
-
 
 const isPasswordModalOpen = ref(false)
 
@@ -332,11 +322,9 @@ const passwordForm = ref({
     confirmPassword: ''
 })
 
-
 const passwordReword = () => {
     isPasswordModalOpen.value = true 
 }
-
 
 const closePasswordModal = () => {
     isPasswordModalOpen.value = false
@@ -346,7 +334,6 @@ const closePasswordModal = () => {
         confirmPassword: ''
     }
 }
-
 
 const submitPasswordChange = () => {
     if (!passwordForm.value.currentPassword) {
@@ -367,26 +354,21 @@ const submitPasswordChange = () => {
         rewordPassword: passwordForm.value.newPassword
     }
 
-    console.log("서버로 전송할 비밀번호 데이터:", rewordPass)
-
-    postModifyPassword(rewordPass).then((response) => {
-        console.log(response.data + "성공?")
+    postModifyPassword(rewordPass).then(() => {
         showAlert("비밀번호가 성공적으로 변경되었습니다.");
         closePasswordModal();
-    }).catch((error) => {
-        console.log(error + "실패")
+    }).catch(() => {
         showAlert("현재 비밀번호가 일치하지 않거나 오류가 발생했습니다."); 
     })
 }
 
-
 const drawMember = () => {
     showConfirm("회원 탈퇴를 진행합니다. 정말 탈퇴 하시겠습니까?", () => {
-        getDeleteAccount().then((response) => {
+        getDeleteAccount().then(() => {
             showAlert("성공적으로 회원탈퇴가 완료 되었습니다.")
             authStore.logout()
             router.push({ name: 'home' })
-        }).catch((error) => {
+        }).catch(() => {
             showAlert("회원 탈퇴 중 문제가 발생하였습니다. 조금 뒤 다시 시도 해주세요.")
         })
     })
@@ -416,9 +398,6 @@ const handleConfirm = () => {
     }
     closeConfirm()
 }
-
-// const isWithdrawalModalOpen = ref(false)
-// const { profile, status, errorMessage, loadProfile, updateLoadedProfile } = useMemberProfile()
 </script>
 
 <style scoped>
@@ -652,11 +631,6 @@ const handleConfirm = () => {
 
 .select-box {
     background-color: #ffffff;
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
 }
 
 .button-section {
@@ -820,5 +794,4 @@ const handleConfirm = () => {
         grid-template-columns: 1fr;
     }
 }
-
 </style>

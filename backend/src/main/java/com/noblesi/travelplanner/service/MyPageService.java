@@ -49,7 +49,7 @@ public class MyPageService {
             myPageMapper.selectMemberInfo(memberId).memberName(),
             myPageMapper.selectMemberInfo(memberId).email(),
             myPageMapper.selectMemberInfo(memberId).nickname(),
-            backendUrl + myPageMapper.selectMemberInfo(memberId).genderCode(),
+            myPageMapper.selectMemberInfo(memberId).genderCode(),
             myPageMapper.selectMemberInfo(memberId).phoneNumber(),
             myPageMapper.selectMemberInfo(memberId).profileImageUrl(),
             myPageMapper.selectMemberInfo(memberId).memberStatus(),
@@ -97,7 +97,7 @@ public class MyPageService {
             File destinationFile = new File(uploadDir,saveFileName);
             file.transferTo(destinationFile.getAbsoluteFile());
            
-            String profileImageUrl = "/uploads/profile/"+ saveFileName;
+            String profileImageUrl = saveFileName;
             MemberProfileChangeRequest memberProfileChangeRequest = new MemberProfileChangeRequest(memberId, profileImageUrl);
 
             return myPageMapper.updateProfileImage(memberProfileChangeRequest) > 0;
