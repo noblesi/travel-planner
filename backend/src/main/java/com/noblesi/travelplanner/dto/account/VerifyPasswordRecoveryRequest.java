@@ -30,7 +30,7 @@ public record VerifyPasswordRecoveryRequest(
 			email = email.strip().toLowerCase(Locale.ROOT);
 		}
 		if (phoneNumber != null) {
-			phoneNumber = phoneNumber.strip();
+			phoneNumber = phoneNumber.strip().replace("-", "");
 		}
 	}
 }

@@ -63,7 +63,7 @@ class AccountRecoveryControllerIntegrationTest {
 							{
 							  "memberName": "소유자",
 							  "birthDate": "1990-05-12",
-							  "phoneNumber": "010-1234-5678"
+							  "phoneNumber": "01012345678"
 							}
 							"""))
 				.andExpect(status().isOk())

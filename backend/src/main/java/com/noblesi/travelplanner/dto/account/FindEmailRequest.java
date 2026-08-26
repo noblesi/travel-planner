@@ -27,7 +27,7 @@ public record FindEmailRequest(
 			memberName = memberName.strip();
 		}
 		if (phoneNumber != null) {
-			phoneNumber = phoneNumber.strip();
+			phoneNumber = phoneNumber.strip().replace("-", "");
 		}
 	}
 }

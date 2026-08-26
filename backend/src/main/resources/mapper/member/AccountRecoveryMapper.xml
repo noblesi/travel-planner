@@ -9,7 +9,7 @@
 		  FROM MEMBER
 		 WHERE MEMBER_NAME = #{request.memberName}
 		   AND BIRTH_DATE = #{request.birthDate, jdbcType=DATE}
-		   AND PHONE_NUMBER = #{request.phoneNumber}
+		   AND REGEXP_REPLACE(PHONE_NUMBER, '[^0-9]', '') = #{request.phoneNumber}
 		   AND MEMBER_STATUS = 'ACTIVE'
 	</select>
 
@@ -18,7 +18,7 @@
 		  FROM MEMBER
 		 WHERE LOWER(EMAIL) = #{request.email}
 		   AND BIRTH_DATE = #{request.birthDate, jdbcType=DATE}
-		   AND PHONE_NUMBER = #{request.phoneNumber}
+		   AND REGEXP_REPLACE(PHONE_NUMBER, '[^0-9]', '') = #{request.phoneNumber}
 		   AND MEMBER_STATUS = 'ACTIVE'
 	</select>
 
