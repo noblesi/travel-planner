@@ -110,7 +110,7 @@ const handleContinue = async () => {
         <p class="signup-prompt">신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink></p>
       </div>
      
-
+      
     </div>
   </div>
 </template>
