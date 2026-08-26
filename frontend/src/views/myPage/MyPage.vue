@@ -3,18 +3,27 @@
     <div name="myPageContainer" class="myPage-container">
         <div name="profileWrapDiv" class="profile-wrap">
             <div name="profileImageDiv" class="profile-div">
-                <img :src="imageURL" class="img-size"/>
-                <img :src="PansleImg" @click="changeProfileImage" alt="프로필 이미지 변경" class="profile-change-btn"/>
-                <input type="file" ref="fileInput" style="display: none;" accept="image/*" @change="handleFileChange" />
-                <input type="text" ref='nickNameInput'
-                    v-model="userInfo.nickName" 
-                    :readonly="isReadOnly" 
-                    @blur="handleNicknameSubmit" 
-                    @change="handleNicknameSubmit"
-                    @keyup.enter="$event.target.blur()"
-                    class="nickName-text"/>
-                <img :src="PansleImg" @click="changeNickName" class="nickName-change-btn"/>
+                <!-- 왼쪽 프로필 카드리뉴얼 -->
+            <div name="profileImageDiv" class="profile-div">
+                <div class="profile-img-container">
+                    <img :src="imageURL" class="img-size"/>
+                    <img :src="PansleImg" @click="changeProfileImage" alt="프로필 이미지 변경" class="profile-change-btn"/>
+                    <input type="file" ref="fileInput" style="display: none;" accept="image/*" @change="handleFileChange" />
+                </div>
+
+                <div class="nickname-container">
+                    <input type="text" ref='nickNameInput'
+                        v-model="userInfo.nickName" 
+                        :readonly="isReadOnly" 
+                        @blur="handleNicknameSubmit" 
+                        @change="handleNicknameSubmit"
+                        @keyup.enter="$event.target.blur()"
+                        class="nickName-text"/>
+                    <img :src="PansleImg" @click="changeNickName" class="nickName-change-btn" alt="닉네임 변경"/>
+                </div>
+
                 <a class="member-draw-btn" @click="drawMember">회원 탈퇴</a>
+            </div>
             </div>
             <div name="myInfoWrap" class="myInfo-wrap">
                 <div class="my-info-container">
@@ -45,8 +54,8 @@
                     <div class="grid-row">
                         <div class="form-group">
                         <label>성별</label>
-                        <div v-if="!isEditMode" class="value-text">{{ userInfo.gender }}</div>
-                        <select v-else v-model="userInfo.gender" class="info-input select-box">
+                        <div v-if="!isEditMode" class="value-text">{{ userInfo.genderCode }}</div>
+                        <select v-else v-model="userInfo.genderCode" class="info-input select-box">
                             <option value="선택 안함">선택 안함</option>
                             <option value="남성">남성</option>
                             <option value="여성">여성</option>
@@ -132,11 +141,11 @@
 
 <script setup>
 import { ref } from 'vue'
+
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-import PansleImg from '@/assets/myPageImage/pansle.webp'
+import PansleImg from '@/assets/myPageImage/pencil.webp'
 import DefaultImg from '@/assets/myPageImage/default_profile.webp'
 
-import { getImageUrl } from '@/utils/image'
 import { getMemberInfo } from '@/api/member'
 import { postModifyMemberInfo } from '@/api/member'
 import { getModifyNickname } from '@/api/member'
@@ -177,7 +186,7 @@ async function setMember(){
 const userInfo = ref({
     name: '',
     nickName: '',
-    gender: '',
+    genderCode: '',
     birthDate: '',
     email: '',
     phoneNumber: '',
@@ -207,7 +216,7 @@ setMember().then((response)=>{
         imageURL.value = DefaultImg
     } else {
         console.log(member.profileImageUrl)
-        imageURL.value = getImageUrl(member.profileImageUrl)
+        imageURL.value = member.profileImageUrl
         console.log(imageURL.value)
     }
 
@@ -215,7 +224,7 @@ setMember().then((response)=>{
         name: member.memberName,
         nickName: member.nickname,
         birthDate: member.birthDate.split('T')[0],
-        gender: memberGender,
+        genderCode: memberGender,
         email: member.email,
         phoneNumber: member.phoneNumber,
         
@@ -316,6 +325,7 @@ const saveInfo = () => {
 
 
 const isPasswordModalOpen = ref(false)
+
 const passwordForm = ref({
     currentPassword: '',
     newPassword: '',
@@ -407,277 +417,298 @@ const handleConfirm = () => {
     closeConfirm()
 }
 
-const isPasswordModalOpen = ref(false)
-const isWithdrawalModalOpen = ref(false)
-const { profile, status, errorMessage, loadProfile, updateLoadedProfile } = useMemberProfile()
+// const isWithdrawalModalOpen = ref(false)
+// const { profile, status, errorMessage, loadProfile, updateLoadedProfile } = useMemberProfile()
 </script>
 
-<template>
-  <DefaultLayout>
-    <main class="profile-page" aria-labelledby="profile-title">
-      <header class="profile-heading">
-        <p>MY PAGE</p>
-        <h1 id="profile-title">마이페이지</h1>
-        <span>가입한 회원정보를 확인하고 계정을 관리할 수 있습니다.</span>
-      </header>
-
-      <section v-if="status === 'loading'" class="profile-state" role="status" aria-live="polite">
-        <span class="loading-indicator" aria-hidden="true" />
-        회원 정보를 불러오고 있습니다.
-      </section>
-
-      <section v-else-if="status === 'error'" class="profile-state profile-state--error" role="alert">
-        <strong>회원정보를 표시할 수 없습니다.</strong>
-        <p>{{ errorMessage }}</p>
-        <button type="button" @click="loadProfile">다시 시도</button>
-      </section>
-
-      <section v-else class="profile-content" aria-label="내 회원정보">
-        <MemberProfileSummary :profile="profile" />
-        <MemberProfileDetails
-          :profile="profile"
-          @updated="updateLoadedProfile"
-          @open-password="isPasswordModalOpen = true"
-          @open-withdrawal="isWithdrawalModalOpen = true"
-        />
-      </section>
-    </main>
-
-    <ChangePasswordModal :open="isPasswordModalOpen" @close="isPasswordModalOpen = false" />
-    <WithdrawAccountModal :open="isWithdrawalModalOpen" @close="isWithdrawalModalOpen = false" />
-  </DefaultLayout>
-</template>
-
 <style scoped>
-.profile-page {
-  min-height: calc(100vh - var(--layout-header-height));
-  padding: 56px max(var(--layout-gutter), calc((100% - var(--layout-content-width)) / 2)) 88px;
-  background:
-    radial-gradient(circle at 90% 5%, rgb(249 115 22 / 10%), transparent 28rem),
-    var(--color-page);
+/* 페이지 메인 레이아웃 */
+.myPage-container {
+    width: 100%;
+    min-height: calc(100vh - 120px);
+    padding: 40px 20px 80px;
+    background-color: #fdf8f5;
+    box-sizing: border-box;
 }
 
-.profile-heading > p {
-  margin: 0;
-  color: var(--color-brand-accent);
-  font-size: 11px;
-  font-weight: 850;
-  letter-spacing: 0.14em;
+.profile-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 30px;
+    max-width: 1100px;
+    margin: 0 auto;
 }
 
-.profile-heading h1 {
-  margin: 8px 0 0;
-  color: var(--color-text);
-  font-size: clamp(32px, 4vw, 42px);
-  letter-spacing: -0.04em;
+/* 프로필 카드 영역 (좌측) */
+.profile-div {
+    width: 280px;
+    background-color: #c2410c;
+    border-radius: 20px;
+    padding: 35px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 10px 25px rgba(194, 65, 12, 0.2);
+    box-sizing: border-box;
 }
 
-.profile-heading > span {
-  display: block;
-  margin-top: 10px;
-  color: var(--color-text-muted);
+.profile-img-container {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    margin-bottom: 20px;
 }
 
-.profile-content {
-  display: grid;
-  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-  gap: 24px;
-  margin-top: 34px;
+.img-size {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #ffffff;
 }
 
-.profile-state {
-  display: flex;
-  min-height: 300px;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  margin-top: 34px;
-  padding: 40px;
-  border: 1px solid var(--color-border);
-  border-radius: 20px;
-  background: var(--color-surface);
-  box-shadow: 0 16px 45px rgb(15 23 42 / 6%);
-  color: var(--color-text-muted);
-  text-align: center;
+.profile-change-btn {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    width: 32px;
+    height: 32px;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 6px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: transform 0.2s;
 }
 
-.profile-state p {
-  margin: 0;
+.profile-change-btn:hover {
+    transform: scale(1.1);
 }
 
-.profile-state--error strong {
-  color: var(--color-danger);
+.nickname-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 30px;
+    width: 100%;
 }
 
-.profile-state button {
-  display: inline-flex;
-  min-height: 40px;
-  align-items: center;
-  justify-content: center;
-  padding: 0 15px;
-  border: 1px solid var(--color-brand-border);
-  border-radius: 10px;
-  background: var(--color-brand-soft);
-  color: var(--color-brand);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
+.nickName-text {
+    width: 150px;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+    padding: 4px 0;
 }
 
-.loading-indicator {
-  width: 28px;
-  height: 28px;
-  border: 3px solid var(--color-brand-border);
-  border-top-color: var(--color-brand);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+.nickName-text:not([readonly]) {
+    border-bottom: 2px solid #ffffff;
 }
 
+.nickName-change-btn {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    filter: brightness(0) invert(1);
+}
+
+.member-draw-btn {
+    color: #fca5a5;
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.member-draw-btn:hover {
+    color: #ffffff;
+}
+
+/* 정보 표시 영역 (우측) */
+.myInfo-wrap {
+    flex: 1;
+    max-width: 750px;
+    background-color: #ffffff;
+    border-radius: 20px;
+    padding: 35px 40px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border: 1px solid #f1f5f9;
+    box-sizing: border-box;
+}
+
+.title-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #f1f5f9;
+    margin-bottom: 25px;
+}
+
+.title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0;
+}
+
+.title-btn-group {
+    display: flex;
+    gap: 10px;
+}
+
+.password-reword-btn {
+    padding: 8px 16px;
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.password-reword-btn:hover {
+    background-color: #e5e7eb;
+}
+
+.action-btn {
+    padding: 8px 18px;
+    background-color: #ea580c;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+    background-color: #c2410c;
+}
+
+/* 폼 필드 스타일 */
+.info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.grid-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.value-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: #111827;
+    padding: 11px 14px;
+    background-color: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #f3f4f6;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+}
+
+.info-input {
+    height: 44px;
+    padding: 0 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.info-input:focus {
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
+}
+
+.select-box {
+    background-color: #ffffff;
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
-
-.title-text{
-    font-size: 35px;
-    color: #f1d7c2;
-    border-bottom: 3px solid #f1d7c2;
-    position: absolute;
-    top: 10px;
-    left: 45px;
+}
 }
 
-.title-text:hover{
-    cursor: default;
+.button-section {
+    margin-top: 30px;
+    display: flex;
+    justify-content: flex-end;
 }
 
-.myInfo-wrap{
-
-    position: absolute;
-    top: 130px;
-    left : 700px;
-    width: 900px;
-    height: 600px;
-    border-radius: 20px;
-
-    background-color: #c2410c;
-}
-
-.myInfo-div{
-    grid-template-columns: 300px 300px 200px;
-    grid-template-rows: 200px 200px 100px ;
-    position: absolute;
-    top: 75px;
-    left: 50px;
-    width: 800px;
-    height: 500px;
-    border-radius: 50px;
-
-    background-color: #cd7652;
-}
-
-.member-draw-btn{
-    color: #a89a9a;
-    position: absolute;
-    font-size: 12px;
-    top: 255px;
-    left: 100px;
-}
-
-.member-draw-btn:hover{
-    cursor: pointer;
-}
-
-.myPage-container{
-    // position: relative;
-    //background-color: #804c77;
-    width: 100%;
-    min-height: 80vh;
-}
-
-.img-size{
-    position: absolute;
-    border-radius: 500px;
-    width: 170px;
-    height: 170px;
-}
-
-.profile-div{
-    position: absolute;
-    top: 130px;
-    left: 400px;
-    width: 250px;
-    height: 600px;
-    padding-top: 2%;
-    padding-left: 2%;
-    border-radius: 20px;
-    background-color: #c2410c;
-}
-.profile-change-btn{
-    position: absolute;
-    background-color: #979595;
-    opacity: 0.5;
+.save-btn {
+    padding: 12px 28px;
+    background-color: #ea580c;
+    color: #ffffff;
+    border: none;
     border-radius: 8px;
-    
-    top: 170px;
-    left: 175px;
-    width: 23px;
-    height: 23px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-.profile-change-btn:hover{
-    cursor: pointer;    
+.save-btn:hover {
+    background-color: #c2410c;
 }
 
-.nickName-change-btn{
-    position: absolute;
-    top: 220px;
-    left: 183px;
-    width: 23px;
-    height: 23px;
-}
-
-@media (max-width: 760px) {
-  .profile-page {
-    padding-top: 38px;
-  }
-
-  .profile-content {
-    grid-template-columns: 1fr;
-  }
-}
-
-// 모달 스타일
+/* 모달 레이아웃 공통 */
 .modal-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
-    backdrop-filter: blur(2px);
+    backdrop-filter: blur(3px);
 }
 
-/* 모달 본체 */
 .modal-content {
     background-color: #ffffff;
     padding: 2.5rem;
     border-radius: 16px;
-    width: 420px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    color: #333;
+    width: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .modal-title {
     margin-top: 0;
-    margin-bottom: 2rem;
-    font-size: 1.4rem;
-    color: #2b2b2b;
+    margin-bottom: 1.8rem;
+    font-size: 1.3rem;
+    color: #111827;
     text-align: center;
     font-weight: 700;
 }
@@ -689,131 +720,105 @@ const { profile, status, errorMessage, loadProfile, updateLoadedProfile } = useM
 }
 
 .modal-form-group label {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     margin-bottom: 0.5rem;
-    color: #666;
+    color: #4b5563;
     font-weight: 600;
 }
 
 .modal-input {
-    padding: 0.85rem;
-    border: 1px solid #ddd;
+    padding: 0.8rem;
+    border: 1px solid #d1d5db;
     border-radius: 8px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     outline: none;
-    transition: border-color 0.2s;
-    background-color: #f9f9f9;
 }
 
 .modal-input:focus {
-    border-color: #f47a42; /* 기존 UI 주황색 계열 대비 */
-    background-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(244, 122, 66, 0.15);
+    border-color: #ea580c;
+    box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.15);
 }
 
 .modal-button-group {
     display: flex;
     justify-content: space-between;
-    margin-top: 2.5rem;
-    gap: 1rem;
+    margin-top: 2rem;
+    gap: 0.8rem;
 }
 
 .modal-cancel-btn {
     flex: 1;
-    padding: 0.85rem;
-    background-color: #f1f1f1;
-    color: #555;
+    padding: 0.8rem;
+    background-color: #f3f4f6;
+    color: #4b5563;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
-    transition: background-color 0.2s;
-}
-.modal-cancel-btn:hover {
-    background-color: #e4e4e4;
 }
 
 .modal-submit-btn {
     flex: 1;
-    padding: 0.85rem;
-    background-color: rgba(247, 145, 62, 0.945); /* 기존 프로젝트 컬러 */
-    color: #fff;
+    padding: 0.8rem;
+    background-color: #ea580c;
+    color: #ffffff;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 600;
-    transition: background-color 0.2s;
-}
-.modal-submit-btn:hover {
-    background-color: #cd7652;
 }
 
-/* =========================================
-   커스텀 Alert 모달 스타일 추가
-   ========================================= */
-
+/* Alert & Confirm 모달 */
 .alert-content {
     background-color: #ffffff;
-    padding: 2.5rem 2rem;
+    padding: 2rem 1.8rem;
     border-radius: 16px;
     width: 320px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
     text-align: center;
-    color: #333;
-    animation: fadeIn 0.2s ease-out; /* 부드럽게 나타나는 애니메이션 */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .alert-message {
-    font-size: 1.1rem;
+    font-size: 1rem;
     margin-top: 0;
-    margin-bottom: 2rem;
-    line-height: 1.5;
-    word-break: keep-all; /* 단어 단위로 줄바꿈 되도록 설정 */
+    margin-bottom: 1.5rem;
+    color: #1f2937;
     font-weight: 500;
+    line-height: 1.4;
 }
 
 .alert-confirm-btn {
-    padding: 0.8rem 2.5rem;
-    background-color: rgba(247, 145, 62, 0.945); /* 기존 테마 컬러 */
-    color: #fff;
+    padding: 0.8rem;
+    background-color: #ea580c;
+    color: #ffffff;
     border: none;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
-    transition: background-color 0.2s;
-    width: 100%; /* 버튼을 꽉 차게 */
-}
-
-.alert-confirm-btn:hover {
-    background-color: #cd7652;
-}
-
-/* 팝업 애니메이션 */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    width: 100%;
 }
 
 .confirm-button-group {
     display: flex;
-    justify-content: space-between;
     gap: 0.8rem;
-    margin-top: 1.5rem;
 }
 
-.confirm-button-group .modal-cancel-btn,
-.confirm-button-group .alert-confirm-btn {
-    flex: 1;
-    margin: 0;
+/* 반응형 모바일 대응 */
+@media (max-width: 850px) {
+    .profile-wrap {
+        flex-direction: column;
+        align-items: center;
+    }
+    .profile-div, .myInfo-wrap {
+        width: 100%;
+        max-width: 100%;
+    }
+    .grid-row {
+        grid-template-columns: 1fr;
+    }
 }
 
 </style>

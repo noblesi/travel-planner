@@ -25,5 +25,10 @@ public interface MemberProfileMapper {
 			@Param("passwordHash") String passwordHash
 	);
 
+	int updateActiveProfileImage(
+			@Param("memberId") long memberId,
+			@Param("profileImageUrl") String profileImageUrl
+	);
+
 	int withdrawActiveMember(@Param("memberId") long memberId);
 }

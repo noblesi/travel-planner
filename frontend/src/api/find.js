@@ -1,17 +1,16 @@
-import http from "./http"
+import http from './http'
 
-export async function getEmailFind(userFindInfo){
-  console.log(userFindInfo)
-  const response = await http.post('/find/emailFind',userFindInfo)
+export async function findEmail(payload) {
+  const response = await http.post('/account-recovery/email', payload)
   return response.data.data
 }
 
-export async function getPasswordFindReword(userFindPassword){
-  const response = await http.post('/find/passwordFind', userFindPassword)
+export async function verifyPasswordRecovery(payload) {
+  const response = await http.post('/account-recovery/password/verify', payload)
   return response.data.data
 }
 
-export async function getPasswordReword(rewordPass){
-  const response = await http.post('/find/passwordReword', rewordPass)
+export async function resetRecoveredPassword(newPassword) {
+  const response = await http.patch('/account-recovery/password', { newPassword })
   return response.data.data
 }

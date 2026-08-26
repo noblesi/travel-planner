@@ -1,63 +1,42 @@
 <script setup>
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { getEmailFind } from '@/api/find'
+
+import { findEmail as requestEmailRecovery } from '@/api/find'
 
 const router = useRouter()
 const name = ref('')
 const birth = ref('')
 const phone = ref('')
-
-// 모달 상태 및 찾은 이메일 저장 변수
 const isModalOpen = ref(false)
 const foundEmail = ref('')
+const pending = ref(false)
+const errorMessage = ref('')
 
-const userFindInfo = ref({
-  memberName: '',
-  birthDate: '',
-  phoneNumber: ''
-})
+async function findEmail() {
+  if (pending.value) return
 
-const findEmail = () => {
-  if(name.value != '' && name.value != null){
-    userFindInfo.value.memberName = name.value
-  } else {
-    alert("이름을 입력해주세요")
-    return
+  pending.value = true
+  errorMessage.value = ''
+  try {
+    foundEmail.value = await requestEmailRecovery({
+      memberName: name.value.trim(),
+      birthDate: birth.value,
+      phoneNumber: phone.value.trim(),
+    })
+    isModalOpen.value = true
+  } catch (error) {
+    errorMessage.value =
+      error?.response?.data?.message || '이메일을 찾지 못했습니다. 입력한 정보를 확인해 주세요.'
+  } finally {
+    pending.value = false
   }
-
-  if(birth.value != '' && birth.value != null){
-    userFindInfo.value.birthDate = birth.value
-  } else {
-    alert("생년월일을 입력해주세요")
-    return
-  }
-  
-  if(phone.value != '' && phone.value != null){
-    userFindInfo.value.phoneNumber = phone.value
-  } else {
-    alert("핸드폰 번호를 입력해주세요")
-    return
-  }
-
-  getEmailFind(userFindInfo.value).then((response) => {
-    if (response) {
-      foundEmail.value = response
-      isModalOpen.value = true // 모달 열기
-    } else {
-      alert("일치하는 이메일 정보를 찾을 수 없습니다.")
-    }
-  }).catch((error) => {
-    alert("이메일을 찾는데 오류가 발생했습니다: " + error)
-  })
-
 }
 
-const goToLogin = () => {
+async function goToLogin() {
   isModalOpen.value = false
-  router.push({ name: 'login' })
+  await router.push({ name: 'login' })
 }
-
 </script>
 
 <template>
@@ -68,36 +47,43 @@ const goToLogin = () => {
       <div>
         <h1 class="main-title" style="margin-top: 30px;">
             나만의 플랜을 계획해보세요<br />
-            <span>내 이메일 찿기</span>
+            <span>내 이메일 찾기</span>
         </h1>
       </div>
       <!-- 이메일 입력 및 계속하기 폼 -->
-      <form class="login-form">
+      <form class="login-form" :aria-busy="pending" @submit.prevent="findEmail">
         <div class="input-container">
-          <label class="input-label">이름</label>
+          <label class="input-label" for="recovery-name">이름</label>
           <input 
+            id="recovery-name"
+            v-model="name"
             type="text" 
-            v-model="name" 
             placeholder="이름을 입력해주세요" 
+            maxlength="10"
             required
           />
-          <label class="input-label">생년월일</label>
+          <label class="input-label" for="recovery-birth">생년월일</label>
           <input 
+            id="recovery-birth"
+            v-model="birth"
             type="date" 
-            v-model="birth" 
-            placeholder="생년월일을 입력해주세요. 예)20010528" 
             required
           />
-          <label class="input-label">전화번호</label>
+          <label class="input-label" for="recovery-phone">전화번호</label>
           <input 
+            id="recovery-phone"
+            v-model="phone"
             type="text" 
-            v-model="phone" 
             placeholder="전화번호를 입력해주세요. 예)010-1234-5689" 
+            maxlength="20"
             required
           />
         </div>
-        
-        <button type="button" @click="findEmail" class="btn-submit" >이메일 찾기</button>
+
+        <p v-if="errorMessage" class="recovery-error" role="alert">{{ errorMessage }}</p>
+        <button type="submit" class="btn-submit" :disabled="pending">
+          {{ pending ? '확인 중...' : '이메일 찾기' }}
+        </button>
       </form>
       <div class="footer-links">
         <p class="signup-prompt">신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink></p>
@@ -110,7 +96,7 @@ const goToLogin = () => {
         <div class="modal-box">
           <h2 class="modal-title">이메일 찾기 완료</h2>
           <p class="modal-content">
-            입력하신 정보와 일치하는 이메일입니다.<br />
+            개인정보 보호를 위해 일부를 가린 이메일입니다.<br />
             <strong>{{ foundEmail }}</strong>
           </p>
           <button type="button" class="btn-modal-confirm" @click="goToLogin">
@@ -356,5 +342,17 @@ const goToLogin = () => {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
+}
+
+.recovery-error {
+  margin: 0 20px 12px;
+  color: #8f1d1d;
+  font-size: 13px;
+  text-align: center;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 </style>

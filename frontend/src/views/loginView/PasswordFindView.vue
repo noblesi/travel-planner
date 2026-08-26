@@ -1,92 +1,72 @@
 <script setup>
 import { ref } from 'vue'
-import { RouterLink, useRouter } from 'vue-router' 
-import { getPasswordFindReword } from '@/api/find'
-import { getPasswordReword } from '@/api/find' 
+import { RouterLink, useRouter } from 'vue-router'
+
+import { resetRecoveredPassword, verifyPasswordRecovery } from '@/api/find'
 
 const inputEmail = ref('')
 const birth = ref('')
 const phone = ref('')
 const router = useRouter()
-
-const userFindPassword = ref({
-  email: '',
-  birthDate: '',
-  phoneNumber: ''
-})
-
 const isResetModalOpen = ref(false)
 const newPassword = ref('')
 const confirmPassword = ref('')
+const pending = ref(false)
+const errorMessage = ref('')
+const resetErrorMessage = ref('')
 
-const findPassword = () => {
+async function findPassword() {
+  if (pending.value) return
 
-  if(inputEmail.value != '' && inputEmail.value != null){
-    userFindPassword.value.email = inputEmail.value
-  } else {
-    alert("이메일을 입력해주세요")
-    return
+  pending.value = true
+  errorMessage.value = ''
+  try {
+    await verifyPasswordRecovery({
+      email: inputEmail.value.trim(),
+      birthDate: birth.value,
+      phoneNumber: phone.value.trim(),
+    })
+    isResetModalOpen.value = true
+  } catch (error) {
+    errorMessage.value =
+      error?.response?.data?.message || '회원정보를 확인하지 못했습니다. 입력값을 확인해 주세요.'
+  } finally {
+    pending.value = false
   }
-
-  if(birth.value != '' && birth.value != null){
-    userFindPassword.value.birthDate = birth.value
-  } else {
-    alert("생년월일을 입력해주세요")
-    return
-  }
-
-  if(phone.value != '' && phone.value != null){
-    userFindPassword.value.phoneNumber = phone.value
-  } else {
-    alert("핸드폰 번호를 입력해주세요")
-    return
-  }
-
-  // API 호출 후 성공 시 모달 오픈
-  getPasswordFindReword(userFindPassword.value).then((response)=>{
-    isResetModalOpen.value = true // 🟢 유저 확인 성공 시 모달창 열기
-  }).catch((error)=>{
-    alert("일치하는 회원 정보를 찾을 수 없습니다.") // 오류 메시지 다듬기
-  })
 }
 
-// 🟢 모달창 닫기 함수
 const closeResetModal = () => {
   isResetModalOpen.value = false
   newPassword.value = ''
   confirmPassword.value = ''
+  resetErrorMessage.value = ''
 }
 
-// 🟢 새로운 비밀번호 제출 함수
-const submitNewPassword = () => {
+async function submitNewPassword() {
+  if (pending.value) return
 
-  const rewordPass = ref({
-    email: inputEmail.value,
-    newPassword: newPassword.value
-  })
-
-  if (!newPassword.value) {
-    alert("새 비밀번호를 입력해주세요.")
+  resetErrorMessage.value = ''
+  if (newPassword.value.length < 10 || newPassword.value.length > 72) {
+    resetErrorMessage.value = '새 비밀번호는 10자 이상 72자 이하로 입력해 주세요.'
     return
   }
   if (newPassword.value !== confirmPassword.value) {
-    alert("비밀번호가 일치하지 않습니다. 다시 확인해주세요.")
+    resetErrorMessage.value = '새 비밀번호 확인이 일치하지 않습니다.'
     return
   }
 
-  // 💡 TODO: 백엔드로 진짜 비밀번호를 변경하는 API를 호출하세요!
-  // 예: postResetPassword({ email: inputEmail.value, newPassword: newPassword.value })
-  //     .then(() => { ... })
-  getPasswordReword(rewordPass.value).then((response)=>{
-    alert("비밀번호가 성공적으로 변경되었습니다.")
+  pending.value = true
+  try {
+    await resetRecoveredPassword(newPassword.value)
     closeResetModal()
-    router.push({ name: 'login' }) // 성공 후 로그인 화면으로 이동
-  }).catch((error)=>{
-
-  })
-  
+    await router.push({ name: 'login', query: { recovered: 'true' } })
+  } catch (error) {
+    resetErrorMessage.value =
+      error?.response?.data?.message || '비밀번호를 변경하지 못했습니다. 다시 시도해 주세요.'
+  } finally {
+    pending.value = false
+  }
 }
-
 </script>
 
 <template>
@@ -102,31 +82,40 @@ const submitNewPassword = () => {
       </div>
       
       <!-- 이메일 입력 및 계속하기 폼 -->
-      <form class="login-form">
+      <form class="login-form" :aria-busy="pending" @submit.prevent="findPassword">
         <div class="input-container">
-          <label class="input-label">이메일</label>
+          <label class="input-label" for="password-recovery-email">이메일</label>
           <input 
+            id="password-recovery-email"
+            v-model="inputEmail"
             type="email" 
-            v-model="inputEmail" 
             placeholder="이메일 주소를 입력하세요." 
+            autocomplete="email"
+            maxlength="255"
             required
           />
-          <label class="input-label">생년월일</label>
+          <label class="input-label" for="password-recovery-birth">생년월일</label>
           <input 
-            type="date" 
+            id="password-recovery-birth"
             v-model="birth"
+            type="date"
             required
           />
-          <label class="input-label">전화번호</label>
+          <label class="input-label" for="password-recovery-phone">전화번호</label>
           <input 
+            id="password-recovery-phone"
+            v-model="phone"
             type="text" 
-            v-model="phone" 
             placeholder="예) 010-1234-5689" 
+            maxlength="20"
             required
           />
         </div>
-        
-        <button type="button" @click="findPassword" class="btn-submit">비밀번호 찾기</button>
+
+        <p v-if="errorMessage" class="recovery-error" role="alert">{{ errorMessage }}</p>
+        <button type="submit" class="btn-submit" :disabled="pending">
+          {{ pending ? '확인 중...' : '비밀번호 재설정' }}
+        </button>
       </form>
       <div class="footer-links">
         <p class="signup-prompt">신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink></p>
@@ -134,27 +123,31 @@ const submitNewPassword = () => {
 
     </div>
 
-    <!-- 🟢 비밀번호 재설정 모달 창 -->
+    <!-- 비밀번호 재설정 모달 창 -->
     <div v-if="isResetModalOpen" class="modal-overlay" @click="closeResetModal">
-      <div class="modal-content" @click.stop>
+      <form class="modal-content" :aria-busy="pending" @submit.prevent="submitNewPassword" @click.stop>
         <h3 class="modal-title">비밀번호 재설정</h3>
         <p class="modal-subtitle">새롭게 사용할 비밀번호를 입력해 주세요.</p>
         
         <div class="modal-input-group">
           <label>새 비밀번호</label>
-          <input type="password" v-model="newPassword" placeholder="새 비밀번호 입력" />
+          <input v-model="newPassword" type="password" placeholder="새 비밀번호 입력" autocomplete="new-password" minlength="10" maxlength="72" required />
         </div>
         
         <div class="modal-input-group">
           <label>새 비밀번호 확인</label>
-          <input type="password" v-model="confirmPassword" placeholder="새 비밀번호 다시 입력" @keyup.enter="submitNewPassword" />
+          <input v-model="confirmPassword" type="password" placeholder="새 비밀번호 다시 입력" autocomplete="new-password" minlength="10" maxlength="72" required />
         </div>
 
+        <p v-if="resetErrorMessage" class="recovery-error" role="alert">{{ resetErrorMessage }}</p>
+
         <div class="modal-actions">
-          <button type="button" class="btn-cancel" @click="closeResetModal">취소</button>
-          <button type="button" class="btn-submit-modal" @click="submitNewPassword">변경하기</button>
+          <button type="button" class="btn-cancel" :disabled="pending" @click="closeResetModal">취소</button>
+          <button type="submit" class="btn-submit-modal" :disabled="pending">
+            {{ pending ? '변경 중...' : '변경하기' }}
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 </template>
@@ -418,5 +411,17 @@ const submitNewPassword = () => {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.recovery-error {
+  margin: 0 0 12px;
+  color: #8f1d1d;
+  font-size: 13px;
+  text-align: center;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.6;
 }
 </style>
