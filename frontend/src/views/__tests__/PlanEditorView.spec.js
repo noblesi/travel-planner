@@ -146,12 +146,18 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('서울특별시 여행')
     expect(wrapper.text()).toContain('여행 일정')
     expect(wrapper.text()).toContain('2일')
-    expect(wrapper.get('.invite-panel-link').text()).toContain('동행자 초대')
+    expect(wrapper.get('.editor-toolbar .plan-management').text()).toContain('서울특별시')
+    expect(wrapper.get('.editor-toolbar .invite-toolbar-link').text()).toContain('동행자 초대')
+    expect(wrapper.find('.schedule-panel .plan-summary').exists()).toBe(false)
+    expect(wrapper.find('.schedule-panel .invite-panel-link').exists()).toBe(false)
     expect(wrapper.findAll('.day-tab')).toHaveLength(2)
     expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
     expect(wrapper.text()).toContain('서울특별시의 관광정보를 TourAPI에서 검색합니다.')
     expect(wrapper.get('.editor-skip-link').attributes('href')).toBe('#plan-editor-main')
-    expect(wrapper.get('main').attributes()).toMatchObject({ id: 'plan-editor-main', tabindex: '-1' })
+    expect(wrapper.get('main').attributes()).toMatchObject({
+      id: 'plan-editor-main',
+      tabindex: '-1',
+    })
   })
 
   it('제작 완료 실패를 자동 저장 실패와 분리해 안내한다', async () => {
@@ -698,7 +704,9 @@ describe('PlanEditorView', () => {
     await flushPromises()
 
     expect(wrapper.find('[role="alertdialog"]').exists()).toBe(false)
-    expect(document.activeElement).toBe(wrapper.get('.date-editor__actions button[type="submit"]').element)
+    expect(document.activeElement).toBe(
+      wrapper.get('.date-editor__actions button[type="submit"]').element,
+    )
 
     wrapper.unmount()
   })

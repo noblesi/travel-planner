@@ -13,6 +13,8 @@ public interface MemberProfileMapper {
 
 	Optional<MemberProfile> findActiveProfileByMemberId(@Param("memberId") long memberId);
 
+	Optional<MemberProfile> findActiveProfileByMemberIdForUpdate(@Param("memberId") long memberId);
+
 	int updateActiveProfile(
 			@Param("memberId") long memberId,
 			@Param("request") UpdateMemberProfileRequest request

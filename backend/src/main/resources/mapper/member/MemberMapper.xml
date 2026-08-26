@@ -14,21 +14,6 @@
 		</constructor>
 	</resultMap>
 
-	<resultMap id="memberInfoDoamin" type="com.noblesi.travelplanner.domain.member.MemberInfoDomain">
-		<constructor>
-			<idArg column="MEMBER_ID" javaType="_long"/>
-			<arg column="EMAIL" javaType="string"/>
-			<arg column="NICKNAME" javaType="string"/>
-			<arg column="GENDER_CODE" javaType="string"/>
-			<arg column="PHONE_NUMBER" javaType="string"/>
-			<arg column="PROFILE_IMAGE_URL" javaType="string"/>
-			<arg column="MEMBER_STATUS" javaType="string"/>
-			<arg column="CREATE_AT" javaType="string"/>
-			<arg column="WITHDRAWN_AT" javaType="string"/>
-			<arg column="BIRTH_DATE" javaType="date"/>
-		</constructor>
-	</resultMap>
-
 	<select id="findForEmailAuthentication" resultMap="authenticatedMemberResultMap">
 		SELECT MEMBER_ID,
 		       EMAIL,
@@ -85,55 +70,5 @@
 		  FROM MEMBER
 		 WHERE LOWER(EMAIL) = #{email}
 	</select>
-
-	<select id="selectMemberInfo" parameterType="Long" resultMap="memberInfoDoamin">
-		select 
-			MEMBER_ID, 
-			MEMBER_NAME, 
-			EMAIL, 
-			NICKNAME, 
-			BIRTH_DATE, 
-			GENDER_CODE, 
-			PHONE_NUMBER, 
-			PROFILE_IMAGE_URL, 
-			MEMBER_STATUS, 
-			CREATED_AT, 
-			WITHDRAWN_AT 
-		from MEMBER
-		WHERE MEMBER_ID = #{memberId}
-	</select>
-
-	<update id="updateMemberInfo" parameterType="memberInfoRequest">
-		update MEMBER
-		SET 
-			MEMBER_NAME			=	#{memberName},
-			EMAIL				=	#{email},
-			NICKNAME			=	#{nickname},
-			GENDER_CODE			=	#{genderCode},
-			PHONE_NUMBER		=	#{phoneNumber},
-			PROFILE_IMAGE_URL	=	#{profileImageUrl},
-			CREATED_AT			=	#{createdAt},
-			WITHDRAWN_AT		=	#{wiethdrawnAt},
-			BIRTH_DATE			=	#{birthDate}
-		where MEMBER_ID = #{memberId}
-	</update>
-
-	<update id="updateNickname" parameterType="memberInfoRequest">
-		update MEMBER
-		SET	NICKNAME = #{nickname}
-		where MEMBER_ID = #{memberId}
-	</update>
-
-	<update id="updateProfileImage" parameterType="memberInfoRequest">
-		update MEMBER
-		SET	PROFILE_IMAGE_URL = #{profileImageUrl}
-		where MEMBER_ID = #{memberId}
-	</update>
-
-	<update id="updateMemberStatus" parameterType="int">
-		update MEMBER
-		SET	MEMBER_STATUS = 'WITHDRAWN'
-		where MEMBER_ID = #{memberId}
-	</update>
 
 </mapper>
