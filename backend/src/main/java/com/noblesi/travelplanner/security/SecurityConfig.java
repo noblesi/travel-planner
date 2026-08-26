@@ -126,6 +126,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(authorize -> authorize
 						.requestMatchers(
 								"/api/auth/**",
+								"/api/account-recovery/**",
 								"/api/health",
 								"/api/health/live",
 								"/error").permitAll()
@@ -134,6 +135,7 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/members/me").authenticated()
 						.requestMatchers(HttpMethod.PATCH, "/api/members/me").authenticated()
 						.requestMatchers(HttpMethod.PATCH, "/api/members/me/password").authenticated()
+						.requestMatchers(HttpMethod.PATCH, "/api/members/me/profile-image").authenticated()
 						.requestMatchers(HttpMethod.DELETE, "/api/members/me").authenticated()
 						.requestMatchers(HttpMethod.OPTIONS, "/api/users/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
