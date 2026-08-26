@@ -34,7 +34,7 @@ const { profile, status, errorMessage, loadProfile, updateLoadedProfile } = useM
       </section>
 
       <section v-else class="profile-content" aria-label="내 회원정보">
-        <MemberProfileSummary :profile="profile" />
+        <MemberProfileSummary :profile="profile" @updated="updateLoadedProfile" />
         <MemberProfileDetails
           :profile="profile"
           @updated="updateLoadedProfile"

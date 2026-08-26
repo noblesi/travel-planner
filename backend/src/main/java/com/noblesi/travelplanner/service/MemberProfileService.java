@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.domain.member.MemberProfile;
@@ -20,15 +21,18 @@ public class MemberProfileService {
 	private final MemberProfileMapper memberProfileMapper;
 	private final CurrentMemberProvider currentMemberProvider;
 	private final PasswordEncoder passwordEncoder;
+	private final ProfileImageStorage profileImageStorage;
 
 	public MemberProfileService(
 			MemberProfileMapper memberProfileMapper,
 			CurrentMemberProvider currentMemberProvider,
-			PasswordEncoder passwordEncoder
+			PasswordEncoder passwordEncoder,
+			ProfileImageStorage profileImageStorage
 	) {
 		this.memberProfileMapper = memberProfileMapper;
 		this.currentMemberProvider = currentMemberProvider;
 		this.passwordEncoder = passwordEncoder;
+		this.profileImageStorage = profileImageStorage;
 	}
 
 	@Transactional(readOnly = true)
@@ -80,6 +84,24 @@ public class MemberProfileService {
 		) != 1) {
 			throw profileNotFound();
 		}
+	}
+
+	@Transactional
+	public MemberProfileResponse updateProfileImage(MultipartFile file) {
+		long memberId = currentMemberProvider.getCurrentMemberId();
+		MemberProfile currentProfile = memberProfileMapper.findActiveProfileByMemberId(memberId)
+				.orElseThrow(this::profileNotFound);
+		String newImageUrl = profileImageStorage.store(file);
+		try {
+			if (memberProfileMapper.updateActiveProfileImage(memberId, newImageUrl) != 1) {
+				throw profileNotFound();
+			}
+		} catch (RuntimeException exception) {
+			profileImageStorage.delete(newImageUrl);
+			throw exception;
+		}
+		profileImageStorage.delete(currentProfile.profileImageUrl());
+		return findActiveProfile(memberId);
 	}
 
 	private MemberProfileResponse findActiveProfile(long memberId) {

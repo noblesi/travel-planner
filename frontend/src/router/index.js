@@ -73,6 +73,16 @@ const router = createRouter({
       name: 'login',
       component: () => import('@/views/loginView/LoginView.vue'),
     },
+    {
+      path: '/account-recovery/email',
+      name: 'emailFind',
+      component: () => import('@/views/loginView/EmailFindView.vue'),
+    },
+    {
+      path: '/account-recovery/password',
+      name: 'passwordFind',
+      component: () => import('@/views/loginView/PasswordFindView.vue'),
+    },
     //회원 가입
     {
       path: '/joinView',

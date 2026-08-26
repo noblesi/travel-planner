@@ -7,6 +7,15 @@ import org.junit.jupiter.api.Test;
 class AdminTripReportDTOTest {
 
 	@Test
+	void translatesEveryReportReasonToKorean() {
+		assertThat(report("PENDING", "INAPPROPRIATE").getReasonLabel()).isEqualTo("부적절한 콘텐츠");
+		assertThat(report("PENDING", "FALSE_INFO").getReasonLabel()).isEqualTo("허위 정보");
+		assertThat(report("PENDING", "SPAM").getReasonLabel()).isEqualTo("스팸/광고성");
+		assertThat(report("PENDING", "OTHER").getReasonLabel()).isEqualTo("기타");
+		assertThat(report("PENDING", "UNKNOWN").getReasonLabel()).isEqualTo("알 수 없음");
+	}
+
+	@Test
 	void translatesEveryReportStatusToKorean() {
 		assertThat(report("PENDING").getReportStatusLabel()).isEqualTo("검토 대기");
 		assertThat(report("RECEIVED").getReportStatusLabel()).isEqualTo("검토 대기");
@@ -18,6 +27,10 @@ class AdminTripReportDTOTest {
 	}
 
 	private AdminTripReportDTO report(String status) {
-		return new AdminTripReportDTO(1L, 1L, "신고자", "OTHER", null, status, null);
+		return report(status, "OTHER");
+	}
+
+	private AdminTripReportDTO report(String status, String reasonCode) {
+		return new AdminTripReportDTO(1L, 1L, "신고자", reasonCode, null, status, null);
 	}
 }

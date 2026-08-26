@@ -8,6 +8,8 @@ RUN apt-get update \
 
 WORKDIR /app
 
+RUN install -d --owner=withtrip --group=withtrip /app/uploads/profile
+
 ARG JAR_FILE=backend/build/libs/travel-planner.jar
 COPY --chown=withtrip:withtrip ${JAR_FILE} /app/travel-planner.jar
 

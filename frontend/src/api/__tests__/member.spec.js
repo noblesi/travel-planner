@@ -4,6 +4,7 @@ import http from '@/api/http'
 import {
   changeMyPassword,
   getMyProfile,
+  updateProfileImage,
   updateMyProfile,
   withdrawMyAccount,
 } from '@/api/member'
@@ -56,5 +57,17 @@ describe('member api', () => {
 
     await expect(changeMyPassword(payload)).resolves.toBeNull()
     expect(http.patch).toHaveBeenCalledWith('/members/me/password', payload)
+  })
+
+  it('프로필 이미지를 multipart 요청으로 변경한다', async () => {
+    const file = new File(['image'], 'avatar.png', { type: 'image/png' })
+    const profile = { memberId: '1', profileImageUrl: '/uploads/profile/avatar.png' }
+    http.patch.mockResolvedValue({ data: { data: profile } })
+
+    await expect(updateProfileImage(file)).resolves.toEqual(profile)
+    const [url, formData] = http.patch.mock.calls[0]
+    expect(url).toBe('/members/me/profile-image')
+    expect(formData).toBeInstanceOf(FormData)
+    expect(formData.get('file')).toBe(file)
   })
 })

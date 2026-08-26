@@ -23,3 +23,13 @@ export async function logoutAuthenticationSession() {
   clearCsrfTokenCache()
   return response.data.data
 }
+
+export async function getEmailFind(){
+  const response = await http.get('/auth/emailFind')
+  return response.data.data
+}
+
+export async function getPasswordFind(){
+  const response = await http.get('/auth/passwordFind')
+  return response.data.data
+}

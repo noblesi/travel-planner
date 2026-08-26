@@ -10,11 +10,13 @@ import MyPage from '@/views/myPage/MyPage.vue'
 const {
   changeMyPasswordMock,
   getMyProfileMock,
+  updateProfileImageMock,
   updateMyProfileMock,
   withdrawMyAccountMock,
 } = vi.hoisted(() => ({
   changeMyPasswordMock: vi.fn(),
   getMyProfileMock: vi.fn(),
+  updateProfileImageMock: vi.fn(),
   updateMyProfileMock: vi.fn(),
   withdrawMyAccountMock: vi.fn(),
 }))
@@ -22,6 +24,7 @@ const {
 vi.mock('@/api/member', () => ({
   changeMyPassword: changeMyPasswordMock,
   getMyProfile: getMyProfileMock,
+  updateProfileImage: updateProfileImageMock,
   updateMyProfile: updateMyProfileMock,
   withdrawMyAccount: withdrawMyAccountMock,
 }))
@@ -293,5 +296,25 @@ describe('MyPage', () => {
 
     expect(changeMyPasswordMock).not.toHaveBeenCalled()
     expect(wrapper.text()).toContain('새 비밀번호 확인이 일치하지 않습니다.')
+  })
+
+  it('검증된 이미지 파일을 업로드하고 표시 정보를 갱신한다', async () => {
+    const updatedProfile = {
+      ...profile,
+      profileImageUrl: '/uploads/profile/new-profile.png',
+    }
+    getMyProfileMock.mockResolvedValue(profile)
+    updateProfileImageMock.mockResolvedValue(updatedProfile)
+
+    const { wrapper } = await mountPage()
+    await flushPromises()
+    const input = wrapper.get('input[type="file"]')
+    const file = new File(['image'], 'profile.png', { type: 'image/png' })
+    Object.defineProperty(input.element, 'files', { value: [file], configurable: true })
+    await input.trigger('change')
+    await flushPromises()
+
+    expect(updateProfileImageMock).toHaveBeenCalledWith(file)
+    expect(wrapper.get('.profile-image').attributes('src')).toBe('/uploads/profile/new-profile.png')
   })
 })

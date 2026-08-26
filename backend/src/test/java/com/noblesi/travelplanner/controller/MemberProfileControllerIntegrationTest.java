@@ -5,10 +5,13 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -17,17 +20,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import com.noblesi.travelplanner.security.MemberPrincipal;
 
 @SpringBootTest(properties = {
 		"spring.datasource.url=jdbc:h2:mem:travel_planner_member_profile;MODE=Oracle;DATABASE_TO_UPPER=TRUE;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE",
-		"app.auth.enforce-security=true"
+		"app.auth.enforce-security=true",
+		"app.profile.upload-path=build/test-profile-uploads"
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("local")
@@ -52,6 +59,7 @@ class MemberProfileControllerIntegrationTest {
 				       BIRTH_DATE = NULL,
 				       GENDER_CODE = NULL,
 				       PHONE_NUMBER = NULL,
+				       PROFILE_IMAGE_URL = NULL,
 				       PASSWORD_HASH = ?,
 				       MEMBER_STATUS = 'ACTIVE',
 				       WITHDRAWN_AT = NULL,
@@ -259,6 +267,62 @@ class MemberProfileControllerIntegrationTest {
 								"""))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.code").value("PASSWORD_UNCHANGED"));
+	}
+
+	@Test
+	void uploadsValidatedProfileImageForAuthenticatedMember() throws Exception {
+		byte[] png = {
+				(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+				0x00, 0x00, 0x00, 0x00
+		};
+		MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", png);
+
+		MvcResult result = mockMvc.perform(multipart(HttpMethod.PATCH, "/api/members/me/profile-image")
+					.file(file)
+					.with(authentication(memberToken(1L)))
+					.with(csrf().asHeader()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.data.profileImageUrl").value(org.hamcrest.Matchers.matchesPattern(
+						"/uploads/profile/[a-f0-9]{32}\\.png"
+				)))
+				.andReturn();
+
+		String profileImageUrl = jdbcTemplate.queryForObject(
+				"SELECT PROFILE_IMAGE_URL FROM MEMBER WHERE MEMBER_ID = 1",
+				String.class
+		);
+		assertThat(profileImageUrl).startsWith("/uploads/profile/").endsWith(".png");
+		Path savedFile = Path.of("build/test-profile-uploads")
+				.resolve(profileImageUrl.substring("/uploads/profile/".length()));
+		assertThat(Files.readAllBytes(savedFile)).isEqualTo(png);
+		Files.deleteIfExists(savedFile);
+	}
+
+	@Test
+	void rejectsAnonymousOrInvalidProfileImageUpload() throws Exception {
+		MockMultipartFile image = new MockMultipartFile(
+				"file",
+				"avatar.png",
+				"image/png",
+				new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a}
+		);
+		mockMvc.perform(multipart(HttpMethod.PATCH, "/api/members/me/profile-image")
+					.file(image)
+					.with(csrf().asHeader()))
+				.andExpect(status().isUnauthorized());
+
+		MockMultipartFile textFile = new MockMultipartFile(
+				"file",
+				"avatar.png",
+				"image/png",
+				"not-an-image".getBytes()
+		);
+		mockMvc.perform(multipart(HttpMethod.PATCH, "/api/members/me/profile-image")
+					.file(textFile)
+					.with(authentication(memberToken(1L)))
+					.with(csrf().asHeader()))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.code").value("INVALID_PROFILE_IMAGE"));
 	}
 
 	private UsernamePasswordAuthenticationToken memberToken(long memberId) {

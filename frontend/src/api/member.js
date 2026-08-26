@@ -15,6 +15,13 @@ export async function changeMyPassword(payload) {
   return response.data.data
 }
 
+export async function updateProfileImage(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await http.patch('/members/me/profile-image', formData)
+  return response.data.data
+}
+
 export async function withdrawMyAccount(currentPassword) {
   const response = await http.delete('/members/me', {
     data: { currentPassword },
