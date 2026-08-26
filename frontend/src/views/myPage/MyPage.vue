@@ -427,6 +427,42 @@ const handleConfirm = () => {
 // const { profile, status, errorMessage, loadProfile, updateLoadedProfile } = useMemberProfile()
 </script>
 
+<template>
+  <DefaultLayout>
+    <main class="profile-page" aria-labelledby="profile-title">
+      <header class="profile-heading">
+        <p>MY PAGE</p>
+        <h1 id="profile-title">마이페이지</h1>
+        <span>가입한 회원정보를 확인하고 계정을 관리할 수 있습니다.</span>
+      </header>
+
+      <section v-if="status === 'loading'" class="profile-state" role="status" aria-live="polite">
+        <span class="loading-indicator" aria-hidden="true" />
+        회원 정보를 불러오고 있습니다.
+      </section>
+
+      <section v-else-if="status === 'error'" class="profile-state profile-state--error" role="alert">
+        <strong>회원정보를 표시할 수 없습니다.</strong>
+        <p>{{ errorMessage }}</p>
+        <button type="button" @click="loadProfile">다시 시도</button>
+      </section>
+
+      <section v-else class="profile-content" aria-label="내 회원정보">
+        <MemberProfileSummary :profile="profile" @updated="updateLoadedProfile" />
+        <MemberProfileDetails
+          :profile="profile"
+          @updated="updateLoadedProfile"
+          @open-password="isPasswordModalOpen = true"
+          @open-withdrawal="isWithdrawalModalOpen = true"
+        />
+      </section>
+    </main>
+
+    <ChangePasswordModal :open="isPasswordModalOpen" @close="isPasswordModalOpen = false" />
+    <WithdrawAccountModal :open="isWithdrawalModalOpen" @close="isWithdrawalModalOpen = false" />
+  </DefaultLayout>
+</template>
+
 <style scoped>
 /* 페이지 메인 레이아웃 */
 .myPage-container {
@@ -658,6 +694,11 @@ const handleConfirm = () => {
 
 .select-box {
     background-color: #ffffff;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 }
 
 .button-section {
@@ -821,4 +862,5 @@ const handleConfirm = () => {
         grid-template-columns: 1fr;
     }
 }
+
 </style>
