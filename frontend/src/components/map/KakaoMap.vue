@@ -143,18 +143,23 @@ function isSelectedDetailPlace(place) {
 }
 
 function infoWindowContent(place) {
-  if (!isSelectedDetailPlace(place)) return simpleInfoWindowContent(place)
+  const isSearchPlace = place.markerSource === 'SEARCH'
+  const detailPlace = isSelectedDetailPlace(place) ? props.selectedPlaceDetail : place.original
+  if (!detailPlace) return simpleInfoWindowContent(place)
 
   const content = document.createElement('div')
   content.className = 'kakao-map__detail-window'
   infoWindowRoot = content
   render(
     h(PlaceDetailCard, {
-      place: props.selectedPlaceDetail,
+      place: detailPlace,
       addDisabled: props.selectedPlaceAddDisabled,
-      existingTimeSlots: props.selectedPlaceExistingTimeSlots,
+      existingTimeSlots: isSelectedDetailPlace(place)
+        ? props.selectedPlaceExistingTimeSlots
+        : [],
       closable: true,
-      onAdd: (timeSlot) => emit('add', { place: props.selectedPlaceDetail, timeSlot }),
+      showActions: isSearchPlace,
+      onAdd: (timeSlot) => emit('add', { place: detailPlace, timeSlot }),
       onClose: () => {
         closeInfoWindow()
         emit('deselect', place.original)
@@ -183,7 +188,9 @@ function showSelectedPlace() {
 
 function openPlaceInfo({ marker, place, position }) {
   closeInfoWindow()
-  infoWindow.setContent(infoWindowContent(place))
+  const content = infoWindowContent(place)
+  if (!content?.hasChildNodes()) return
+  infoWindow.setContent(content)
   infoWindow.open(mapInstance, marker)
   mapInstance.panTo?.(position)
 }
@@ -241,6 +248,15 @@ function renderMarkers() {
   showSelectedPlace()
 }
 
+function relayout() {
+  if (!mapInstance) return
+  const center = mapInstance.getCenter?.()
+  mapInstance.relayout?.()
+  if (center) mapInstance.setCenter?.(center)
+}
+
+defineExpose({ relayout })
+
 async function initializeMap() {
   clearMarkers()
   closeInfoWindow()
@@ -274,15 +290,15 @@ async function initializeMap() {
 }
 
 watch(normalizedPlaces, renderMarkers)
-watch(() => props.selectedPlaceId, showSelectedPlace)
 watch(
   () => [
+    props.selectedPlaceId,
     props.selectedPlaceDetail,
     props.selectedPlaceAddDisabled,
     props.selectedPlaceExistingTimeSlots,
   ],
   showSelectedPlace,
-  { deep: true },
+  { deep: true, flush: 'post' },
 )
 watch(
   () => props.defaultCenter,

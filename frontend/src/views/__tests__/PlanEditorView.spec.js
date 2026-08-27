@@ -478,6 +478,32 @@ describe('PlanEditorView', () => {
     expect(wrapper.text()).toContain('여의도 한강공원')
   })
 
+  it('장소 검색 서랍을 닫고 다시 열 수 있다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const toggle = wrapper.get('.place-search-drawer__toggle')
+    const drawer = wrapper.get('.place-search-drawer')
+
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(toggle.attributes('aria-label')).toBe('장소 검색 서랍 닫기')
+    expect(drawer.attributes('aria-hidden')).toBe('false')
+
+    await toggle.trigger('click')
+
+    expect(wrapper.get('.map-panel').classes()).toContain('map-panel--drawer-closed')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(toggle.attributes('aria-label')).toBe('장소 검색 서랍 열기')
+    expect(drawer.attributes('aria-hidden')).toBe('true')
+    expect(drawer.attributes('inert')).toBeDefined()
+
+    await toggle.trigger('click')
+
+    expect(wrapper.get('.map-panel').classes()).not.toContain('map-panel--drawer-closed')
+    expect(toggle.attributes('aria-expanded')).toBe('true')
+    expect(drawer.attributes('aria-hidden')).toBe('false')
+  })
+
   it('검색한 장소를 오전 일정에 추가하고 자동 저장 상태를 표시한다', async () => {
     const place = {
       placeProvider: 'TOUR_API',

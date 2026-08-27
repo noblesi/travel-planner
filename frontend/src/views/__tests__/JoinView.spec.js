@@ -11,10 +11,15 @@ const { getMemberEmailCheckMock, pushMock, backMock } = vi.hoisted(() => ({
   backMock: vi.fn(),
 }))
 
-vi.mock('vue-router', () => ({
-  useRouter: () => ({ push: pushMock, back: backMock }),
-  isNavigationFailure: (failure) => Boolean(failure),
-}))
+vi.mock('vue-router', async (importOriginal) => {
+  const actual = await importOriginal()
+
+  return {
+    ...actual,
+    useRouter: () => ({ push: pushMock, back: backMock }),
+    isNavigationFailure: (failure) => Boolean(failure),
+  }
+})
 
 vi.mock('@/api/users', () => ({
   getMemberEmailCheck: getMemberEmailCheckMock,
@@ -32,7 +37,12 @@ function mountView() {
   setActivePinia(pinia)
   return {
     store: useJoinDraftStore(),
-    wrapper: mount(JoinView, { global: { plugins: [pinia] } }),
+    wrapper: mount(JoinView, {
+      global: {
+        plugins: [pinia],
+        stubs: { RouterLink: true },
+      },
+    }),
   }
 }
 
