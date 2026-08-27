@@ -35,19 +35,12 @@ const page = ref(1)
 const totalCount = ref(0)
 const hasNext = ref(false)
 const categoryFilter = ref('ALL')
+const categories = ref([])
 const recentKeywords = ref(loadRecentKeywords())
 let requestSequence = 0
 
 const isLoading = computed(() => status.value === 'loading')
-const categoryOptions = computed(() => [
-  'ALL',
-  ...new Set(places.value.map((place) => place.categoryName || '기타')),
-])
-const visiblePlaces = computed(() =>
-  categoryFilter.value === 'ALL'
-    ? places.value
-    : places.value.filter((place) => (place.categoryName || '기타') === categoryFilter.value),
-)
+const categoryOptions = computed(() => ['ALL', ...categories.value])
 
 function loadRecentKeywords() {
   try {
@@ -70,7 +63,7 @@ function rememberKeyword(value) {
 
 function searchRecent(value) {
   keyword.value = value
-  executeSearch(1)
+  startSearch()
 }
 
 function registeredTimeSlots(place) {
@@ -89,11 +82,16 @@ function placeId(place) {
 
 function searchErrorMessage(error) {
   const code = error?.response?.data?.code
-  if (code === 'TOUR_API_NOT_CONFIGURED') {
+  if (code === 'TOUR_API_NOT_CONFIGURED' || code === 'KAKAO_LOCAL_NOT_CONFIGURED') {
     return '장소 검색 설정을 확인해 주세요.'
   }
-  if (code === 'TOUR_API_TIMEOUT' || code === 'TOUR_API_UNAVAILABLE') {
-    return '관광정보 서비스 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.'
+  if (
+    code === 'TOUR_API_TIMEOUT' ||
+    code === 'TOUR_API_UNAVAILABLE' ||
+    code === 'KAKAO_LOCAL_TIMEOUT' ||
+    code === 'KAKAO_LOCAL_UNAVAILABLE'
+  ) {
+    return '장소 검색 서비스 연결이 원활하지 않습니다. 잠시 후 다시 시도해 주세요.'
   }
 
   const message = error?.response?.data?.message
@@ -114,7 +112,13 @@ function resetResults(nextStatus = 'idle') {
   page.value = 1
   totalCount.value = 0
   hasNext.value = false
+  categories.value = []
   emit('results-change', [])
+}
+
+function startSearch() {
+  categoryFilter.value = 'ALL'
+  executeSearch(1)
 }
 
 async function executeSearch(targetPage = 1) {
@@ -132,19 +136,23 @@ async function executeSearch(targetPage = 1) {
   errorMessage.value = ''
 
   try {
-    const data = await searchPlaces({
+    const searchParams = {
       keyword: normalizedKeyword,
       regionCode: props.regionCode,
       page: targetPage,
       size: PAGE_SIZE,
-    })
+    }
+    if (categoryFilter.value !== 'ALL') {
+      searchParams.category = categoryFilter.value
+    }
+    const data = await searchPlaces(searchParams)
     if (currentRequest !== requestSequence) return
 
     const nextPlaces = Array.isArray(data.places) ? data.places : []
     searchedKeyword.value = normalizedKeyword
     rememberKeyword(normalizedKeyword)
     places.value = nextPlaces
-    categoryFilter.value = 'ALL'
+    categories.value = Array.isArray(data.categories) ? data.categories : []
     page.value = data.page ?? targetPage
     totalCount.value = data.totalCount ?? nextPlaces.length
     hasNext.value = Boolean(data.hasNext)
@@ -189,7 +197,7 @@ watch(
       <small>{{ regionName || '전국' }}</small>
     </header>
 
-    <form class="place-search-panel__form" role="search" @submit.prevent="executeSearch(1)">
+    <form class="place-search-panel__form" role="search" @submit.prevent="startSearch">
       <label class="sr-only" for="place-keyword">장소 검색어</label>
       <input
         id="place-keyword"
@@ -217,10 +225,7 @@ watch(
       </button>
     </div>
 
-    <p v-if="status === 'idle'" class="place-search-panel__guide">
-      {{ regionName || '전국' }}의 관광정보를 TourAPI에서 검색합니다.
-    </p>
-    <p v-else-if="status === 'loading'" class="place-search-panel__state" role="status">
+    <p v-if="status === 'loading'" class="place-search-panel__state" role="status">
       검색 결과를 불러오고 있습니다.
     </p>
     <p
@@ -239,7 +244,11 @@ watch(
         <strong>검색 결과 {{ totalCount.toLocaleString('ko-KR') }}곳</strong>
         <label>
           <span class="sr-only">카테고리 필터</span>
-          <select v-model="categoryFilter">
+          <select
+            v-model="categoryFilter"
+            :disabled="isLoading"
+            @change="executeSearch(1)"
+          >
             <option value="ALL">전체 카테고리</option>
             <option v-for="category in categoryOptions.slice(1)" :key="category" :value="category">
               {{ category }}
@@ -249,7 +258,7 @@ watch(
       </div>
 
       <ul class="place-search-panel__results">
-        <li v-for="place in visiblePlaces" :key="placeId(place)">
+        <li v-for="place in places" :key="placeId(place)">
           <button
             type="button"
             :class="{ 'place-result--selected': placeId(place) === String(selectedPlaceId) }"
@@ -398,7 +407,6 @@ watch(
   opacity: 0.45;
 }
 
-.place-search-panel__guide,
 .place-search-panel__state {
   margin: 14px 0 0;
   padding: 16px;

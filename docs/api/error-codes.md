@@ -87,6 +87,11 @@ Version 및 Operation 오류는 자동 저장 API에서 사용합니다. 동일�
 | `502` | `TOUR_API_INVALID_RESPONSE` | TourAPI 응답 형식 오류 |
 | `503` | `TOUR_API_NOT_CONFIGURED` | Backend에 TourAPI 인증키가 설정되지 않음 |
 | `504` | `TOUR_API_TIMEOUT` | TourAPI 연결 또는 응답 시간 초과 |
+| `502` | `KAKAO_LOCAL_AUTHENTICATION_FAILED` | Kakao Local이 REST API 키를 거부함 |
+| `502` | `KAKAO_LOCAL_UNAVAILABLE` | Kakao Local HTTP 또는 연결 오류 |
+| `502` | `KAKAO_LOCAL_INVALID_RESPONSE` | Kakao Local 응답 형식 오류 |
+| `503` | `KAKAO_LOCAL_NOT_CONFIGURED` | Backend에 Kakao REST API 키가 설정되지 않음 |
+| `504` | `KAKAO_LOCAL_TIMEOUT` | Kakao Local 연결 또는 응답 시간 초과 |
 
 ## 구현 반영 사항
 

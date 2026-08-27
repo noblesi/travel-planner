@@ -28,7 +28,7 @@ public record AddScheduleItemRequest(
 		TimeSlot timeSlot,
 
 		@NotBlank(message = "장소 제공자는 필수 값입니다.")
-		@Pattern(regexp = "TOUR_API", message = "지원하지 않는 장소 제공자입니다.")
+		@Pattern(regexp = "TOUR_API|KAKAO", message = "지원하지 않는 장소 제공자입니다.")
 		String placeProvider,
 
 		@NotBlank(message = "외부 장소 ID는 필수 값입니다.")
