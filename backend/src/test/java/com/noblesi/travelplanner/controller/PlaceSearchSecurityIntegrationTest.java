@@ -20,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import com.noblesi.travelplanner.integration.kakao.KakaoLocalClient;
 import com.noblesi.travelplanner.integration.kakao.KakaoLocalSearchResult;
 import com.noblesi.travelplanner.integration.tourapi.TourApiClient;
+import com.noblesi.travelplanner.integration.tourapi.TourApiSearchResult;
 import com.noblesi.travelplanner.mapper.RegionMapper;
 import com.noblesi.travelplanner.service.PlaceCatalogService;
 
@@ -60,6 +61,8 @@ class PlaceSearchSecurityIntegrationTest {
 	void allowsAuthenticatedMemberSearch() throws Exception {
 		when(kakaoLocalClient.searchKeyword("서울", 1, 15))
 				.thenReturn(new KakaoLocalSearchResult(List.of(), 1, 15, 0, false));
+		when(tourApiClient.searchKeyword("서울", null, 1, 100))
+				.thenReturn(new TourApiSearchResult(List.of(), 1, 100, 0));
 
 		mockMvc.perform(get("/api/places/search")
 					.with(user("member@example.com").roles("MEMBER"))

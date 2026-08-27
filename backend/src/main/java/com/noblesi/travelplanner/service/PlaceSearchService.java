@@ -1,25 +1,44 @@
 package com.noblesi.travelplanner.service;
 
+import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import com.noblesi.travelplanner.common.exception.BusinessException;
+import com.noblesi.travelplanner.domain.place.PlaceType;
 import com.noblesi.travelplanner.domain.region.Region;
+import com.noblesi.travelplanner.dto.place.PlaceSearchItemResponse;
 import com.noblesi.travelplanner.dto.place.PlaceSearchResponse;
 import com.noblesi.travelplanner.integration.kakao.KakaoLocalClient;
 import com.noblesi.travelplanner.integration.kakao.KakaoLocalException;
 import com.noblesi.travelplanner.integration.kakao.KakaoLocalSearchResult;
 import com.noblesi.travelplanner.integration.kakao.KakaoLocalSearchResult.KakaoPlace;
+import com.noblesi.travelplanner.integration.tourapi.TourApiSearchResult.TourApiPlace;
 import com.noblesi.travelplanner.mapper.RegionMapper;
 
 @Service
 public class PlaceSearchService {
 	private static final int KAKAO_PROVIDER_PAGE_SIZE = 15;
 	private static final int KAKAO_PROVIDER_PAGE_LIMIT = 3;
+	private static final Set<String> TRAVEL_INFORMATION_CATEGORIES = Set.of(
+			"공항",
+			"버스터미널",
+			"여객터미널",
+			"항구",
+			"선착장",
+			"휴게소",
+			"관광안내소",
+			"여행안내소"
+	);
 
 	private final KakaoLocalClient kakaoLocalClient;
 	private final PlaceCatalogService placeCatalogService;
@@ -49,22 +68,97 @@ public class PlaceSearchService {
 			String normalizedKeyword = keyword.trim();
 			String query = regionalQuery(normalizedKeyword, regionCode);
 			var result = collectSearchablePlaces(query);
-			var enrichedResult = tourApiPlaceEnricher.enrich(result, normalizedKeyword, regionCode);
-			List<String> categories = enrichedResult.places().stream()
-					.map(this::categoryName)
+			var enrichment = tourApiPlaceEnricher.enrichWithComplements(
+					result,
+					normalizedKeyword,
+					regionCode
+			);
+			List<SearchCandidate> candidates = combinedCandidates(enrichment, normalizedKeyword);
+			List<String> categories = candidates.stream()
+					.map(SearchCandidate::categoryName)
 					.distinct()
 					.toList();
 			String normalizedCategory = category == null ? "" : category.trim();
-			List<KakaoPlace> filteredPlaces = enrichedResult.places().stream()
+			List<SearchCandidate> filteredPlaces = candidates.stream()
 					.filter(place -> normalizedCategory.isEmpty()
-							|| categoryName(place).equals(normalizedCategory))
+							|| place.categoryName().equals(normalizedCategory))
 					.toList();
-			KakaoLocalSearchResult pageResult = pageResult(filteredPlaces, page, size);
-			placeCatalogService.rememberKakaoPlaces(pageResult.places());
-			return PlaceSearchResponse.from(pageResult, categories);
+			List<SearchCandidate> pagePlaces = pageResult(filteredPlaces, page, size);
+			rememberPlaces(pagePlaces);
+			return new PlaceSearchResponse(
+					pagePlaces.stream().map(SearchCandidate::response).toList(),
+					page,
+					size,
+					filteredPlaces.size(),
+					(long) page * size < filteredPlaces.size(),
+					categories
+			);
 		} catch (KakaoLocalException exception) {
 			throw mapException(exception);
 		}
+	}
+
+	private List<SearchCandidate> combinedCandidates(
+			TourApiPlaceEnricher.EnrichmentResult enrichment,
+			String keyword
+	) {
+		List<SearchCandidate> candidates = new ArrayList<>();
+		enrichment.kakaoResult().places().stream()
+				.filter(this::isTravelRelevant)
+				.map(SearchCandidate::from)
+				.forEach(candidates::add);
+		enrichment.complementaryTourPlaces().stream()
+				.map(SearchCandidate::from)
+				.forEach(candidates::add);
+		candidates.sort(Comparator
+				.comparingInt((SearchCandidate candidate) -> candidatePriority(candidate, keyword))
+				.reversed());
+		return List.copyOf(candidates);
+	}
+
+	private int candidatePriority(SearchCandidate candidate, String keyword) {
+		String normalizedKeyword = normalizeSearchText(keyword);
+		String normalizedPlaceName = normalizeSearchText(candidate.response().placeName());
+		String normalizedCategory = normalizeSearchText(candidate.categoryName());
+		int priority = 0;
+		if (!normalizedKeyword.isEmpty() && normalizedPlaceName.equals(normalizedKeyword)) {
+			priority += 2_000;
+		}
+		if (normalizedKeyword.length() >= 2 && normalizedCategory.length() >= 2
+				&& (normalizedKeyword.contains(normalizedCategory)
+				|| normalizedCategory.contains(normalizedKeyword))) {
+			priority += 1_000;
+		}
+		String imageUrl = candidate.response().imageUrl();
+		if (imageUrl != null && !imageUrl.isBlank()) priority += 20;
+		if (candidate.kakaoPlace() != null) priority += 10;
+		return priority;
+	}
+
+	private boolean isTravelRelevant(KakaoPlace place) {
+		if (place.placeType() != PlaceType.TOURIST_INFORMATION) {
+			return !categoryName(place).endsWith("용품");
+		}
+		String categoryName = categoryName(place);
+		return TRAVEL_INFORMATION_CATEGORIES.contains(categoryName);
+	}
+
+	private String normalizeSearchText(String value) {
+		if (value == null) return "";
+		return Normalizer.normalize(value, Normalizer.Form.NFKC)
+				.toLowerCase(Locale.ROOT)
+				.replaceAll("[^\\p{L}\\p{N}]", "");
+	}
+
+	private void rememberPlaces(List<SearchCandidate> places) {
+		placeCatalogService.rememberKakaoPlaces(places.stream()
+				.map(SearchCandidate::kakaoPlace)
+				.filter(Objects::nonNull)
+				.toList());
+		placeCatalogService.rememberTourApiPlaces(places.stream()
+				.map(SearchCandidate::tourApiPlace)
+				.filter(Objects::nonNull)
+				.toList());
 	}
 
 	private KakaoLocalSearchResult collectSearchablePlaces(String query) {
@@ -84,16 +178,10 @@ public class PlaceSearchService {
 		return new KakaoLocalSearchResult(places, 1, places.size(), places.size(), false);
 	}
 
-	private KakaoLocalSearchResult pageResult(List<KakaoPlace> places, int page, int size) {
+	private List<SearchCandidate> pageResult(List<SearchCandidate> places, int page, int size) {
 		int fromIndex = Math.min((page - 1) * size, places.size());
 		int toIndex = Math.min(fromIndex + size, places.size());
-		return new KakaoLocalSearchResult(
-				places.subList(fromIndex, toIndex),
-				page,
-				size,
-				places.size(),
-				toIndex < places.size()
-		);
+		return places.subList(fromIndex, toIndex);
 	}
 
 	private String categoryName(KakaoPlace place) {
@@ -136,5 +224,34 @@ public class PlaceSearchService {
 					"장소 검색 서비스가 올바르지 않은 응답을 반환했습니다."
 			);
 		};
+	}
+
+	private record SearchCandidate(
+			PlaceSearchItemResponse response,
+			String categoryName,
+			KakaoPlace kakaoPlace,
+			TourApiPlace tourApiPlace
+	) {
+		private static SearchCandidate from(KakaoPlace place) {
+			return new SearchCandidate(
+					PlaceSearchItemResponse.from(place),
+					place.categoryName() == null || place.categoryName().isBlank()
+							? "기타"
+							: place.categoryName(),
+					place,
+					null
+			);
+		}
+
+		private static SearchCandidate from(TourApiPlace place) {
+			return new SearchCandidate(
+					PlaceSearchItemResponse.from(place),
+					place.categoryName() == null || place.categoryName().isBlank()
+							? "기타"
+							: place.categoryName(),
+					null,
+					place
+			);
+		}
 	}
 }
