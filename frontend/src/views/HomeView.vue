@@ -1,22 +1,7 @@
 <script setup>
-import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import { getHealth } from '@/api/system'
 import DefaultLayout from '@/layouts/DefaultLayout.vue'
-
-const serverStatus = ref('확인 중')
-const serverConnected = ref(false)
-
-onMounted(async () => {
-  try {
-    const health = await getHealth()
-    serverConnected.value = health.status === 'UP'
-    serverStatus.value = serverConnected.value ? '연결됨' : '점검 필요'
-  } catch {
-    serverStatus.value = '백엔드 실행 필요'
-  }
-})
 </script>
 
 <template>
@@ -34,13 +19,6 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="status-card" aria-live="polite">
-        <span :class="['status-card__dot', { 'status-card__dot--connected': serverConnected }]" />
-        <div>
-          <strong>개발 환경 상태</strong>
-          <p>Spring Boot API: {{ serverStatus }}</p>
-        </div>
-      </div>
     </section>
 
     <section id="explore" class="app-container feature-section">
@@ -68,11 +46,14 @@ onMounted(async () => {
   position: relative;
   isolation: isolate;
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.6fr);
-  gap: 64px;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   min-height: 560px;
   padding-block: 80px;
+}
+
+.hero__content {
+  max-width: 800px;
 }
 
 .hero::before {
@@ -148,34 +129,6 @@ h1 {
   background: white;
 }
 
-.status-card {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  padding: 24px;
-  border: 1px solid var(--color-brand-border);
-  border-radius: 18px;
-  background: white;
-  box-shadow: 0 24px 70px rgb(15 23 42 / 10%);
-}
-
-.status-card__dot {
-  width: 11px;
-  height: 11px;
-  margin-top: 5px;
-  border-radius: 50%;
-  background: #f59e0b;
-}
-
-.status-card__dot--connected {
-  background: #10b981;
-}
-
-.status-card p {
-  margin: 7px 0 0;
-  color: #64748b;
-}
-
 .feature-section {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -208,11 +161,6 @@ h1 {
 }
 
 @media (max-width: 820px) {
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 32px;
-  }
-
   .feature-section {
     grid-template-columns: 1fr;
   }
