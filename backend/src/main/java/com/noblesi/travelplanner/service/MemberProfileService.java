@@ -4,6 +4,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.noblesi.travelplanner.common.exception.BusinessException;
@@ -53,6 +55,8 @@ public class MemberProfileService {
 	@Transactional
 	public void withdrawMyAccount(WithdrawMemberRequest request) {
 		long memberId = currentMemberProvider.getCurrentMemberId();
+		MemberProfile currentProfile = memberProfileMapper.findActiveProfileByMemberIdForUpdate(memberId)
+				.orElseThrow(this::profileNotFound);
 		String passwordHash = memberProfileMapper.findActivePasswordHashByMemberId(memberId)
 				.orElseThrow(this::profileNotFound);
 		if (!passwordEncoder.matches(request.currentPassword(), passwordHash)) {
@@ -61,6 +65,7 @@ public class MemberProfileService {
 		if (memberProfileMapper.withdrawActiveMember(memberId) != 1) {
 			throw profileNotFound();
 		}
+		deleteAfterCommit(currentProfile.profileImageUrl());
 	}
 
 	@Transactional
@@ -89,19 +94,55 @@ public class MemberProfileService {
 	@Transactional
 	public MemberProfileResponse updateProfileImage(MultipartFile file) {
 		long memberId = currentMemberProvider.getCurrentMemberId();
-		MemberProfile currentProfile = memberProfileMapper.findActiveProfileByMemberId(memberId)
+		MemberProfile currentProfile = memberProfileMapper.findActiveProfileByMemberIdForUpdate(memberId)
 				.orElseThrow(this::profileNotFound);
 		String newImageUrl = profileImageStorage.store(file);
 		try {
-			if (memberProfileMapper.updateActiveProfileImage(memberId, newImageUrl) != 1) {
-				throw profileNotFound();
-			}
+			registerImageReplacementCleanup(newImageUrl, currentProfile.profileImageUrl());
 		} catch (RuntimeException exception) {
 			profileImageStorage.delete(newImageUrl);
 			throw exception;
 		}
-		profileImageStorage.delete(currentProfile.profileImageUrl());
+		if (memberProfileMapper.updateActiveProfileImage(memberId, newImageUrl) != 1) {
+			throw profileNotFound();
+		}
 		return findActiveProfile(memberId);
+	}
+
+	private void registerImageReplacementCleanup(String newImageUrl, String previousImageUrl) {
+		requireTransactionSynchronization();
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				profileImageStorage.delete(previousImageUrl);
+			}
+
+			@Override
+			public void afterCompletion(int status) {
+				if (status != STATUS_COMMITTED) {
+					profileImageStorage.delete(newImageUrl);
+				}
+			}
+		});
+	}
+
+	private void deleteAfterCommit(String imageUrl) {
+		if (imageUrl == null || imageUrl.isBlank()) {
+			return;
+		}
+		requireTransactionSynchronization();
+		TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+			@Override
+			public void afterCommit() {
+				profileImageStorage.delete(imageUrl);
+			}
+		});
+	}
+
+	private void requireTransactionSynchronization() {
+		if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+			throw new IllegalStateException("Profile image changes require an active transaction");
+		}
 	}
 
 	private MemberProfileResponse findActiveProfile(long memberId) {

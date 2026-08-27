@@ -512,6 +512,94 @@ curl --fail http://127.0.0.1:8080/api/health
 
 배포 후 Browser에서 HTTP 사용자 화면, `/api/health`, `/admin/login`, Vue Route 직접 접근과 새로고침을 확인합니다. 실행 순서는 [`deploy/README.md`](deploy/README.md), HTTPS 전환과 운영 점검 항목은 [`docs/deployment/release-checklist.md`](docs/deployment/release-checklist.md)를 따릅니다.
 
+### 변경 유형별 재배포
+
+운영 서버에서 Source Code를 직접 수정하거나 `git pull`로 배포하지 않습니다. 수정사항은 작업 브랜치에서 `dev`로 병합하여 전체 검증한 뒤 `master`에 반영하고, 해당 Release 기준으로 JAR와 Frontend 정적 파일을 다시 생성합니다. HTTP 시연용 환경을 검증할 때는 실제 값이 설정된 로컬 환경 파일을 명시하되 이 파일 자체는 업로드하지 않습니다.
+
+```powershell
+cd C:\dev\travel-planner
+
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File .\scripts\verify-release.ps1 `
+  -EnvironmentFile .\.env `
+  -DeploymentMode HttpDemo
+```
+
+재배포 직전에는 EC2의 현재 JAR와 Frontend를 Release 또는 시각 단위로 백업합니다. 이미 존재하는 백업 디렉터리를 덮어쓰지 않도록 새 이름을 사용합니다.
+
+```bash
+cd /opt/withtrip
+
+backup_dir="/opt/withtrip/backups/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$backup_dir"
+cp backend/build/libs/travel-planner.jar "$backup_dir/"
+cp -a frontend "$backup_dir/frontend"
+```
+
+변경 유형에 따라 다음 산출물과 작업만 적용합니다.
+
+| 변경 유형 | WinSCP 업로드 또는 서버 수정 대상 | 재배포 작업 |
+| --- | --- | --- |
+| Backend Code | `backend/build/libs/travel-planner.jar` | Backend Image 재빌드 및 Container 재생성 |
+| Frontend Code | `frontend/dist` 내부 파일을 `/opt/withtrip/frontend/`에 업로드 | Nginx가 정적 파일을 직접 제공하므로 Container 재시작 불필요 |
+| Backend 환경변수 | EC2의 `/opt/withtrip/.env`를 서버에서 수정 | Compose 설정 검사 후 기존 Image로 Container만 재생성 |
+| Nginx 설정 | `deploy/nginx/withtrip-http.conf` | 설정 복사, 문법 검사, Nginx reload |
+| Oracle Schema | 검토가 끝난 Migration SQL | Database Backup 후 Migration을 별도 실행하고 Application 기동 검증 |
+
+Backend JAR가 변경된 경우 새 JAR를 업로드한 뒤 다음 명령을 실행합니다. Docker 권한이 없는 계정은 명령 앞에 `sudo`를 붙이며, Docker Socket을 `chmod 666`으로 개방하지 않습니다.
+
+```bash
+cd /opt/withtrip
+
+docker compose -f deploy/compose.yaml up -d --build --force-recreate backend
+docker compose -f deploy/compose.yaml ps
+docker compose -f deploy/compose.yaml logs --tail=100 backend
+```
+
+Frontend만 변경된 경우 `frontend/dist`의 내부 파일을 `/opt/withtrip/frontend/`에 덮어씁니다. Nginx 설정이 같다면 reload하지 않아도 되며, 배포 확인 시 Browser에서 강력 새로고침합니다. Vite가 생성한 Asset 파일명에는 Content Hash가 포함되므로 `index.html`과 `assets/`를 같은 Build 결과로 함께 업로드해야 합니다.
+
+`.env`만 변경된 경우 Secret이 출력되지 않는 `config --quiet`로 문법을 검사한 뒤 Image 재빌드 없이 Container를 재생성합니다.
+
+```bash
+cd /opt/withtrip
+
+docker compose -f deploy/compose.yaml config --quiet
+docker compose -f deploy/compose.yaml up -d --force-recreate --no-build backend
+```
+
+Nginx 설정이 변경된 경우에는 새 설정을 적용하기 전에 반드시 문법 검사를 통과시킵니다. `nginx -t`가 실패하면 reload하지 않습니다.
+
+```bash
+sudo cp /opt/withtrip/deploy/nginx/withtrip-http.conf /etc/nginx/sites-available/withtrip
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+재배포가 끝나면 Container Health, 최근 Log, EC2 내부 API와 외부 Reverse Proxy를 순서대로 확인합니다. Compose의 Health가 `healthy`가 되기 전에는 배포 완료로 판단하지 않습니다.
+
+```bash
+cd /opt/withtrip
+
+docker compose -f deploy/compose.yaml ps
+docker compose -f deploy/compose.yaml logs --tail=100 backend
+curl --fail http://127.0.0.1:8080/api/health
+curl --fail http://127.0.0.1:8080/api/health/live
+curl --fail http://EC2_ELASTIC_IP/api/health
+```
+
+문제가 발생하면 선택한 백업 디렉터리의 이전 JAR와 Frontend를 복원한 뒤 Backend를 다시 빌드합니다. 새 Frontend Asset이 남아 있어도 복원된 `index.html`은 이전 Hash Asset을 참조하므로 서비스 복구에는 영향을 주지 않지만, 오래된 Asset 정리는 서비스 정상화 후 별도로 수행합니다.
+
+```bash
+cd /opt/withtrip
+
+backup_dir="/opt/withtrip/backups/20260826-1200"
+cp "$backup_dir/travel-planner.jar" backend/build/libs/travel-planner.jar
+cp -a "$backup_dir/frontend/." frontend/
+docker compose -f deploy/compose.yaml up -d --build --force-recreate backend
+```
+
+Database Migration이 포함된 배포는 이전 JAR 복원만으로 안전하게 rollback할 수 있는지 먼저 확인해야 합니다. Application은 `ddl-auto=validate`를 사용하므로 Schema를 자동 변경하지 않습니다. 또한 프로필 이미지는 Compose Named Volume에 저장되므로 일반 재배포에서는 `docker compose down -v`를 실행하지 않습니다.
+
 ### 운영 및 rollback 원칙
 
 - 운영 서버에서 Source Code나 JAR를 직접 수정하지 않습니다.

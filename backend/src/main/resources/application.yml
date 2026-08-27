@@ -63,9 +63,6 @@ app:
       await-termination: ${MAIL_ASYNC_AWAIT_TERMINATION:10s}
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
-  backend:
-    base-url: ${BACKEND_BASE_URL:http://localhost:8080}
-  
   #프로필 이미지 업로드 경로
   profile:
     upload-path: ${PROFILE_UPLOAD_PATH:./uploads/profile/}

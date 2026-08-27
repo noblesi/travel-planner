@@ -62,14 +62,19 @@ const visiblePlaces = computed(() =>
 function loadRecentKeywords() {
   try {
     const values = JSON.parse(readLocalStorage('planEditorRecentKeywords', '[]'))
-    return Array.isArray(values) ? values.filter((value) => typeof value === 'string').slice(0, 5) : []
+    return Array.isArray(values)
+      ? values.filter((value) => typeof value === 'string').slice(0, 5)
+      : []
   } catch {
     return []
   }
 }
 
 function rememberKeyword(value) {
-  recentKeywords.value = [value, ...recentKeywords.value.filter((keyword) => keyword !== value)].slice(0, 5)
+  recentKeywords.value = [
+    value,
+    ...recentKeywords.value.filter((keyword) => keyword !== value),
+  ].slice(0, 5)
   writeLocalStorage('planEditorRecentKeywords', JSON.stringify(recentKeywords.value))
 }
 
@@ -212,7 +217,12 @@ watch(
 
     <div v-if="recentKeywords.length" class="recent-searches" aria-label="최근 검색어">
       <span>최근</span>
-      <button v-for="recent in recentKeywords" :key="recent" type="button" @click="searchRecent(recent)">
+      <button
+        v-for="recent in recentKeywords"
+        :key="recent"
+        type="button"
+        @click="searchRecent(recent)"
+      >
         {{ recent }}
       </button>
     </div>
@@ -263,20 +273,17 @@ watch(
               <strong>{{ place.placeName }}</strong>
               <span>{{ place.address || '주소 정보 없음' }}</span>
               <em v-if="registeredTimeSlots(place).length">
-                {{ registeredTimeSlots(place).map((slot) => slot === 'MORNING' ? '오전' : '오후').join('·') }} 등록됨
+                {{
+                  registeredTimeSlots(place)
+                    .map((slot) => (slot === 'MORNING' ? '오전' : '오후'))
+                    .join('·')
+                }}
+                등록됨
               </em>
             </span>
           </button>
         </li>
       </ul>
-
-      <PlaceDetailCard
-        v-if="selectedPlace"
-        :place="selectedPlace"
-        :add-disabled="scheduleDisabled"
-        :existing-time-slots="registeredTimeSlots(selectedPlace)"
-        @add="emit('add', { place: selectedPlace, timeSlot: $event })"
-      />
 
       <nav class="place-search-panel__pagination" aria-label="장소 검색 결과 페이지">
         <button type="button" :disabled="page <= 1 || isLoading" @click="executeSearch(page - 1)">
@@ -287,6 +294,26 @@ watch(
           다음
         </button>
       </nav>
+
+      <section
+        v-if="selectedPlace"
+        class="place-search-panel__selection"
+        aria-labelledby="selected-place-heading"
+      >
+        <header class="place-search-panel__selection-header">
+          <div>
+            <span>SELECTED PLACE</span>
+            <h3 id="selected-place-heading">선택한 장소</h3>
+          </div>
+          <small>일정에 추가할 시간대를 선택하세요.</small>
+        </header>
+        <PlaceDetailCard
+          :place="selectedPlace"
+          :add-disabled="scheduleDisabled"
+          :existing-time-slots="registeredTimeSlots(selectedPlace)"
+          @add="emit('add', { place: selectedPlace, timeSlot: $event })"
+        />
+      </section>
     </template>
   </section>
 </template>
@@ -346,7 +373,30 @@ watch(
   gap: 8px;
   margin-top: 14px;
 }
-.recent-searches { display: flex; align-items: center; gap: 6px; margin-top: 9px; overflow: hidden; }.recent-searches > span { color: #94a3b8; font-size: 9px; }.recent-searches button { max-width: 84px; padding: 4px 7px; overflow: hidden; color: #64748b; border: 1px solid #e2e8f0; border-radius: 999px; background: #fff; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.recent-searches {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 9px;
+  overflow: hidden;
+}
+.recent-searches > span {
+  color: #94a3b8;
+  font-size: 9px;
+}
+.recent-searches button {
+  max-width: 84px;
+  padding: 4px 7px;
+  overflow: hidden;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
 
 .place-search-panel__form input {
   min-width: 0;
@@ -407,7 +457,16 @@ watch(
 .place-search-panel__summary strong {
   color: #334155;
 }
-.place-search-panel__summary select { max-width: 150px; min-height: 30px; padding: 0 8px; color: #475569; border: 1px solid #dbe2ea; border-radius: 8px; background: #fff; font-size: 10px; }
+.place-search-panel__summary select {
+  max-width: 150px;
+  min-height: 30px;
+  padding: 0 8px;
+  color: #475569;
+  border: 1px solid #dbe2ea;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 10px;
+}
 
 .place-search-panel__results {
   display: grid;
@@ -467,7 +526,14 @@ watch(
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.place-result__body > em { display: block; margin-top: 3px; color: #16a34a; font-size: 9px; font-style: normal; font-weight: 800; }
+.place-result__body > em {
+  display: block;
+  margin-top: 3px;
+  color: #16a34a;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 800;
+}
 
 .place-result__body > small {
   color: var(--color-brand);
@@ -488,7 +554,7 @@ watch(
 }
 
 .place-search-panel__pagination {
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .place-search-panel__pagination button {
@@ -504,6 +570,45 @@ watch(
   font-weight: 800;
 }
 
+.place-search-panel__selection {
+  margin: 14px -18px -18px;
+  padding: 13px 18px 18px;
+  border-top: 1px solid #dbe2ea;
+  background: #f8fafc;
+}
+
+.place-search-panel__selection-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.place-search-panel__selection-header span {
+  color: var(--color-brand);
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.place-search-panel__selection-header h3 {
+  margin: 2px 0 0;
+  color: #334155;
+  font-size: 14px;
+}
+
+.place-search-panel__selection-header small {
+  color: #94a3b8;
+  font-size: 9px;
+}
+
+.place-search-panel__selection :deep(.place-detail-card) {
+  border-color: #cbd5e1;
+  background: #fff;
+  box-shadow: 0 5px 18px rgb(15 23 42 / 6%);
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -514,5 +619,4 @@ watch(
   white-space: nowrap;
   border: 0;
 }
-
 </style>

@@ -6,7 +6,7 @@ plugins {
 }
 
 group = 'com.noblesi'
-version = '0.0.1-SNAPSHOT'
+version = '1.0.1'
 description = 'Travel Planner Web Application'
 
 java {
