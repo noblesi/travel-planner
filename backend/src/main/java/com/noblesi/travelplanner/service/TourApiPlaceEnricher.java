@@ -3,8 +3,10 @@ package com.noblesi.travelplanner.service;
 import java.math.BigDecimal;
 import java.text.Normalizer;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,8 +39,14 @@ public class TourApiPlaceEnricher {
 			String keyword,
 			String regionCode
 	) {
-		if (kakaoResult.places().isEmpty()) return kakaoResult;
+		return enrichWithComplements(kakaoResult, keyword, regionCode).kakaoResult();
+	}
 
+	public EnrichmentResult enrichWithComplements(
+			KakaoLocalSearchResult kakaoResult,
+			String keyword,
+			String regionCode
+	) {
 		try {
 			var tourResult = tourApiClient.searchKeyword(
 					keyword,
@@ -46,29 +54,40 @@ public class TourApiPlaceEnricher {
 					1,
 					ENRICHMENT_RESULT_SIZE
 			);
-			if (tourResult.places().isEmpty()) return kakaoResult;
+			if (tourResult.places().isEmpty()) {
+				return new EnrichmentResult(kakaoResult, List.of());
+			}
 
+			Set<String> matchedTourPlaceIds = new HashSet<>();
 			List<KakaoPlace> enrichedPlaces = kakaoResult.places().stream()
-					.map(place -> enrichPlace(place, tourResult.places()))
+					.map(place -> enrichPlace(place, tourResult.places(), matchedTourPlaceIds))
 					.toList();
-			return new KakaoLocalSearchResult(
+			KakaoLocalSearchResult enrichedKakaoResult = new KakaoLocalSearchResult(
 					enrichedPlaces,
 					kakaoResult.page(),
 					kakaoResult.size(),
 					kakaoResult.totalCount(),
 					kakaoResult.hasNext()
 			);
+			List<TourApiPlace> complementaryTourPlaces = tourResult.places().stream()
+					.filter(place -> !matchedTourPlaceIds.contains(place.externalPlaceId()))
+					.toList();
+			return new EnrichmentResult(enrichedKakaoResult, complementaryTourPlaces);
 		} catch (TourApiException exception) {
 			if (exception.getReason() == TourApiException.Reason.NOT_CONFIGURED) {
 				log.debug("TourAPI place enrichment is not configured");
 			} else {
 				log.warn("TourAPI place enrichment skipped. reason={}", exception.getReason());
 			}
-			return kakaoResult;
+			return new EnrichmentResult(kakaoResult, List.of());
 		}
 	}
 
-	private KakaoPlace enrichPlace(KakaoPlace kakaoPlace, List<TourApiPlace> tourPlaces) {
+	private KakaoPlace enrichPlace(
+			KakaoPlace kakaoPlace,
+			List<TourApiPlace> tourPlaces,
+			Set<String> matchedTourPlaceIds
+	) {
 		TourApiPlace match = tourPlaces.stream()
 				.map(tourPlace -> candidate(kakaoPlace, tourPlace))
 				.filter(candidate -> candidate.nameScore() > 0)
@@ -78,6 +97,7 @@ public class TourApiPlaceEnricher {
 				.map(MatchCandidate::place)
 				.orElse(null);
 		if (match == null) return kakaoPlace;
+		matchedTourPlaceIds.add(match.externalPlaceId());
 
 		PlaceType placeType = kakaoPlace.placeType() == PlaceType.TOURIST_INFORMATION
 				? match.placeType()
@@ -164,5 +184,14 @@ public class TourApiPlaceEnricher {
 	}
 
 	private record MatchCandidate(TourApiPlace place, int nameScore, double distanceMeters) {
+	}
+
+	public record EnrichmentResult(
+			KakaoLocalSearchResult kakaoResult,
+			List<TourApiPlace> complementaryTourPlaces
+	) {
+		public EnrichmentResult {
+			complementaryTourPlaces = List.copyOf(complementaryTourPlaces);
+		}
 	}
 }
