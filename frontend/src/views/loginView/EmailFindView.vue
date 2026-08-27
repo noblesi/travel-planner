@@ -40,19 +40,19 @@ async function goToLogin() {
 </script>
 
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      
+  <div class="auth-container">
+    <div class="auth-box">
       <!-- 메인 타이틀 -->
-      <div>
-        <h1 class="main-title" style="margin-top: 30px;">
+      <header class="auth-header">
+        <h1 class="main-title">
             나만의 플랜을 계획해보세요<br />
             <span>내 이메일 찾기</span>
         </h1>
-      </div>
-      <!-- 이메일 입력 및 계속하기 폼 -->
-      <form class="login-form" :aria-busy="pending" @submit.prevent="findEmail">
-        <div class="input-container">
+      </header>
+
+      <!-- 폼 영역 -->
+      <form class="auth-form" :aria-busy="pending" @submit.prevent="findEmail">
+        <div class="input-group">
           <label class="input-label" for="recovery-name">이름</label>
           <input 
             id="recovery-name"
@@ -62,6 +62,9 @@ async function goToLogin() {
             maxlength="10"
             required
           />
+        </div>
+
+        <div class="input-group">
           <label class="input-label" for="recovery-birth">생년월일</label>
           <input 
             id="recovery-birth"
@@ -69,38 +72,47 @@ async function goToLogin() {
             type="date" 
             required
           />
+        </div>
+
+        <div class="input-group">
           <label class="input-label" for="recovery-phone">전화번호</label>
           <input 
             id="recovery-phone"
             v-model="phone"
             type="text" 
-            placeholder="전화번호를 입력해주세요. 예)010-1234-5689" 
+            placeholder="예) 010-1234-5689" 
             maxlength="20"
             required
           />
         </div>
 
-        <p v-if="errorMessage" class="recovery-error" role="alert">{{ errorMessage }}</p>
-        <button type="submit" class="btn-submit" :disabled="pending">
+        <div class="error-container">
+          <p v-if="errorMessage" class="error-message" role="alert">{{ errorMessage }}</p>
+        </div>
+
+        <button type="submit" class="btn-primary" :disabled="pending">
           {{ pending ? '확인 중...' : '이메일 찾기' }}
         </button>
       </form>
-      <div class="footer-links">
-        <p class="signup-prompt">신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink></p>
-      </div>
 
+      <div class="footer-links">
+        <p class="signup-prompt">
+          신규 사용자이신가요? <RouterLink :to="{ name: 'join' }">가입하기</RouterLink>
+        </p>
+      </div>
     </div>
+
     <!-- 이메일 찾기 완료 모달 -->
     <Teleport to="body">
-      <div v-if="isModalOpen" class="modal-backdrop">
-        <div class="modal-box">
+      <div v-if="isModalOpen" class="modal-overlay">
+        <div class="modal-card">
           <h2 class="modal-title">이메일 찾기 완료</h2>
           <p class="modal-content">
             개인정보 보호를 위해 일부를 가린 이메일입니다.<br />
             <strong>{{ foundEmail }}</strong>
           </p>
-          <button type="button" class="btn-modal-confirm" @click="goToLogin">
-            확인
+          <button type="button" class="btn-primary" @click="goToLogin">
+            확인 후 로그인하기
           </button>
         </div>
       </div>
@@ -108,251 +120,64 @@ async function goToLogin() {
   </div>
 </template>
 
-<style lang="scss" scoped>
-// 전체 배경 배치
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  background-color: #c2410c;
-  padding: 60px 20px;
-  box-sizing: border-box;
-  backdrop-filter: blur(20px);
+<style scoped>
+/* 로그인 폼과 동일한 컨테이너 스타일 */
+.auth-container {
+  display: flex; justify-content: center; align-items: center; min-height: 100vh;
+  background: radial-gradient(circle at 90% 5%, rgb(249 115 22 / 10%), transparent 28rem), var(--color-page, #fafaf9);
+  padding: 40px 20px; box-sizing: border-box;
 }
 
-// 노션 특유의 슬림하고 중앙 집중된 박스 레이아웃
-.login-box {
-  width: 400px;
-  height: 550px;
-  background-color: #ec8f6b;
-  text-align: center;
-  box-shadow: 0 10px 30px 5px rgba(0, 0, 0, 0.1), 
-              0 4px 12px 2px rgba(0, 0, 0, 0.1);
-  border-radius: 30px;
+.auth-box {
+  width: 100%; max-width: 420px; background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e5e7eb); padding: 48px 40px;
+  border-radius: 20px; box-shadow: 0 16px 45px rgb(15 23 42 / 6%); box-sizing: border-box;
 }
 
-// 타이틀
-.main-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a1a1a;
-  line-height: 1.3;
-  margin-top: 0;
-  margin-bottom: 32px;
+.auth-header { text-align: center; margin-bottom: 36px; }
+.main-title { margin: 0; color: var(--color-text, #111827); font-size: clamp(22px, 3vw, 26px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.4; }
+.main-title span { display: block; margin-top: 8px; color: var(--color-text-muted, #6b7280); font-size: 15px; font-weight: 500; }
 
-  span {
-    color: #6b6b6b;
-    font-size: 20px;
-    font-weight: 500;
-  }
+.auth-form { display: flex; flex-direction: column; gap: 20px; }
+.input-group { display: flex; flex-direction: column; gap: 8px; }
+.input-label { font-size: 13px; color: var(--color-text, #374151); font-weight: 600; }
+input {
+  width: 100%; height: 48px; padding: 0 16px; border: 1px solid var(--color-border, #e5e7eb); border-radius: 12px;
+  font-size: 15px; color: var(--color-text, #111827); background: var(--color-page, #fafaf9); box-sizing: border-box; outline: none; transition: border-color 0.2s, background-color 0.2s;
 }
+input:focus { border-color: var(--color-brand, #f97316); background: var(--color-surface, #ffffff); }
 
-// 이메일 폼 세팅
-.login-form {
-  text-align: left;
+.error-container { min-height: 16px; text-align: center; margin-top: -8px; }
+.error-message { color: var(--color-danger, #ef4444); font-size: 13px; font-weight: 500; margin: 0; }
 
-  .input-container {
-    margin-bottom: 10px;
-
-    .input-label {
-      display: block;
-      font-size: 12px;
-      color: #6b6b6b;
-      margin-bottom: 6px;
-      margin-left: 20px;
-    }
-
-    input {
-      width: 90%;
-      height: 44px;
-      padding: 0 14px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      font-size: 14px;
-      background-color: #fafafa;
-      box-sizing: border-box;
-      outline: none;
-      transition: border-color 0.15s;
-      text-align: center;
-      margin-left: 20px;
-      &::placeholder {
-        color: #cccccc;
-      }
-
-      &:focus {
-        border-color: #2383e2;
-        background-color: #ffffff;
-      }
-    }
-  }
+.btn-primary {
+  display: inline-flex; width: 100%; height: 52px; align-items: center; justify-content: center;
+  background: var(--color-brand, #f97316); color: #ffffff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s;
 }
+.btn-primary:hover:not(:disabled) { opacity: 0.9; }
+.btn-primary:disabled { background: var(--color-text-muted, #9ca3af); cursor: wait; opacity: 0.7; }
 
-// 버튼
-.btn-submit {
-  margin-left: 20px;
-  width: 90%;
-  height: 44px;
-  background-color: #2383e2;
-  color: #ffffff;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s;
+.footer-links { margin-top: 32px; text-align: center; }
+.signup-prompt { font-size: 14px; color: var(--color-text-muted, #6b7280); margin: 0; }
+.signup-prompt a { color: var(--color-brand, #f97316); font-weight: 600; text-decoration: none; margin-left: 4px; }
+.signup-prompt a:hover { text-decoration: underline; }
 
-  &:hover {
-    background-color: #1a6cb9;
-  }
+/* 모달 스타일 */
+.modal-overlay {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  background-color: rgba(17, 24, 39, 0.4); display: flex; justify-content: center; align-items: center; z-index: 9999; backdrop-filter: blur(4px);
 }
-
-// 공통 사각형 박스 버튼 스타일
-.card-btn {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 68px;
-  border: 1px solid #e3e3e3;
-  border-radius: 6px;
-  background-color: #ffffff;
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.15s, border-color 0.15s;
-
-  &:hover {
-    background-color: #f7f7f7;
-    border-color: #cccccc;
-  }
-
-  img {
-    width: 20px;
-    height: 20px;
-    margin-bottom: 6px;
-  }
-
-  .emoji-icon {
-    font-size: 18px;
-    margin-bottom: 4px;
-  }
-
-  span {
-    font-size: 12px;
-    color: #1a1a1a;
-    font-weight: 500;
-  }
+.modal-card {
+  width: 90%; max-width: 360px; padding: 36px 30px;
+  background: var(--color-surface, #ffffff); border-radius: 20px; text-align: center; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-
-// 하단 가이드 문구 스타일 영역
-// 하단 가이드 문구
-.footer-links {
-  margin-top: 40px;
-
-  a {
-    color: #1a1a1a;
-    text-decoration: underline;
-    &:hover { color: #2383e2; }
-  }
-
-  .signup-prompt {
-    font-size: 14px;
-    color: #6b6b6b;
-    margin-bottom: 10px;
-    
-    a {
-      font-weight: 500;
-    }
-  }
-}
-
-// ====================================================
-// 이메일 찾기 모달 스타일
-// ====================================================
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  backdrop-filter: blur(4px);
-}
-
-.modal-box {
-  width: 320px;
-  padding: 28px 24px;
-  background-color: #ffffff;
-  border-radius: 16px;
-  text-align: center;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-
-  .modal-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: #111827;
-    margin: 0 0 12px 0;
-  }
-
-  .modal-content {
-    font-size: 14px;
-    color: #4b5563;
-    line-height: 1.5;
-    margin: 0 0 24px 0;
-
-    strong {
-      display: block;
-      margin-top: 10px;
-      font-size: 17px;
-      color: #2383e2;
-      font-weight: 700;
-      word-break: break-all;
-    }
-  }
-
-  .btn-modal-confirm {
-    width: 100%;
-    height: 44px;
-    background-color: #2383e2;
-    color: #ffffff;
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.15s ease;
-
-    &:hover {
-      background-color: #1a6cb9;
-    }
-  }
-}
+.modal-title { font-size: 20px; font-weight: 700; color: var(--color-text, #111827); margin: 0 0 12px 0; letter-spacing: -0.04em; }
+.modal-content { font-size: 14px; color: var(--color-text-muted, #6b7280); line-height: 1.6; margin: 0 0 28px 0; }
+.modal-content strong { display: block; margin-top: 12px; font-size: 20px; color: var(--color-brand, #f97316); font-weight: 700; letter-spacing: 0; }
 
 @keyframes modalPop {
-  from {
-    opacity: 0;
-    transform: scale(0.92) translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.recovery-error {
-  margin: 0 20px 12px;
-  color: #8f1d1d;
-  font-size: 13px;
-  text-align: center;
-}
-
-button:disabled {
-  cursor: wait;
-  opacity: 0.6;
+  from { opacity: 0; transform: scale(0.9) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 </style>
