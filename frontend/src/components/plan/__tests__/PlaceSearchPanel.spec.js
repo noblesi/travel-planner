@@ -12,7 +12,7 @@ vi.mock('@/api/places', () => ({
 }))
 
 const place = {
-  placeProvider: 'TOUR_API',
+  placeProvider: 'KAKAO',
   externalPlaceId: '1001',
   placeName: '여의도 한강공원',
   categoryName: '관광지',
@@ -29,6 +29,7 @@ beforeEach(() => {
     size: 10,
     totalCount: 11,
     hasNext: true,
+    categories: ['관광지', '음식점'],
   })
 })
 
@@ -37,6 +38,15 @@ afterEach(() => {
 })
 
 describe('PlaceSearchPanel', () => {
+  it('검색 전에는 공급자 안내 메시지를 표시하지 않는다', () => {
+    const wrapper = mount(PlaceSearchPanel, {
+      props: { regionCode: '39', regionName: '제주특별자치도' },
+    })
+
+    expect(wrapper.find('.place-search-panel__guide').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('TourAPI에서 검색합니다')
+  })
+
   it('keeps successful search results when recent-keyword storage is unavailable', async () => {
     const wrapper = mount(PlaceSearchPanel, {
       props: { regionCode: '1', regionName: 'Seoul' },
@@ -76,7 +86,7 @@ describe('PlaceSearchPanel', () => {
     await wrapper.get('.place-search-panel__results button').trigger('click')
 
     expect(wrapper.emitted('select').at(-1)).toEqual([place])
-    await wrapper.setProps({ selectedPlaceId: 'TOUR_API:1001' })
+    await wrapper.setProps({ selectedPlaceId: 'KAKAO:1001' })
     expect(wrapper.get('.place-search-panel__results button').attributes('aria-pressed')).toBe(
       'true',
     )
@@ -92,6 +102,43 @@ describe('PlaceSearchPanel', () => {
     expect(wrapper.get('[role="alert"]').text()).toContain('검색어를 입력해 주세요.')
   })
 
+  it('전체 검색결과의 카테고리를 선택해 서버 필터링을 요청한다', async () => {
+    const restaurant = {
+      ...place,
+      externalPlaceId: '2001',
+      placeName: '한강식당',
+      categoryName: '음식점',
+    }
+    const wrapper = mount(PlaceSearchPanel, {
+      props: { regionCode: '1', regionName: '서울특별시' },
+    })
+
+    await wrapper.get('[name="placeKeyword"]').setValue('한강')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    searchPlacesMock.mockResolvedValueOnce({
+      places: [restaurant],
+      page: 1,
+      size: 10,
+      totalCount: 1,
+      hasNext: false,
+      categories: ['관광지', '음식점'],
+    })
+    await wrapper.get('.place-search-panel__summary select').setValue('음식점')
+    await flushPromises()
+
+    expect(searchPlacesMock).toHaveBeenLastCalledWith({
+      keyword: '한강',
+      regionCode: '1',
+      category: '음식점',
+      page: 1,
+      size: 10,
+    })
+    expect(wrapper.text()).toContain('한강식당')
+    expect(wrapper.text()).not.toContain('여의도 한강공원')
+  })
+
   it('다음 페이지를 요청하고 외부 API 장애를 사용자 메시지로 변환한다', async () => {
     const wrapper = mount(PlaceSearchPanel, {
       props: { regionCode: '1', regionName: '서울특별시' },
@@ -101,7 +148,7 @@ describe('PlaceSearchPanel', () => {
     await flushPromises()
 
     searchPlacesMock.mockRejectedValueOnce({
-      response: { data: { code: 'TOUR_API_TIMEOUT' } },
+      response: { data: { code: 'KAKAO_LOCAL_TIMEOUT' } },
     })
     const nextButton = wrapper
       .findAll('.place-search-panel__pagination button')

@@ -34,14 +34,24 @@ public class PlaceController {
 			@RequestParam(required = false)
 			@Pattern(regexp = "[1-9]\\d?", message = "지역 코드는 1~2자리 양의 정수여야 합니다.")
 			String regionCode,
+			@RequestParam(required = false)
+			@Size(max = 100, message = "카테고리는 100자 이하여야 합니다.")
+			String category,
 			@RequestParam(defaultValue = "1")
 			@Min(value = 1, message = "페이지는 1 이상이어야 합니다.")
+			@Max(value = 45, message = "페이지는 45 이하여야 합니다.")
 			int page,
 			@RequestParam(defaultValue = "10")
 			@Min(value = 1, message = "페이지 크기는 1 이상이어야 합니다.")
-			@Max(value = 20, message = "페이지 크기는 20 이하여야 합니다.")
+			@Max(value = 15, message = "페이지 크기는 15 이하여야 합니다.")
 			int size
 	) {
-		return ApiResponse.success(placeSearchService.search(keyword, regionCode, page, size));
+		return ApiResponse.success(placeSearchService.search(
+				keyword,
+				regionCode,
+				category,
+				page,
+				size
+		));
 	}
 }

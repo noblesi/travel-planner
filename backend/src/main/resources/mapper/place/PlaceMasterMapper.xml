@@ -45,7 +45,7 @@
 		       DESCRIPTION = #{description,jdbcType=VARCHAR},
 		       LATITUDE = #{latitude,jdbcType=DECIMAL},
 		       LONGITUDE = #{longitude,jdbcType=DECIMAL},
-		       IMAGE_URL = #{imageUrl,jdbcType=VARCHAR},
+		       IMAGE_URL = COALESCE(#{imageUrl,jdbcType=VARCHAR}, IMAGE_URL),
 		       ACTIVE_YN = 'Y',
 		       SYNCED_AT = CURRENT_TIMESTAMP,
 		       UPDATED_AT = CURRENT_TIMESTAMP

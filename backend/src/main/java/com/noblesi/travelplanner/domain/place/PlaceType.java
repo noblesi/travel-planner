@@ -1,5 +1,7 @@
 package com.noblesi.travelplanner.domain.place;
 
+import java.util.Locale;
+
 public enum PlaceType {
 	ATTRACTION("관광지"),
 	CULTURAL_FACILITY("문화시설"),
@@ -33,5 +35,28 @@ public enum PlaceType {
 			case "39" -> RESTAURANT;
 			default -> TOURIST_INFORMATION;
 		};
+	}
+
+	public static PlaceType fromKakaoCategory(String categoryGroupCode, String categoryName) {
+		return switch (categoryGroupCode == null ? "" : categoryGroupCode) {
+			case "CT1" -> CULTURAL_FACILITY;
+			case "AT4" -> ATTRACTION;
+			case "AD5" -> ACCOMMODATION;
+			case "FD6", "CE7" -> RESTAURANT;
+			default -> inferKakaoPlaceType(categoryName);
+		};
+	}
+
+	private static PlaceType inferKakaoPlaceType(String categoryName) {
+		String normalized = categoryName == null ? "" : categoryName.toLowerCase(Locale.ROOT);
+		if (normalized.contains("문화") || normalized.contains("공연") || normalized.contains("전시")) {
+			return CULTURAL_FACILITY;
+		}
+		if (normalized.contains("관광") || normalized.contains("명소")) return ATTRACTION;
+		if (normalized.contains("숙박") || normalized.contains("호텔")) return ACCOMMODATION;
+		if (normalized.contains("음식") || normalized.contains("카페")) return RESTAURANT;
+		if (normalized.contains("쇼핑") || normalized.contains("시장")) return SHOPPING;
+		if (normalized.contains("레저") || normalized.contains("스포츠")) return LEISURE_SPORTS;
+		return TOURIST_INFORMATION;
 	}
 }

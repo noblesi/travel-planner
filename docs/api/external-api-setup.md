@@ -55,7 +55,7 @@ VITE_KAKAO_MAP_KEY=발급받은-JavaScript-키
 
 ## 코드 바인딩
 
-Backend 환경변수는 `ExternalApiProperties`의 `app.external-api.tour`, `app.external-api.kakao` 속성으로 바인딩됩니다. 키가 없더라도 일반 플랜 기능과 자동 테스트는 실행할 수 있으며, TourAPI 장소 검색 호출 시 `TOUR_API_NOT_CONFIGURED` 오류를 반환합니다.
+Backend 환경변수는 `ExternalApiProperties`의 `app.external-api.tour`, `app.external-api.kakao` 속성으로 바인딩됩니다. 키가 없더라도 일반 플랜 기능과 자동 테스트는 실행할 수 있습니다. 플랜 장소 검색에는 Kakao REST API 키가 필요하며, 키가 없으면 `KAKAO_LOCAL_NOT_CONFIGURED` 오류를 반환합니다. TourAPI 키는 검색 결과의 관광 이미지·분류 보강과 관리자 관광정보 동기화에 사용하며, 키가 없거나 보강 호출이 실패해도 Kakao 검색 결과는 반환됩니다.
 
 ## 참고
 
