@@ -1,14 +1,10 @@
-import { flushPromises, mount } from '@vue/test-utils'
-import { describe, expect, it, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { describe, expect, it } from 'vitest'
 
 import HomeView from '@/views/HomeView.vue'
 
-vi.mock('@/api/system', () => ({
-  getHealth: vi.fn().mockResolvedValue({ status: 'UP', application: 'withtrip' }),
-}))
-
 describe('HomeView', () => {
-  it('백엔드 연결 상태를 표시한다', async () => {
+  it('서비스 소개와 주요 이동 링크를 표시한다', () => {
     const wrapper = mount(HomeView, {
       global: {
         stubs: {
@@ -18,9 +14,8 @@ describe('HomeView', () => {
       },
     })
 
-    await flushPromises()
-
     expect(wrapper.text()).toContain('여행의 모든 순간을')
-    expect(wrapper.text()).toContain('Spring Boot API: 연결됨')
+    expect(wrapper.text()).toContain('새 일정 만들기')
+    expect(wrapper.text()).not.toContain('개발 환경 상태')
   })
 })

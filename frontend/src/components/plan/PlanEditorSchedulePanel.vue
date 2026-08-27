@@ -169,6 +169,7 @@ defineEmits([
 <style scoped>
 .schedule-panel {
   min-width: 0;
+  min-height: 0;
   padding: 24px;
   overflow-y: auto;
   border-right: 1px solid #dce3ec;

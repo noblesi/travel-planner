@@ -136,18 +136,25 @@ watch(submitting, (value) => emit('busy-change', value), { immediate: true })
     :aria-labelledby="open ? 'date-editor-heading' : undefined"
   >
     <button
-      v-if="!open"
       class="date-editor__open"
+      :class="{ 'date-editor__open--active': open }"
       type="button"
-      :disabled="disabled || isCompletedPlan"
-      @click="$emit('request-open')"
+      aria-controls="date-editor-form"
+      :aria-expanded="open"
+      :disabled="disabled || isCompletedPlan || submitting"
+      @click="open ? closeEditor() : $emit('request-open')"
     >
       여행 날짜 변경
     </button>
     <p v-if="isCompletedPlan && !open" class="date-editor__locked-notice">
       종료된 여행은 날짜를 변경할 수 없습니다.
     </p>
-    <form v-if="open" class="date-editor__form" @submit.prevent="submitChange()">
+    <form
+      v-if="open"
+      id="date-editor-form"
+      class="date-editor__form"
+      @submit.prevent="submitChange()"
+    >
       <div class="date-editor__heading">
         <div>
           <span>DATE SETTINGS</span>
@@ -205,58 +212,136 @@ watch(submitting, (value) => emit('busy-change', value), { immediate: true })
 </template>
 
 <style scoped>
-.date-editor { margin-top: 10px; }
+.date-editor {
+  margin-top: 10px;
+}
 .date-editor__locked-notice {
-  margin: 7px 2px 0; color: #64748b; font-size: 11px; line-height: 1.5;
+  margin: 7px 2px 0;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.5;
 }
 .date-editor__open {
-  width: 100%; min-height: 42px; color: var(--color-brand);
-  border: 1px solid var(--color-brand-border); border-radius: 12px;
-  background: var(--color-brand-soft); font-size: 13px; font-weight: 800; cursor: pointer;
+  width: 100%;
+  min-height: 42px;
+  color: var(--color-brand);
+  border: 1px solid var(--color-brand-border);
+  border-radius: 12px;
+  background: var(--color-brand-soft);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
 }
-.date-editor__open:disabled { cursor: not-allowed; opacity: 0.48; }
+.date-editor__open:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+.date-editor__open--active {
+  color: var(--color-brand-on);
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+}
 .date-editor__form {
-  padding: 16px; border: 1px solid var(--color-brand-border);
-  border-radius: 16px; background: var(--color-brand-soft);
+  padding: 16px;
+  border: 1px solid var(--color-brand-border);
+  border-radius: 16px;
+  background: var(--color-brand-soft);
 }
 .date-editor__heading,
 .date-editor__actions {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 .date-editor__heading span {
-  color: var(--color-brand); font-size: 9px; font-weight: 850; letter-spacing: 0.12em;
+  color: var(--color-brand);
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
 }
-.date-editor__heading h3 { margin: 3px 0 0; color: #334155; font-size: 16px; }
+.date-editor__heading h3 {
+  margin: 3px 0 0;
+  color: #334155;
+  font-size: 16px;
+}
 .date-editor__heading > button {
-  width: 32px; height: 32px; color: #64748b; border: 0; border-radius: 9px;
-  background: #f1f5f9; font-size: 20px; cursor: pointer;
+  width: 32px;
+  height: 32px;
+  color: #64748b;
+  border: 0;
+  border-radius: 9px;
+  background: #f1f5f9;
+  font-size: 20px;
+  cursor: pointer;
 }
 .date-editor__grid {
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
 }
-.date-editor__grid label { display: grid; min-width: 0; gap: 6px; }
-.date-editor__grid label > span { color: #64748b; font-size: 11px; font-weight: 750; }
+.date-editor__grid label {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+.date-editor__grid label > span {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 750;
+}
 .date-editor__grid input {
-  width: 100%; min-width: 0; min-height: 40px; padding: 0 10px; color: #334155;
-  border: 1px solid #d8dee8; border-radius: 10px; background: #fff;
-  font: inherit; font-size: 12px;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 10px;
+  color: #334155;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
 }
 .date-editor__notice,
 .date-editor__error {
-  margin: 11px 0 0; font-size: 11px; line-height: 1.55; word-break: keep-all;
+  margin: 11px 0 0;
+  font-size: 11px;
+  line-height: 1.55;
+  word-break: keep-all;
 }
-.date-editor__notice { color: #64748b; }
-.date-editor__error { color: #b91c1c; }
-.date-editor__actions { justify-content: flex-end; margin-top: 14px; }
+.date-editor__notice {
+  color: #64748b;
+}
+.date-editor__error {
+  color: #b91c1c;
+}
+.date-editor__actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
 .date-editor__actions button {
-  min-height: 38px; padding: 0 14px; border: 1px solid #d8dee8;
-  border-radius: 10px; background: #fff; font-size: 12px; font-weight: 750; cursor: pointer;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #d8dee8;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
 }
 .date-editor__actions button:last-child {
-  color: #fff; border-color: var(--color-brand); background: var(--color-brand);
+  color: #fff;
+  border-color: var(--color-brand);
+  background: var(--color-brand);
 }
-.date-editor__actions button:disabled { cursor: wait; opacity: 0.65; }
+.date-editor__actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
 @media (prefers-reduced-motion: reduce) {
-  .date-editor__open { transition: none; }
+  .date-editor__open {
+    transition: none;
+  }
 }
 </style>

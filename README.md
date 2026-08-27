@@ -267,7 +267,7 @@ npm run dev
 
 프론트엔드 주소: [http://localhost:5173](http://localhost:5173)
 
-메인 화면의 `Spring Boot API: 연결됨` 문구가 표시되면 프론트엔드와 백엔드 연결이 정상입니다.
+프론트엔드와 백엔드 연결 상태는 `http://localhost:8080/api/health` 응답으로 확인합니다.
 
 ## 7. 테스트와 빌드
 
