@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue'
-import { isNavigationFailure, useRouter } from 'vue-router'
+import { isNavigationFailure, RouterLink, useRouter } from 'vue-router'
 
 import { getMemberEmailCheck } from '@/api/users'
 import { useJoinDraftStore } from '@/stores/joinDraft'
@@ -78,28 +78,31 @@ async function handleContinue() {
 </script>
 
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      <div style="height: 30px; text-align: left;">
-        <button
-          type="button"
-          class="back-button"
-          aria-label="이전 화면으로 이동"
-          @click="goBack"
-        >
-          &lt;
-        </button>
-      </div>
-      <!-- 메인 타이틀 -->
-      <div>
+  <div class="auth-container">
+    <div class="auth-box">
+      <!-- 헤더 및 뒤로가기 버튼 -->
+      <header class="auth-header">
+        <div class="header-top">
+          <button
+            type="button"
+            class="back-button"
+            aria-label="이전 화면으로 이동"
+            @click="goBack"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"/>
+            </svg>
+          </button>
+        </div>
         <h1 class="main-title">
-            나만의 플랜을 계획해보세요<br />
-            <span>회원가입</span>
+          나만의 플랜을 계획해보세요<br />
+          <span>회원가입</span>
         </h1>
-      </div>
-      <!-- 이메일 입력 및 계속하기 폼 -->
-      <form @submit.prevent="handleContinue" class="join-form">
-        <div class="input-container">
+      </header>
+
+      <!-- 회원가입 폼 -->
+      <form class="auth-form" @submit.prevent="handleContinue">
+        <div class="input-group">
           <label class="input-label" for="join-email">이메일</label>
           <input 
             id="join-email"
@@ -110,6 +113,9 @@ async function handleContinue() {
             maxlength="255"
             required
           />
+        </div>
+
+        <div class="input-group">
           <label class="input-label" for="join-password">비밀번호</label>
           <input 
             id="join-password"
@@ -121,192 +127,252 @@ async function handleContinue() {
             maxlength="72"
             required
           />
+        </div>
+
+        <div class="input-group">
           <label class="input-label" for="join-password-confirmation">비밀번호 확인</label>
           <input 
             id="join-password-confirmation"
             type="password" 
             v-model="passwordConfirmation"
-            placeholder="비밀번호를 입력해주세요." 
+            placeholder="비밀번호를 한번 더 입력해주세요." 
             autocomplete="new-password"
             minlength="10"
             maxlength="72"
             required
           />
-          <br/>
-           <!-- 비밀번호 확인란에 입력이 시작되었을 때만 메시지 노출 -->
+          <!-- 비밀번호 확인 상태 문구 -->
           <div
             v-if="passwordConfirmation"
-            class="passwordMatchedDiv"
-            style="margin-top: 5px;"
+            class="password-match-status"
             aria-live="polite"
           >
-            <!-- 일치하지 않을 때 -->
-            <span v-show="!isPasswordMatched" style="color: #ff4d4d; font-size: 14px;">
-              ❌ 비밀번호가 맞지 않습니다.
+            <span v-if="!isPasswordMatched" class="status-mismatch">
+              ❌ 비밀번호가 일치하지 않습니다.
             </span>
-            <!-- 일치할 때 -->
-            <span v-show="isPasswordMatched" style="color: #222573; font-size: 14px;">
+            <span v-else class="status-match">
               ✅ 비밀번호가 일치합니다.
             </span>
           </div>
         </div>
 
-        <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+        <div class="error-container" aria-live="polite">
+          <span v-if="errorMessage" class="error-message" role="alert">
+            {{ errorMessage }}
+          </span>
+        </div>
+
         <button
           type="submit"
-          class="btn-submit"
+          class="btn-primary"
           :disabled="isCheckingEmail"
           :aria-busy="isCheckingEmail"
         >
           {{ isCheckingEmail ? '확인 중...' : '다음으로' }}
         </button>
       </form>
+
+      <!-- 하단 네비게이션 가이드 -->
+      <div class="footer-links">
+        <p class="signup-prompt">
+          이미 계정이 있으신가요? <RouterLink :to="{ name: 'login' }">로그인</RouterLink>
+        </p>
+      </div>
     </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
-.back-button{
-  margin-left: 20px;
-  width: 32px;
-  height: 32px;
-  border: 0;
-  background: transparent;
-  color: #1a1a1a;
-  font-size: 30px;
-  line-height: 1;
-  text-align: center;
-}
-.back-button:hover{
-  cursor: pointer;
-  color: #2383e2;
-}
-
-.back-button:focus-visible,
-.btn-submit:focus-visible {
-  outline: 3px solid rgb(35 131 226 / 35%);
-  outline-offset: 3px;
-}
-
-.passwordMatchedDiv{
-  height: 14px;
-  text-align: center;
-
-}
-// 전체 배경 배치
-.login-container {
+<style scoped>
+.auth-container {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   min-height: 100vh;
-  background-color: #c2410c;
-  padding: 60px 20px;
-  //font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+  background: radial-gradient(circle at 90% 5%, rgb(249 115 22 / 10%), transparent 28rem), var(--color-page, #fafaf9);
+  padding: 40px 20px;
   box-sizing: border-box;
-  backdrop-filter: blur(20px);
 }
 
-// 노션 특유의 슬림하고 중앙 집중된 박스 레이아웃
-.login-box {
-  width: 400px;
-  height: 550px;
-  background-color: #ec8f6b;
+.auth-box {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  padding: 40px 36px;
+  border-radius: 20px;
+  box-shadow: 0 16px 45px rgb(15 23 42 / 6%);
+  box-sizing: border-box;
+}
+
+.auth-header {
+  position: relative;
   text-align: center;
-  box-shadow: 0 10px 30px 5px rgba(0, 0, 0, 0.1), 
-              0 4px 12px 2px rgba(0, 0, 0, 0.1);
-  border-radius: 30px;
-}
-
-
-// 타이틀
-.main-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a1a1a;
-  line-height: 1.3;
-  margin-top: 0;
   margin-bottom: 32px;
-
-  span {
-    color: #6b6b6b;
-    font-size: 20px;
-    font-weight: 500;
-  }
 }
 
-// 이메일 폼 세팅
-.join-form {
-  text-align: left;
-
-  .input-container {
-    margin-bottom: 10px;
-
-    .input-label {
-      display: block;
-      font-size: 12px;
-      color: #6b6b6b;
-      margin-bottom: 6px;
-      margin-left: 20px;
-    }
-
-    input {
-      width: 90%;
-      height: 44px;
-      padding: 0 14px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      font-size: 14px;
-      background-color: #fafafa;
-      box-sizing: border-box;
-      outline: none;
-      transition: border-color 0.15s;
-      text-align: center;
-      margin-left: 20px;
-      &::placeholder {
-        color: #cccccc;
-      }
-
-      &:focus {
-        border-color: #2383e2;
-        background-color: #ffffff;
-      }
-    }
-
-  }
+.header-top {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
 }
 
-// 메인 '계속' 파란색 버튼
-.btn-submit {
-  margin-top: 20px;
-  margin-left: 20px;
-  width: 90%;
-  height: 44px;
-  background-color: #2383e2;
+.back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.back-button:hover {
+  background-color: var(--color-page, #fafaf9);
+  color: var(--color-text, #111827);
+}
+
+.back-button:focus-visible {
+  outline: 2px solid var(--color-brand, #f97316);
+  outline-offset: 2px;
+}
+
+.main-title {
+  margin: 0;
+  color: var(--color-text, #111827);
+  font-size: clamp(22px, 3vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.4;
+}
+
+.main-title span {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-text-muted, #6b7280);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-label {
+  font-size: 13px;
+  color: var(--color-text, #374151);
+  font-weight: 600;
+}
+
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 12px;
+  font-size: 15px;
+  color: var(--color-text, #111827);
+  background: var(--color-page, #fafaf9);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+input[type="email"]:focus,
+input[type="password"]:focus {
+  border-color: var(--color-brand, #f97316);
+  background: var(--color-surface, #ffffff);
+}
+
+.password-match-status {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.status-mismatch {
+  color: var(--color-danger, #ef4444);
+  font-weight: 500;
+}
+
+.status-match {
+  color: #10b981;
+  font-weight: 500;
+}
+
+.error-container {
+  min-height: 20px;
+  text-align: center;
+}
+
+.error-message {
+  color: var(--color-danger, #ef4444);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-primary {
+  display: inline-flex;
+  width: 100%;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-brand, #f97316);
   color: #ffffff;
   border: none;
-  border-radius: 4px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.15s;
-
-  &:hover {
-    background-color: #1a6cb9;
-  }
-
-  &:disabled {
-    cursor: wait;
-    opacity: 0.65;
-  }
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 4px;
 }
 
-.form-error {
-  min-height: 20px;
-  margin: 0 20px 8px;
-  color: #991b1b;
-  font-size: 13px;
-  line-height: 1.5;
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  background: var(--color-text-muted, #9ca3af);
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.footer-links {
+  margin-top: 28px;
   text-align: center;
 }
 
+.signup-prompt {
+  font-size: 14px;
+  color: var(--color-text-muted, #6b7280);
+  margin: 0;
+}
+
+.signup-prompt a {
+  color: var(--color-brand, #f97316);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.signup-prompt a:hover {
+  text-decoration: underline;
+}
 </style>
