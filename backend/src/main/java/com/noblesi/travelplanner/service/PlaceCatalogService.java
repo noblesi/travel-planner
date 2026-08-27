@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.noblesi.travelplanner.common.exception.BusinessException;
 import com.noblesi.travelplanner.domain.place.PlaceCatalogEntry;
+import com.noblesi.travelplanner.integration.kakao.KakaoLocalSearchResult.KakaoPlace;
 import com.noblesi.travelplanner.integration.tourapi.TourApiSearchResult.TourApiPlace;
 import com.noblesi.travelplanner.mapper.PlaceMasterMapper;
 
@@ -14,6 +15,7 @@ import com.noblesi.travelplanner.mapper.PlaceMasterMapper;
 public class PlaceCatalogService {
 
 	static final String TOUR_API_PROVIDER = "TOUR_API";
+	static final String KAKAO_PROVIDER = "KAKAO";
 
 	private final PlaceMasterMapper placeMasterMapper;
 	private final ExternalImageUrlPolicy imageUrlPolicy;
@@ -31,6 +33,25 @@ public class PlaceCatalogService {
 		for (TourApiPlace place : places) {
 			PlaceCatalogEntry entry = new PlaceCatalogEntry(
 					TOUR_API_PROVIDER,
+					place.externalPlaceId(),
+					place.placeType(),
+					place.placeName(),
+					place.categoryName(),
+					place.address(),
+					null,
+					place.latitude(),
+					place.longitude(),
+					imageUrlPolicy.sanitize(place.imageUrl())
+			);
+			upsert(entry);
+		}
+	}
+
+	@Transactional
+	public void rememberKakaoPlaces(Iterable<KakaoPlace> places) {
+		for (KakaoPlace place : places) {
+			PlaceCatalogEntry entry = new PlaceCatalogEntry(
+					KAKAO_PROVIDER,
 					place.externalPlaceId(),
 					place.placeType(),
 					place.placeName(),

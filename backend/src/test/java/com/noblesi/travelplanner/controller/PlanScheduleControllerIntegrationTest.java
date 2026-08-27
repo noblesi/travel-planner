@@ -88,6 +88,29 @@ class PlanScheduleControllerIntegrationTest {
 	}
 
 	@Test
+	void addsKakaoSearchResultToSchedule() throws Exception {
+		insertPlan(1L);
+		insertPlanDay(0);
+		jdbcTemplate.update("""
+				INSERT INTO PLACE_MASTER (
+				    PLACE_PROVIDER, EXTERNAL_PLACE_ID, PLACE_TYPE, PLACE_NAME,
+				    CATEGORY_NAME, ADDRESS, LATITUDE, LONGITUDE, ACTIVE_YN
+				) VALUES ('KAKAO', '10809636', 'TOURIST_INFORMATION', '제주국제공항',
+				          '공항', '제주특별자치도 제주시 공항로 2',
+				          33.5070789578184, 126.492769004244, 'Y')
+				""");
+
+		mockMvc.perform(post(itemsPath())
+					.contentType(MediaType.APPLICATION_JSON)
+					.content(addRequest(ADD_OPERATION_ID, 0, "10809636", "제주국제공항")
+							.replace("\"TOUR_API\"", "\"KAKAO\"")))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.data.editor.days[0].items[0].placeProvider").value("KAKAO"))
+				.andExpect(jsonPath("$.data.editor.days[0].items[0].placeName").value("제주국제공항"))
+				.andExpect(jsonPath("$.data.editor.days[0].items[0].categoryName").value("공항"));
+	}
+
+	@Test
 	void usesServerCatalogWhenClientSnapshotFieldsAreNull() throws Exception {
 		insertPlan(1L);
 		insertPlanDay(0);

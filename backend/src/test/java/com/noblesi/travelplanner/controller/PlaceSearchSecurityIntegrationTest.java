@@ -17,8 +17,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.noblesi.travelplanner.integration.kakao.KakaoLocalClient;
+import com.noblesi.travelplanner.integration.kakao.KakaoLocalSearchResult;
 import com.noblesi.travelplanner.integration.tourapi.TourApiClient;
-import com.noblesi.travelplanner.integration.tourapi.TourApiSearchResult;
+import com.noblesi.travelplanner.mapper.RegionMapper;
 import com.noblesi.travelplanner.service.PlaceCatalogService;
 
 @SpringBootTest(properties = {
@@ -33,10 +35,16 @@ class PlaceSearchSecurityIntegrationTest {
 	private MockMvc mockMvc;
 
 	@MockitoBean
+	private KakaoLocalClient kakaoLocalClient;
+
+	@MockitoBean
 	private TourApiClient tourApiClient;
 
 	@MockitoBean
 	private PlaceCatalogService placeCatalogService;
+
+	@MockitoBean
+	private RegionMapper regionMapper;
 
 	@Test
 	void rejectsAnonymousSearchBeforeCallingExternalPlaceApi() throws Exception {
@@ -45,13 +53,13 @@ class PlaceSearchSecurityIntegrationTest {
 				.andExpect(jsonPath("$.success").value(false))
 				.andExpect(jsonPath("$.code").value("CURRENT_MEMBER_NOT_AVAILABLE"));
 
-		verifyNoInteractions(tourApiClient, placeCatalogService);
+		verifyNoInteractions(kakaoLocalClient, tourApiClient, placeCatalogService, regionMapper);
 	}
 
 	@Test
 	void allowsAuthenticatedMemberSearch() throws Exception {
-		when(tourApiClient.searchKeyword("서울", null, 1, 10))
-				.thenReturn(new TourApiSearchResult(List.of(), 1, 10, 0));
+		when(kakaoLocalClient.searchKeyword("서울", 1, 15))
+				.thenReturn(new KakaoLocalSearchResult(List.of(), 1, 15, 0, false));
 
 		mockMvc.perform(get("/api/places/search")
 					.with(user("member@example.com").roles("MEMBER"))

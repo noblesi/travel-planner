@@ -519,7 +519,7 @@ Status: `200 OK`
 | `days[].items[].scheduleItemId` | `string` | No | 일정 항목 ID |
 | `days[].items[].timeSlot` | `string` | No | `MORNING` 또는 `AFTERNOON` |
 | `days[].items[].positionNo` | `integer` | No | 시간대 안의 1부터 시작하는 표시순서 |
-| `days[].items[].placeProvider` | `string` | No | 장소 제공자, TourAPI는 `TOUR_API` |
+| `days[].items[].placeProvider` | `string` | No | 장소 제공자 (`TOUR_API`, `KAKAO`) |
 | `days[].items[].externalPlaceId` | `string` | No | 외부 장소 ID |
 | `days[].items[].placeName` | `string` | No | 저장 시점 장소명 Snapshot |
 | `days[].items[].categoryName` | `string` | Yes | 저장 시점 카테고리 Snapshot |
@@ -678,14 +678,14 @@ Content-Type: application/json
 }
 ```
 
-일정 추가 전에 `GET /api/places/search`로 장소를 조회해야 합니다. `placeProvider`는 현재 `TOUR_API`만 허용합니다. 서버는 `placeProvider + externalPlaceId`로 `PLACE_MASTER`를 다시 조회하고, 서버가 보관한 장소명·유형·카테고리·주소·좌표·이미지를 `PLAN_SCHEDULE_ITEM` Snapshot으로 저장합니다. Request의 나머지 장소 필드는 하위 호환용이며 썸네일이나 Snapshot 결정에 사용하지 않습니다.
+일정 추가 전에 `GET /api/places/search`로 장소를 조회해야 합니다. `placeProvider`는 기존 TourAPI 장소의 `TOUR_API`와 Kakao Local 장소의 `KAKAO`를 허용합니다. 서버는 `placeProvider + externalPlaceId`로 `PLACE_MASTER`를 다시 조회하고, 서버가 보관한 장소명·유형·카테고리·주소·좌표·이미지를 `PLAN_SCHEDULE_ITEM` Snapshot으로 저장합니다. Request의 나머지 장소 필드는 하위 호환용이며 썸네일이나 Snapshot 결정에 사용하지 않습니다.
 
 | Property | Required | Validation |
 | --- | --- | --- |
 | `operationId` | Yes | UUID |
 | `scheduleVersion` | Yes | 현재 DAY Version, 0 이상 |
 | `timeSlot` | Yes | `MORNING` 또는 `AFTERNOON` |
-| `placeProvider` | Yes | `TOUR_API` |
+| `placeProvider` | Yes | `TOUR_API` 또는 `KAKAO` |
 | `externalPlaceId` | Yes | 1~100자 |
 | `placeName` | No | 하위 호환용, 최대 200자, 서버 값 사용 |
 | `categoryName` | No | 최대 100자 |

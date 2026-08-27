@@ -19,10 +19,16 @@ describe('searchPlaces', () => {
     http.get.mockResolvedValue({ data: { data: result } })
 
     await expect(
-      searchPlaces({ keyword: '  한강  ', regionCode: '1', page: 2, size: 10 }),
+      searchPlaces({
+        keyword: '  한강  ',
+        regionCode: '1',
+        category: '관광지',
+        page: 2,
+        size: 10,
+      }),
     ).resolves.toEqual(result)
     expect(http.get).toHaveBeenCalledWith('/places/search', {
-      params: { keyword: '한강', regionCode: '1', page: 2, size: 10 },
+      params: { keyword: '한강', regionCode: '1', category: '관광지', page: 2, size: 10 },
     })
   })
 

@@ -159,7 +159,7 @@ describe('PlanEditorView', () => {
     expect(wrapper.find('.schedule-panel .invite-panel-link').exists()).toBe(false)
     expect(wrapper.findAll('.day-tab')).toHaveLength(2)
     expect(wrapper.text()).toContain('DAY 1에 등록된 장소가 없습니다.')
-    expect(wrapper.text()).toContain('서울특별시의 관광정보를 TourAPI에서 검색합니다.')
+    expect(wrapper.text()).not.toContain('TourAPI에서 검색합니다.')
     expect(wrapper.get('.editor-skip-link').attributes('href')).toBe('#plan-editor-main')
     expect(wrapper.get('main').attributes()).toMatchObject({
       id: 'plan-editor-main',
