@@ -59,8 +59,15 @@ vi.mock('@/api/places', () => ({
 
 const KakaoMapStub = {
   name: 'KakaoMap',
-  props: ['places', 'selectedPlaceId', 'emptyMessage'],
-  emits: ['select'],
+  props: [
+    'places',
+    'selectedPlaceId',
+    'selectedPlaceDetail',
+    'selectedPlaceExistingTimeSlots',
+    'selectedPlaceAddDisabled',
+    'emptyMessage',
+  ],
+  emits: ['select', 'deselect', 'add'],
   template: '<div class="kakao-map-stub" />',
 }
 
@@ -279,6 +286,33 @@ describe('PlanEditorView', () => {
     expect(wrapper.find('.metadata-editor__form').exists()).toBe(false)
   })
 
+  it('설정 편집기가 열려도 실행 버튼을 유지하고 같은 버튼으로 닫는다', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const metadataButton = wrapper.get('.metadata-editor__open')
+    await metadataButton.trigger('click')
+
+    expect(wrapper.get('.metadata-editor__open').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('.metadata-editor__open').classes()).toContain(
+      'metadata-editor__open--active',
+    )
+    expect(wrapper.find('.metadata-editor__form').exists()).toBe(true)
+
+    await wrapper.get('.metadata-editor__open').trigger('click')
+    expect(wrapper.get('.metadata-editor__open').attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('.metadata-editor__form').exists()).toBe(false)
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    expect(wrapper.get('.date-editor__open').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('.date-editor__open').classes()).toContain('date-editor__open--active')
+    expect(wrapper.find('.date-editor__form').exists()).toBe(true)
+
+    await wrapper.get('.date-editor__open').trigger('click')
+    expect(wrapper.get('.date-editor__open').attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('.date-editor__form').exists()).toBe(false)
+  })
+
   it('뒤로가기 링크는 새 플랜 설정이 아니라 홈으로 이동한다', async () => {
     const wrapper = mountView()
     await flushPromises()
@@ -438,6 +472,9 @@ describe('PlanEditorView', () => {
       },
     ])
     expect(map.props('selectedPlaceId')).toBe('search:TOUR_API:1001')
+    expect(map.props('selectedPlaceDetail')).toEqual(place)
+    expect(wrapper.find('.place-search-drawer').exists()).toBe(true)
+    expect(wrapper.find('.map-overlay').exists()).toBe(false)
     expect(wrapper.text()).toContain('여의도 한강공원')
   })
 
@@ -491,10 +528,7 @@ describe('PlanEditorView', () => {
     await wrapper.get('.place-search-panel__form').trigger('submit')
     await flushPromises()
     await wrapper.get('.place-search-panel__results button').trigger('click')
-    const addButton = wrapper
-      .findAll('.place-detail-card__actions button')
-      .find((button) => button.text().includes('오전에 추가'))
-    await addButton.trigger('click')
+    wrapper.getComponent(KakaoMapStub).vm.$emit('add', { place, timeSlot: 'MORNING' })
     await flushPromises()
 
     expect(addScheduleItemMock).toHaveBeenCalledWith(

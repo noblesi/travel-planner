@@ -68,6 +68,12 @@ vi.mock('@/api/planSearch', () => ({
 
 const EmptyView = defineComponent({ template: '<div />' })
 const RouterHost = defineComponent({ components: { RouterView }, template: '<RouterView />' })
+const KakaoMapStub = defineComponent({
+  name: 'KakaoMap',
+  props: ['places', 'selectedPlaceId'],
+  emits: ['select', 'deselect', 'add'],
+  template: '<div class="map-stub" />',
+})
 
 const baseEditor = {
   plan: {
@@ -130,7 +136,7 @@ async function mountAt(initialRoute) {
       plugins: [createPinia(), router],
       stubs: {
         DefaultLayout: { template: '<main><slot /></main>' },
-        KakaoMap: { props: ['places', 'selectedPlaceId'], template: '<div class="map-stub" />' },
+        KakaoMap: KakaoMapStub,
       },
     },
   })
@@ -279,7 +285,10 @@ describe('여행 플랜 사용자 흐름', () => {
     await wrapper.get('.place-search-panel__form').trigger('submit')
     await flushPromises()
     await wrapper.get('.place-search-panel__results button').trigger('click')
-    await wrapper.get('.place-detail-card__actions button').trigger('click')
+    wrapper.getComponent(KakaoMapStub).vm.$emit('add', {
+      place: { placeProvider: 'TOUR_API', ...place },
+      timeSlot: 'MORNING',
+    })
     await flushPromises()
 
     expect(addScheduleItemMock).toHaveBeenCalledWith(

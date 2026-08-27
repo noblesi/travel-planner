@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue'
 
 import { searchPlaces } from '@/api/places'
-import PlaceDetailCard from '@/components/plan/PlaceDetailCard.vue'
 import { readLocalStorage, writeLocalStorage } from '@/utils/browserStorage'
 
 const props = defineProps({
@@ -18,17 +17,13 @@ const props = defineProps({
     type: [String, Number],
     default: null,
   },
-  scheduleDisabled: {
-    type: Boolean,
-    default: false,
-  },
   scheduleItems: {
     type: Array,
     default: () => [],
   },
 })
 
-const emit = defineEmits(['results-change', 'select', 'add'])
+const emit = defineEmits(['results-change', 'select'])
 
 const PAGE_SIZE = 10
 const keyword = ref('')
@@ -44,11 +39,6 @@ const recentKeywords = ref(loadRecentKeywords())
 let requestSequence = 0
 
 const isLoading = computed(() => status.value === 'loading')
-const selectedPlace = computed(() => {
-  if (props.selectedPlaceId == null) return null
-  const id = String(props.selectedPlaceId)
-  return places.value.find((place) => placeId(place) === id) ?? null
-})
 const categoryOptions = computed(() => [
   'ALL',
   ...new Set(places.value.map((place) => place.categoryName || '기타')),
@@ -294,26 +284,6 @@ watch(
           다음
         </button>
       </nav>
-
-      <section
-        v-if="selectedPlace"
-        class="place-search-panel__selection"
-        aria-labelledby="selected-place-heading"
-      >
-        <header class="place-search-panel__selection-header">
-          <div>
-            <span>SELECTED PLACE</span>
-            <h3 id="selected-place-heading">선택한 장소</h3>
-          </div>
-          <small>일정에 추가할 시간대를 선택하세요.</small>
-        </header>
-        <PlaceDetailCard
-          :place="selectedPlace"
-          :add-disabled="scheduleDisabled"
-          :existing-time-slots="registeredTimeSlots(selectedPlace)"
-          @add="emit('add', { place: selectedPlace, timeSlot: $event })"
-        />
-      </section>
     </template>
   </section>
 </template>
@@ -321,15 +291,12 @@ watch(
 <style scoped>
 .place-search-panel {
   display: flex;
-  max-height: calc(100vh - 138px);
+  height: 100%;
+  min-height: 0;
   flex-direction: column;
   padding: 18px;
   overflow: hidden;
-  border: 1px solid rgb(148 163 184 / 48%);
-  border-radius: 18px;
-  background: rgb(255 255 255 / 96%);
-  box-shadow: 0 18px 48px rgb(15 23 42 / 18%);
-  backdrop-filter: blur(12px);
+  background: #fff;
 }
 
 .place-search-panel__header,
@@ -470,6 +437,8 @@ watch(
 
 .place-search-panel__results {
   display: grid;
+  flex: 1;
+  align-content: start;
   gap: 7px;
   min-height: 0;
   margin: 10px -4px 10px 0;
@@ -568,45 +537,6 @@ watch(
   color: #475569;
   font-size: 12px;
   font-weight: 800;
-}
-
-.place-search-panel__selection {
-  margin: 14px -18px -18px;
-  padding: 13px 18px 18px;
-  border-top: 1px solid #dbe2ea;
-  background: #f8fafc;
-}
-
-.place-search-panel__selection-header {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 9px;
-}
-
-.place-search-panel__selection-header span {
-  color: var(--color-brand);
-  font-size: 8px;
-  font-weight: 850;
-  letter-spacing: 0.12em;
-}
-
-.place-search-panel__selection-header h3 {
-  margin: 2px 0 0;
-  color: #334155;
-  font-size: 14px;
-}
-
-.place-search-panel__selection-header small {
-  color: #94a3b8;
-  font-size: 9px;
-}
-
-.place-search-panel__selection :deep(.place-detail-card) {
-  border-color: #cbd5e1;
-  background: #fff;
-  box-shadow: 0 5px 18px rgb(15 23 42 / 6%);
 }
 
 .sr-only {

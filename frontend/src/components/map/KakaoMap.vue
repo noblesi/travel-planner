@@ -1,6 +1,7 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, onMounted, ref, render, watch } from 'vue'
 
+import PlaceDetailCard from '@/components/plan/PlaceDetailCard.vue'
 import { loadKakaoMapSdk } from '@/utils/kakaoMapSdk'
 
 const props = defineProps({
@@ -12,6 +13,18 @@ const props = defineProps({
     type: [String, Number],
     default: null,
   },
+  selectedPlaceDetail: {
+    type: Object,
+    default: null,
+  },
+  selectedPlaceExistingTimeSlots: {
+    type: Array,
+    default: () => [],
+  },
+  selectedPlaceAddDisabled: {
+    type: Boolean,
+    default: false,
+  },
   emptyMessage: {
     type: String,
     default: '표시할 장소가 없습니다.',
@@ -22,7 +35,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'deselect', 'add'])
 
 const mapContainer = ref(null)
 const status = ref('loading')
@@ -30,6 +43,7 @@ const errorMessage = ref('')
 let mapInstance = null
 let markers = []
 let infoWindow = null
+let infoWindowRoot = null
 let routeLine = null
 
 function finiteCoordinate(value) {
@@ -64,6 +78,10 @@ const normalizedPlaces = computed(() =>
 
 function closeInfoWindow() {
   infoWindow?.close()
+  if (infoWindowRoot) {
+    render(null, infoWindowRoot)
+    infoWindowRoot = null
+  }
 }
 
 function clearMarkers() {
@@ -109,10 +127,41 @@ function renderScheduleRoute(kakao) {
   routeLine.setMap(mapInstance)
 }
 
-function infoWindowContent(place) {
+function simpleInfoWindowContent(place) {
   const content = document.createElement('div')
   content.className = 'kakao-map__info-window'
   content.textContent = place.name
+  return content
+}
+
+function isSelectedDetailPlace(place) {
+  return (
+    props.selectedPlaceDetail &&
+    place.markerSource === 'SEARCH' &&
+    place.id === String(props.selectedPlaceId)
+  )
+}
+
+function infoWindowContent(place) {
+  if (!isSelectedDetailPlace(place)) return simpleInfoWindowContent(place)
+
+  const content = document.createElement('div')
+  content.className = 'kakao-map__detail-window'
+  infoWindowRoot = content
+  render(
+    h(PlaceDetailCard, {
+      place: props.selectedPlaceDetail,
+      addDisabled: props.selectedPlaceAddDisabled,
+      existingTimeSlots: props.selectedPlaceExistingTimeSlots,
+      closable: true,
+      onAdd: (timeSlot) => emit('add', { place: props.selectedPlaceDetail, timeSlot }),
+      onClose: () => {
+        closeInfoWindow()
+        emit('deselect', place.original)
+      },
+    }),
+    content,
+  )
   return content
 }
 
@@ -133,6 +182,7 @@ function showSelectedPlace() {
 }
 
 function openPlaceInfo({ marker, place, position }) {
+  closeInfoWindow()
   infoWindow.setContent(infoWindowContent(place))
   infoWindow.open(mapInstance, marker)
   mapInstance.panTo?.(position)
@@ -210,8 +260,12 @@ async function initializeMap() {
       finiteCoordinate(props.defaultCenter.longitude) ?? 126.978,
     )
     mapInstance = new kakao.maps.Map(mapContainer.value, { center, level: 7 })
-    infoWindow = new kakao.maps.InfoWindow({ removable: true })
+    infoWindow = new kakao.maps.InfoWindow({ removable: false })
     renderMarkers()
+    kakao.maps.event.addListener(mapInstance, 'click', () => {
+      closeInfoWindow()
+      emit('deselect')
+    })
     status.value = 'ready'
   } catch (error) {
     status.value = 'error'
@@ -221,6 +275,15 @@ async function initializeMap() {
 
 watch(normalizedPlaces, renderMarkers)
 watch(() => props.selectedPlaceId, showSelectedPlace)
+watch(
+  () => [
+    props.selectedPlaceDetail,
+    props.selectedPlaceAddDisabled,
+    props.selectedPlaceExistingTimeSlots,
+  ],
+  showSelectedPlace,
+  { deep: true },
+)
 watch(
   () => props.defaultCenter,
   () => {
@@ -352,6 +415,17 @@ onBeforeUnmount(() => {
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+:global(.kakao-map__detail-window) {
+  width: min(360px, calc(100vw - 48px));
+  padding: 2px;
+}
+
+:global(.kakao-map__detail-window .place-detail-card) {
+  border-color: #cbd5e1;
+  background: #fff;
+  box-shadow: 0 14px 36px rgb(15 23 42 / 18%);
 }
 
 @keyframes map-spin {
