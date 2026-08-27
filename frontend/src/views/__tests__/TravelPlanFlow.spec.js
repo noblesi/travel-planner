@@ -234,7 +234,7 @@ describe('여행 플랜 사용자 흐름', () => {
     const { router, wrapper } = await mountAt('/login?redirect=/plans/new')
     await wrapper.get('input[type="email"]').setValue('traveler@example.com')
     await wrapper.get('input[type="password"]').setValue('password123!')
-    await wrapper.get('.login-form').trigger('submit')
+    await wrapper.get('.auth-form').trigger('submit')
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe('plan-setup')
