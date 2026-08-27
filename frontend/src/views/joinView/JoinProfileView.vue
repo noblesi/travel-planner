@@ -86,19 +86,19 @@ async function handleContinue() {
 </script>
 
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      
-      <!-- 메인 타이틀 -->
-      <div>
-        <h1 class="main-title" style="margin-top: 30px;">
-            거의다 왔어요 조금만 더 하면되요.<br />
-            <span>프로필 등록하기</span>
+  <div class="auth-container">
+    <div class="auth-box">
+      <!-- 헤더 -->
+      <header class="auth-header">
+        <h1 class="main-title">
+          거의 다 왔어요 조금만 더 하면 돼요<br />
+          <span>프로필 등록하기</span>
         </h1>
-      </div>
-      <!-- 이메일 입력 및 계속하기 폼 -->
-      <form @submit.prevent="handleContinue" class="login-form">
-        <div class="input-container">
+      </header>
+
+      <!-- 프로필 등록 폼 -->
+      <form class="auth-form" @submit.prevent="handleContinue">
+        <div class="input-group">
           <label class="input-label" for="join-name">이름</label>
           <input 
             id="join-name"
@@ -110,13 +110,14 @@ async function handleContinue() {
             required
           />
         </div>
-        <div class="input-container">
+
+        <div class="input-group">
           <label class="input-label" for="join-birth">생년월일</label>
           <input 
             id="join-birth"
             type="text" 
             v-model="birth" 
-            placeholder="생년월일을 입력해주세요. 예) 20001031" 
+            placeholder="생년월일 8자리 (예: 20001031)" 
             autocomplete="bday"
             inputmode="numeric"
             maxlength="8"
@@ -124,262 +125,249 @@ async function handleContinue() {
             required
           />
         </div>
-        <div class="input-container">
+
+        <div class="input-group">
           <label class="input-label" for="join-phone">전화번호</label>
           <input 
             id="join-phone"
             type="text" 
             v-model="phone" 
-            placeholder="전화번호를 입력해주세요 예) 010-1234-5678" 
+            placeholder="전화번호 (예: 010-1234-5678)" 
             autocomplete="tel"
             inputmode="tel"
             maxlength="20"
             required
           />
         </div>
-        <fieldset class="input-container gender-options">
+
+        <!-- 성별 선택 세그먼트 -->
+        <fieldset class="input-group fieldset-reset">
           <legend class="input-label">성별</legend>
-          <label><input type="radio" name="gender" v-model="gender" value="M" /> 남성</label>
-          <label><input type="radio" name="gender" v-model="gender" value="F" /> 여성</label>
-          <label><input type="radio" name="gender" v-model="gender" value="N" /> 선택안함</label>
+          <div class="gender-options">
+            <label class="gender-option" :class="{ active: gender === 'M' }">
+              <input type="radio" name="gender" v-model="gender" value="M" />
+              <span>남성</span>
+            </label>
+            <label class="gender-option" :class="{ active: gender === 'F' }">
+              <input type="radio" name="gender" v-model="gender" value="F" />
+              <span>여성</span>
+            </label>
+            <label class="gender-option" :class="{ active: gender === 'N' }">
+              <input type="radio" name="gender" v-model="gender" value="N" />
+              <span>선택안함</span>
+            </label>
+          </div>
         </fieldset>
-        <div class="input-container privacy-consent">
-          <input id="join-privacy" type="checkbox" class="input-checkbox" v-model="privacy" />
-          <label for="join-privacy">개인정보 저장에 동의합니다.</label>
+
+        <!-- 개인정보 수집 동의 -->
+        <div class="privacy-consent">
+          <label class="checkbox-label" for="join-privacy">
+            <input id="join-privacy" type="checkbox" class="input-checkbox" v-model="privacy" />
+            <span>개인정보 저장 및 수집에 동의합니다.</span>
+          </label>
         </div>
-        <p v-if="errorMessage" class="form-error" role="alert">{{ errorMessage }}</p>
+
+        <div class="error-container" aria-live="polite">
+          <span v-if="errorMessage" class="error-message" role="alert">
+            {{ errorMessage }}
+          </span>
+        </div>
+
         <button
           type="submit"
-          class="btn-submit"
+          class="btn-primary"
           :disabled="isSubmitting || isRegistrationCompleted"
         >
           {{ isRegistrationCompleted ? '가입 완료' : isSubmitting ? '가입 처리 중...' : '가입하기' }}
         </button>
       </form>
-      
     </div>
   </div>
 </template>
 
-<style lang="scss" scoped>
-// 전체 배경 배치
-.login-container {
+<style scoped>
+.auth-container {
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   min-height: 100vh;
-  background-color: #c2410c;
-  padding: 60px 20px;
-  //font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif;
+  background: radial-gradient(circle at 90% 5%, rgb(249 115 22 / 10%), transparent 28rem), var(--color-page, #fafaf9);
+  padding: 40px 20px;
   box-sizing: border-box;
-  backdrop-filter: blur(20px);
 }
 
-.input-checkbox {
-  margin-right: 10px;
-  transform: scale(1.2);
-  cursor: pointer;
+.auth-box {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e5e7eb);
+  padding: 40px 36px;
+  border-radius: 20px;
+  box-shadow: 0 16px 45px rgb(15 23 42 / 6%);
+  box-sizing: border-box;
 }
 
+.auth-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.main-title {
+  margin: 0;
+  color: var(--color-text, #111827);
+  font-size: clamp(22px, 3vw, 26px);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.4;
+}
+
+.main-title span {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-text-muted, #6b7280);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldset-reset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.input-label {
+  font-size: 13px;
+  color: var(--color-text, #374151);
+  font-weight: 600;
+}
+
+input[type="text"] {
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 12px;
+  font-size: 15px;
+  color: var(--color-text, #111827);
+  background: var(--color-page, #fafaf9);
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+input[type="text"]:focus {
+  border-color: var(--color-brand, #f97316);
+  background: var(--color-surface, #ffffff);
+}
+
+/* 성별 선택 버튼 세그먼트 스타일 */
 .gender-options {
   display: flex;
-  margin-inline: 20px;
-  padding: 0;
-  border: 0;
-  gap: 24px;
-}
-
-.gender-options .input-label {
+  gap: 8px;
   width: 100%;
 }
 
-.gender-options label,
-.privacy-consent label {
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.privacy-consent {
+.gender-option {
+  flex: 1;
   display: flex;
   align-items: center;
-  margin-inline: 20px;
-}
-
-// 노션 특유의 슬림하고 중앙 집중된 박스 레이아웃
-.login-box {
-  width: 400px;
-  height: 550px;
-  background-color: #ec8f6b;
-  text-align: center;
-  box-shadow: 0 10px 30px 5px rgba(0, 0, 0, 0.1), 
-              0 4px 12px 2px rgba(0, 0, 0, 0.1);
-  border-radius: 30px;
-}
-
-
-// 타이틀
-.main-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a1a1a;
-  line-height: 1.3;
-  margin-top: 0;
-  margin-bottom: 32px;
-
-  span {
-    color: #6b6b6b;
-    font-size: 20px;
-    font-weight: 500;
-  }
-}
-
-// 이메일 폼 세팅
-.login-form {
-  text-align: left;
-
-  .input-container {
-    margin-bottom: 10px;
-
-    .input-label {
-      display: block;
-      font-size: 12px;
-      color: #6b6b6b;
-      margin-bottom: 6px;
-      margin-left: 20px;
-    }
-
-    input[type='text'],
-    input[type='button'] {
-      width: 90%;
-      height: 44px;
-      padding: 0 14px;
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      font-size: 14px;
-      background-color: #fafafa;
-      box-sizing: border-box;
-      outline: none;
-      transition: border-color 0.15s;
-      text-align: center;
-      margin-left: 20px;
-      &::placeholder {
-        color: #cccccc;
-      }
-
-      &:focus {
-        border-color: #2383e2;
-        background-color: #ffffff;
-      }
-    }
-
-  }
-}
-
-// 메인 '계속' 파란색 버튼
-.btn-submit {
-  margin-left: 20px;
-  width: 90%;
-  height: 44px;
-  background-color: #2383e2;
-  color: #ffffff;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s;
-
-  &:hover {
-    background-color: #1a6cb9;
-  }
-
-  &:disabled {
-    cursor: wait;
-    opacity: 0.65;
-  }
-}
-
-.btn-submit:focus-visible,
-input:focus-visible {
-  outline: 3px solid rgb(35 131 226 / 35%);
-  outline-offset: 3px;
-}
-
-.form-error {
-  min-height: 20px;
-  margin: 0 20px 8px;
-  color: #991b1b;
-  font-size: 13px;
-  line-height: 1.5;
-  text-align: center;
-}
-
-// 공통 사각형 박스 버튼 스타일
-.card-btn {
-  display: flex;
-  flex-direction: column;
   justify-content: center;
+  height: 44px;
+  background: var(--color-page, #fafaf9);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted, #6b7280);
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  input[type="radio"] {
+    display: none;
+  }
+}
+
+.gender-option.active {
+  background: #fff7ed;
+  border-color: var(--color-brand, #f97316);
+  color: var(--color-brand, #f97316);
+  font-weight: 600;
+}
+
+/* 개인정보 동의 체크박스 */
+.privacy-consent {
+  margin-top: 4px;
+}
+
+.checkbox-label {
+  display: flex;
   align-items: center;
-  height: 68px;
-  border: 1px solid #e3e3e3;
-  border-radius: 6px;
-  background-color: #ffffff;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--color-text, #374151);
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.15s, border-color 0.15s;
-
-  &:hover {
-    background-color: #f7f7f7;
-    border-color: #cccccc;
-  }
-
-  img {
-    width: 20px;
-    height: 20px;
-    margin-bottom: 6px;
-  }
-
-  .emoji-icon {
-    font-size: 18px;
-    margin-bottom: 4px;
-  }
-
-  span {
-    font-size: 12px;
-    color: #1a1a1a;
-    font-weight: 500;
-  }
 }
 
-// 하단 가이드 문구 스타일 영역
-.footer-links {
-  margin-top: 40px;
-
-  a {
-    color: #1a1a1a;
-    text-decoration: underline;
-    &:hover { color: #2383e2; }
-  }
-
-  .signup-prompt {
-    font-size: 14px;
-    color: #6b6b6b;
-    margin-bottom: 10px;
-    
-    a {
-      font-weight: 500;
-    }
-  }
-
-  .terms-text {
-    font-size: 11px;
-    color: #9b9b9b;
-    line-height: 1.6;
-    
-    a {
-      color: #9b9b9b;
-    }
-  }
+.input-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-brand, #f97316);
+  cursor: pointer;
+  margin: 0;
 }
 
+.error-container {
+  min-height: 20px;
+  text-align: center;
+}
+
+.error-message {
+  color: var(--color-danger, #ef4444);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.btn-primary {
+  display: inline-flex;
+  width: 100%;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-brand, #f97316);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 4px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+  background: var(--color-text-muted, #9ca3af);
+  cursor: wait;
+  opacity: 0.7;
+}
 </style>
