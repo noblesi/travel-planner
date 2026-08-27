@@ -12,13 +12,27 @@ defineProps({
     type: Array,
     default: () => [],
   },
+  closable: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-defineEmits(['add'])
+defineEmits(['add', 'close'])
 </script>
 
 <template>
   <article class="place-detail-card">
+    <button
+      v-if="closable"
+      type="button"
+      class="place-detail-card__close"
+      aria-label="선택한 장소 닫기"
+      title="선택 해제"
+      @click="$emit('close')"
+    >
+      <span aria-hidden="true">×</span>
+    </button>
     <img v-if="place.imageUrl" :src="place.imageUrl" :alt="`${place.placeName} 이미지`" />
     <div v-else class="place-detail-card__image-empty" aria-hidden="true">⌖</div>
 
@@ -30,10 +44,18 @@ defineEmits(['add'])
         지도 좌표가 없는 장소입니다.
       </small>
       <div class="place-detail-card__actions" aria-label="선택 장소 일정 추가">
-        <button type="button" :disabled="addDisabled || existingTimeSlots.includes('MORNING')" @click="$emit('add', 'MORNING')">
+        <button
+          type="button"
+          :disabled="addDisabled || existingTimeSlots.includes('MORNING')"
+          @click="$emit('add', 'MORNING')"
+        >
           {{ existingTimeSlots.includes('MORNING') ? '오전 등록됨' : '오전에 추가' }}
         </button>
-        <button type="button" :disabled="addDisabled || existingTimeSlots.includes('AFTERNOON')" @click="$emit('add', 'AFTERNOON')">
+        <button
+          type="button"
+          :disabled="addDisabled || existingTimeSlots.includes('AFTERNOON')"
+          @click="$emit('add', 'AFTERNOON')"
+        >
           {{ existingTimeSlots.includes('AFTERNOON') ? '오후 등록됨' : '오후에 추가' }}
         </button>
       </div>
@@ -43,6 +65,7 @@ defineEmits(['add'])
 
 <style scoped>
 .place-detail-card {
+  position: relative;
   display: grid;
   grid-template-columns: 84px minmax(0, 1fr);
   gap: 12px;
@@ -50,6 +73,36 @@ defineEmits(['add'])
   border: 1px solid var(--color-brand-border);
   border-radius: 14px;
   background: var(--color-brand-soft);
+}
+
+.place-detail-card__close {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  place-items: center;
+  color: #64748b;
+  border: 0;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 12%);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.place-detail-card__close:hover {
+  color: #1e293b;
+  background: #f1f5f9;
+}
+
+.place-detail-card__close:focus-visible {
+  outline: 3px solid var(--color-brand-focus);
+  outline-offset: 2px;
 }
 
 .place-detail-card > img,
@@ -86,6 +139,7 @@ defineEmits(['add'])
   display: block;
   overflow: hidden;
   margin-top: 4px;
+  padding-right: 30px;
   color: #1e293b;
   font-size: 14px;
   text-overflow: ellipsis;

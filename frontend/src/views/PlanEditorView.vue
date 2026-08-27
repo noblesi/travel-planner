@@ -190,8 +190,13 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .editor-page {
+  display: grid;
+  height: 100vh;
+  height: 100dvh;
   min-width: 1180px;
-  min-height: 100vh;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
   color: #172033;
   background: #eef2f7;
 }
@@ -214,7 +219,8 @@ onBeforeUnmount(() => {
 .editor-main {
   display: grid;
   grid-template-columns: var(--schedule-panel-width, 430px) 8px minmax(0, 1fr);
-  min-height: calc(100vh - 106px);
+  min-height: 0;
+  overflow: hidden;
 }
 .editor-main:focus {
   outline: none;
@@ -244,7 +250,7 @@ onBeforeUnmount(() => {
 .editor-state {
   display: grid;
   grid-column: 1 / -1;
-  min-height: calc(100vh - 106px);
+  min-height: 0;
   align-content: center;
   justify-items: center;
   padding: 40px;

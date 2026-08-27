@@ -77,14 +77,10 @@ describe('PlaceSearchPanel', () => {
 
     expect(wrapper.emitted('select').at(-1)).toEqual([place])
     await wrapper.setProps({ selectedPlaceId: 'TOUR_API:1001' })
-    expect(wrapper.get('.place-search-panel__selection').text()).toContain('선택한 장소')
-    expect(wrapper.get('.place-search-panel__selection').text()).toContain('여의도 한강공원')
-    expect(
-      wrapper
-        .get('.place-search-panel__selection')
-        .find('.place-search-panel__pagination')
-        .exists(),
-    ).toBe(false)
+    expect(wrapper.get('.place-search-panel__results button').attributes('aria-pressed')).toBe(
+      'true',
+    )
+    expect(wrapper.find('.place-search-panel__selection').exists()).toBe(false)
   })
 
   it('빈 검색어는 API를 호출하지 않고 Validation 메시지를 표시한다', async () => {
