@@ -91,6 +91,41 @@ class TourApiPlaceEnricherTest {
 		assertThat(result).isEqualTo(kakaoPlace);
 	}
 
+	@Test
+	void returnsUnmatchedTourPlacesAsComplements() {
+		KakaoPlace kakaoPlace = new KakaoPlace(
+				"kakao-3",
+				"제주국제공항",
+				PlaceType.TOURIST_INFORMATION,
+				"공항",
+				"제주특별자치도 제주시",
+				new BigDecimal("33.5070"),
+				new BigDecimal("126.4927"),
+				null
+		);
+		TourApiPlace tourPlace = new TourApiPlace(
+				"tour-3",
+				"성산일출봉",
+				PlaceType.ATTRACTION,
+				"관광지",
+				"제주특별자치도 서귀포시 성산읍",
+				new BigDecimal("33.4582"),
+				new BigDecimal("126.9426"),
+				"https://example.com/seongsan.jpg"
+		);
+		when(tourApiClient.searchKeyword("제주", "39", 1, 100))
+				.thenReturn(tourResult(tourPlace));
+
+		var result = enricher.enrichWithComplements(
+				kakaoResult(kakaoPlace),
+				"제주",
+				"39"
+		);
+
+		assertThat(result.kakaoResult().places()).containsExactly(kakaoPlace);
+		assertThat(result.complementaryTourPlaces()).containsExactly(tourPlace);
+	}
+
 	private KakaoLocalSearchResult kakaoResult(KakaoPlace place) {
 		return new KakaoLocalSearchResult(List.of(place), 1, 10, 1, false);
 	}
