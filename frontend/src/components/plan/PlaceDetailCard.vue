@@ -16,6 +16,10 @@ defineProps({
     type: Boolean,
     default: false,
   },
+  showActions: {
+    type: Boolean,
+    default: true,
+  },
 })
 
 defineEmits(['add', 'close'])
@@ -43,7 +47,11 @@ defineEmits(['add', 'close'])
       <small v-if="place.latitude == null || place.longitude == null">
         지도 좌표가 없는 장소입니다.
       </small>
-      <div class="place-detail-card__actions" aria-label="선택 장소 일정 추가">
+      <div
+        v-if="showActions"
+        class="place-detail-card__actions"
+        aria-label="선택 장소 일정 추가"
+      >
         <button
           type="button"
           :disabled="addDisabled || existingTimeSlots.includes('MORNING')"

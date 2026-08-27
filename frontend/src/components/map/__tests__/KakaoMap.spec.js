@@ -85,6 +85,31 @@ describe('KakaoMap', () => {
     expect(kakaoMock.infoWindow.open).toHaveBeenCalled()
   })
 
+  it('검색 결과에서 선택하지 않은 검색 마커도 클릭하면 상세카드를 표시한다', async () => {
+    const kakaoMock = installKakaoMock()
+    const place = {
+      mapPlaceId: 'search:TOUR_API:1001',
+      markerSource: 'SEARCH',
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '1001',
+      placeName: '여의도 한강공원',
+      categoryName: '관광지',
+      address: '서울 영등포구 여의동로 330',
+      latitude: 37.5284,
+      longitude: 126.934,
+    }
+    const wrapper = mount(KakaoMap, { props: { places: [place] } })
+    await flushPromises()
+
+    kakaoMock.listeners[0].handler()
+
+    const detailContent = kakaoMock.infoWindow.setContent.mock.calls.at(-1)[0]
+    expect(detailContent.className).toBe('kakao-map__detail-window')
+    expect(detailContent.textContent).toContain('여의도 한강공원')
+    expect(kakaoMock.infoWindow.open).toHaveBeenCalled()
+    expect(wrapper.emitted('select')).toEqual([[place]])
+  })
+
   it('선택된 장소의 정보창을 열고 지도 중심을 이동한다', async () => {
     const kakaoMock = installKakaoMock()
     const place = {
@@ -93,14 +118,19 @@ describe('KakaoMap', () => {
       latitude: 37.5796,
       longitude: 126.977,
     }
-    mount(KakaoMap, {
+    const wrapper = mount(KakaoMap, {
       props: { places: [place], selectedPlaceId: 'schedule:301' },
     })
     await flushPromises()
 
+    const detailContent = kakaoMock.infoWindow.setContent.mock.calls.at(-1)[0]
+    expect(detailContent.className).toBe('kakao-map__detail-window')
+    expect(detailContent.textContent).toContain('경복궁')
+    expect(detailContent.querySelector('.place-detail-card__actions')).toBeNull()
     expect(kakaoMock.infoWindow.setContent).toHaveBeenCalled()
     expect(kakaoMock.infoWindow.open).toHaveBeenCalled()
     expect(kakaoMock.map.panTo).toHaveBeenCalled()
+    expect(wrapper.emitted('add')).toBeUndefined()
   })
 
   it('선택한 검색 장소를 마커 위 상세카드로 표시하고 추가와 선택 해제를 전달한다', async () => {
@@ -141,6 +171,36 @@ describe('KakaoMap', () => {
     await flushPromises()
     expect(wrapper.emitted('deselect')).toEqual([[place]])
     expect(kakaoMock.infoWindow.close).toHaveBeenCalled()
+  })
+
+  it('검색 결과에서 장소를 선택하면 정보창을 한 번만 갱신해 상세카드를 표시한다', async () => {
+    const kakaoMock = installKakaoMock()
+    const place = {
+      mapPlaceId: 'search:TOUR_API:1001',
+      markerSource: 'SEARCH',
+      placeProvider: 'TOUR_API',
+      externalPlaceId: '1001',
+      placeName: '여의도 한강공원',
+      categoryName: '관광지',
+      address: '서울 영등포구 여의동로 330',
+      latitude: 37.5284,
+      longitude: 126.934,
+    }
+    const wrapper = mount(KakaoMap, { props: { places: [place] } })
+    await flushPromises()
+    kakaoMock.infoWindow.setContent.mockClear()
+
+    await wrapper.setProps({
+      selectedPlaceId: place.mapPlaceId,
+      selectedPlaceDetail: place,
+    })
+    await flushPromises()
+
+    expect(kakaoMock.infoWindow.setContent).toHaveBeenCalledOnce()
+    const detailContent = kakaoMock.infoWindow.setContent.mock.calls[0][0]
+    expect(detailContent.className).toBe('kakao-map__detail-window')
+    expect(detailContent.textContent).toContain('여의도 한강공원')
+    expect(kakaoMock.infoWindow.open).toHaveBeenCalled()
   })
 
   it('SDK 초기화 실패 시 오류와 재시도 버튼을 표시한다', async () => {
