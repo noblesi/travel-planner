@@ -1,13 +1,18 @@
 # WithTrip (Travel Planner)
 
-여행 일정과 방문 장소, 이동 동선을 함께 관리하는 4인 팀 프로젝트입니다. 사용자 화면은 **Vue 3 SPA**, 사용자 API는 **Spring Boot REST API**로 구현합니다. 관리자 화면은 **Spring MVC + Thymeleaf**로 서버에서 렌더링합니다.
+여행 지역과 기간을 설정하고 관광지·음식점·숙소 등을 검색해 DAY별 여행 일정을 구성하고, 동행자와 공유할 수 있는 **4인 팀 기반 여행 일정 플래너 웹 서비스**입니다.
+
+사용자 화면은 **Vue 3 SPA**, 사용자 API는 **Spring Boot REST API**로 구현하고, 관리자 화면은 **Spring MVC + Thymeleaf**로 서버에서 렌더링합니다. Kakao Local·Kakao Map·TourAPI를 연동해 장소 정보를 제공하고 일정 자동저장, 공개 플랜 탐색, 동행자 초대 기능을 구현했습니다.
 
 > 서비스명 `WithTrip`은 임시명이며 저장소와 백엔드 산출물 이름은 `travel-planner`를 사용합니다.
 
-## 프로젝트 구성
+## 프로젝트 개요
 
-| 영역 | 기술 |
+| 구분 | 내용 |
 | --- | --- |
+| 개발 기간 | 2026.07.13 ~ 2026.08.28 (7주) |
+| 개발 인원 | 4명 |
+| 프로젝트 형태 | 팀 프로젝트 |
 | 사용자 화면 | Vue 3, Vite 8, Vue Router, Pinia, Axios |
 | 관리자 화면 | Spring MVC, Thymeleaf, Spring Security Form Login |
 | 백엔드 | Java 21, Spring Boot 4.0.7, Spring MVC, Spring Security |
@@ -15,7 +20,8 @@
 | 데이터베이스 | Oracle Database |
 | 테스트 | Vitest, JUnit 5, MockMvc |
 | 배포 | AWS EC2 Ubuntu 24.04 LTS, Nginx, Docker Compose, PuTTY 기반 수동 배포 |
-| 문자 인코딩 | UTF-8 |
+
+## 프로젝트 구성
 
 현재 애플리케이션 구조는 다음과 같습니다.
 
@@ -41,7 +47,7 @@ UI 및 데이터 모델 원본은 [설계 자료](docs/README.md)에서 확인�
 
 세부 코딩 규칙과 PR 체크리스트는 [CONTRIBUTING.md](CONTRIBUTING.md)를 확인합니다.
 
-## 현재 구현 범위
+## 주요 구현 기능
 
 - 사용자: 회원가입·로그인·세션, 여행 플랜 생성·편집·삭제·복원, 일정 및 장소 편집, 공개 플랜 검색·상세·좋아요·복사·신고, 협업 초대, 공지 조회
 - 관리자: Form Login, 대시보드, 회원 조회·상태 변경, 공지 작성·수정·삭제, 여행 플랜 조회·추천 규칙 관리, 신고 처리, TourAPI 데이터 화면
